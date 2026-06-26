@@ -4,10 +4,11 @@ import { ArrowLeft, Send, CheckCircle } from 'lucide-react';
 
 interface BulkViewProps {
   onNavigate: (page: ActivePage) => void;
+  onBack: () => void;
   showToast: (msg: string) => void;
 }
 
-export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, showToast }) => {
+export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToast }) => {
   const [name, setName] = useState('');
   const [boutique, setBoutique] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -41,7 +42,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, showToast }) => 
       {/* Top sticky navigation bar */}
       <div className="fixed top-0 left-0 right-0 h-[56px] md:h-[64px] bg-white border-b border-[#E8E0D5] flex items-center px-4 z-50 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
-          onClick={() => onNavigate('landing')}
+          onClick={onBack}
           className="w-10 h-10 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors cursor-pointer animate-scale-100"
         >
           <ArrowLeft className="w-5 h-5 text-[#1A1A1A]" />

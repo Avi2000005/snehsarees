@@ -14,6 +14,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate }) => {
     contact: '',
     message: ''
   });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,26 +44,96 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate }) => {
   return (
     <div className="bg-[#FAF6F0] min-h-screen">
       {/* Sticky Header Navigation Bar */}
-      <header className="sticky top-0 left-0 right-0 h-16 bg-[#7B1C2E] border-b border-[#C9A84C]/30 flex items-center justify-between px-4 md:px-8 z-50 shadow-md">
+      <header className="sticky top-0 left-0 right-0 h-16 bg-[#7B1C2E] border-b border-[#C9A84C]/30 flex items-center justify-between px-6 z-50 shadow-md">
         <div className="font-serif text-xl font-bold text-white tracking-wide cursor-pointer flex items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <div className="w-9 h-9 rounded-full border border-[#C9A84C] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0">
             <img src={logoUrl} alt="Snehsarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
           <span>Sneh<span className="text-[#C9A84C]">sarees</span></span>
         </div>
-        <nav className="flex items-center overflow-x-auto no-scroll gap-4 sm:gap-6 text-[11px] sm:text-xs md:text-sm font-semibold text-white/90 max-w-[70%] sm:max-w-none">
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-[#C9A84C] transition-colors cursor-pointer shrink-0">Home</button>
+
+        {/* Desktop Navigation Links */}
+        <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-white/90">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-[#C9A84C] transition-colors cursor-pointer">Home</button>
           <button onClick={() => {
             const el = document.getElementById('our-story');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }} className="hover:text-[#C9A84C] transition-colors cursor-pointer shrink-0">Our Story</button>
-          <button onClick={() => onNavigate('home')} className="hover:text-[#C9A84C] transition-colors cursor-pointer shrink-0">Shop Now</button>
-          <button onClick={() => onNavigate('knowledge')} className="hover:text-[#C9A84C] transition-colors cursor-pointer shrink-0">Saree Knowledge</button>
+          }} className="hover:text-[#C9A84C] transition-colors cursor-pointer">Our Story</button>
+          <button onClick={() => onNavigate('home')} className="hover:text-[#C9A84C] transition-colors cursor-pointer">Shop Now</button>
+          <button onClick={() => onNavigate('knowledge')} className="hover:text-[#C9A84C] transition-colors cursor-pointer">Saree Knowledge</button>
           <button onClick={() => {
             const el = document.getElementById('contact-us');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }} className="hover:text-[#C9A84C] transition-colors cursor-pointer shrink-0">Contact Us</button>
+          }} className="hover:text-[#C9A84C] transition-colors cursor-pointer">Contact Us</button>
         </nav>
+
+        {/* Mobile Hamburger Button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="flex md:hidden text-white hover:text-[#C9A84C] focus:outline-hidden cursor-pointer"
+          aria-label="Toggle menu"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            {mobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="absolute top-16 left-0 right-0 bg-[#7B1C2E] border-b border-[#C9A84C]/35 shadow-xl flex flex-col md:hidden z-40 animate-fade-in">
+            <button
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setMobileMenuOpen(false);
+              }}
+              className="text-left text-sm font-semibold text-white/90 hover:bg-white/10 px-6 py-3.5 border-b border-white/5 transition-all cursor-pointer"
+            >
+              Home
+            </button>
+            <button
+              onClick={() => {
+                const el = document.getElementById('our-story');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setMobileMenuOpen(false);
+              }}
+              className="text-left text-sm font-semibold text-white/90 hover:bg-white/10 px-6 py-3.5 border-b border-white/5 transition-all cursor-pointer"
+            >
+              Our Story
+            </button>
+            <button
+              onClick={() => {
+                onNavigate('home');
+                setMobileMenuOpen(false);
+              }}
+              className="text-left text-sm font-semibold text-white/90 hover:bg-white/10 px-6 py-3.5 border-b border-white/5 transition-all cursor-pointer"
+            >
+              Shop Now
+            </button>
+            <button
+              onClick={() => {
+                onNavigate('knowledge');
+                setMobileMenuOpen(false);
+              }}
+              className="text-left text-sm font-semibold text-white/90 hover:bg-white/10 px-6 py-3.5 border-b border-white/5 transition-all cursor-pointer"
+            >
+              Saree Knowledge
+            </button>
+            <button
+              onClick={() => {
+                const el = document.getElementById('contact-us');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setMobileMenuOpen(false);
+              }}
+              className="text-left text-sm font-semibold text-white/90 hover:bg-white/10 px-6 py-3.5 transition-all cursor-pointer"
+            >
+              Contact Us
+            </button>
+          </div>
+        )}
       </header>
       {/* Hero Header */}
       <div className="min-h-screen bg-linear-to-br from-[#7B1C2E] via-[#5A1020] to-[#2D0810] flex flex-col items-center justify-center p-8 pt-16 pb-12 text-center relative overflow-hidden">

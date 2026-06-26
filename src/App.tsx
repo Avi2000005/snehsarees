@@ -330,7 +330,7 @@ export default function App() {
         return <ProfileView onNavigate={handleNavigate} showToast={showToast} />;
 
       case 'bulk':
-        return <BulkView onNavigate={handleNavigate} showToast={showToast} />;
+        return <BulkView onNavigate={handleNavigate} onBack={handleBack} showToast={showToast} />;
 
       case 'knowledge':
         return <KnowledgeView onNavigate={handleNavigate} onBack={handleBack} />;
