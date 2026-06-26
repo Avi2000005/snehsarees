@@ -1,0 +1,6 @@
+{
+  "name": "Snehsarees",
+  "description": "Authentic, handcrafted Indian sarees wove directly by artisans, including Banarasi, Kanjivaram, Chanderi, Sambalpuri, Paithani, and Patola weaves.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

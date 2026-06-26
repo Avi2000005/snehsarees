@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+
+  --color-maroon: #7B1C2E;
+  --color-maroon-dark: #5A1020;
+  --color-maroon-light: #9B2840;
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8D08A;
+  --color-ivory: #FAF6F0;
+  --color-ivory-dark: #F0E8DC;
+  --color-[#25D366]: #25D366;
+}
+
+/* Custom design specifications */
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-ivory);
+  color: #1A1A1A;
+}
+
+/* Scrollbar behaviors */
+.no-scroll::-webkit-scrollbar {
+  display: none;
+}
+.no-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.saree-divider {
+  height: 12px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #C9A84C 0px, #C9A84C 3px,
+    transparent 3px, transparent 8px,
+    #7B1C2E 8px, #7B1C2E 10px,
+    transparent 10px, transparent 16px
+  );
+  opacity: 0.35;
+  border-radius: 2px;
+}
+
+/* Vintage Parchment Scroll Texture */
+.parchment-scroll {
+  background-color: #FAF2DF;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(139, 90, 43, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 80% 70%, rgba(123, 28, 46, 0.04) 0%, transparent 50%),
+    linear-gradient(90deg, rgba(139, 90, 43, 0.03) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(139, 90, 43, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 5px 5px, 5px 5px;
+  position: relative;
+  border: 1.5px solid #C9B28F;
+  border-radius: 16px;
+  box-shadow: 
+    inset 0 0 35px rgba(92, 64, 51, 0.12),
+    0 10px 30px -10px rgba(92, 64, 51, 0.1);
+}
+
+.parchment-scroll::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed rgba(92, 64, 51, 0.2);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
