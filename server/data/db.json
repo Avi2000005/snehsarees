@@ -1,0 +1,297 @@
+{
+  "users": [],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Silk",
+      "slug": "silk",
+      "description": "Luxurious handloom silks characterized by rich zari borders, intricate brocades, and heavy drape lines, historically crafted for royalty.",
+      "history": "Silk weaving dates back over 1500 years in India, where weavers under Mughal patronage in Banaras and royal decree in Kanchipuram produced heritage brocades. These sarees were symbol of royalty, gifted during auspicious ceremonies and preserved as legacy heirlooms.",
+      "properties": "Intense luster, heavy thread count, pure mulberry silk threads, woven with gold-dipped silver zari yarns. Naturally thermal regulating and offers a structured, elegant drape.",
+      "care": "Dry clean only  ✦  store wrapped in pure cotton cloth  ✦  air out in shade periodically to protect metal zari threads from tarnishing."
+    },
+    {
+      "id": 2,
+      "name": "Cotton",
+      "slug": "cotton",
+      "description": "Lightweight, breathable handloom cottons woven with organic combed yarns, ideal for everyday luxury and warm climates.",
+      "history": "Rooted in India's handloom freedom movement, Khadi and fine cottons have been spun on spinning wheels for generations. Regions like Sambalpur and Chanderi became world-famous for their gossamer-thin cotton textures.",
+      "properties": "Highly breathable, sweat-absorbing, soft on sensitive skin, organic matte finish, and extremely lightweight drape.",
+      "care": "Gentle hand wash in cold water  ✦  use mild liquid detergent  ✦  starch lightly if crisp drape is desired  ✦  dry in shade."
+    },
+    {
+      "id": 3,
+      "name": "Georgette",
+      "slug": "georgette",
+      "description": "Crinkled flowy sarees woven with highly twisted silk and synthetic yarns, offering a sleek, modern contour.",
+      "history": "Developed in early 20th century France and adopted by Indian weavers, georgette merged Western fluidity with traditional embroideries like Chikankari, Zardozi, and Bandhani.",
+      "properties": "Springy crinkled texture, highly resilient, semi-sheer drape that hugs curves beautifully.",
+      "care": "Dry clean or hand wash gently in cold water  ✦  do not wring or twist  ✦  flat dry to prevent stretching out of shape."
+    },
+    {
+      "id": 4,
+      "name": "Linen",
+      "slug": "linen",
+      "description": "Crafted from natural flax fibers, linen sarees present a rustic, organic texture with contemporary aesthetic appeal.",
+      "history": "Linen is one of the oldest cultivated plant fibers in human history. Indian weavers integrated flax yarn with cotton and silk to create breathable contemporary sarees for modern workplaces.",
+      "properties": "Rustic slub texture, moisture-wicking, stiffer drape, eco-friendly organic fibers.",
+      "care": "Dry clean or gentle hand wash  ✦  iron on high heat while damp to remove natural flax creases."
+    },
+    {
+      "id": 8,
+      "name": "Kotadoria",
+      "slug": "kotadoria",
+      "imageUrl": "",
+      "description": "Kota Doria (also known as Kota Dori) is a unique handloom fabric originating from the town of Kota in Rajasthan, India. Characterized by its weightless feel and square-check patterns called 'khats', it is crafted by weaving a delicate blend of fine cotton threads (for strength and breathability) and pure silk threads (for a subtle, luxurious luster).",
+      "history": "Originating in Mysore, the weavers were brought to Kota by Rao Kishore Singh in the late 17th century. The weave received royal patronage and became synonymous with lightweight Rajasthani summer attire.",
+      "properties": "Distinctive geometric check grid (khat pattern), airy gossamer translucency, extremely light weight, blend of strong cotton and shiny silk.",
+      "care": "Dry clean recommended for first washes  ✦  subsequent wash hand wash gently in cold water with mild detergent  ✦  dry in shade."
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Banarasi Silk Saree",
+      "price": 2499,
+      "fabric": "Silk",
+      "occasion": "Wedding",
+      "colour": "Red",
+      "tags": [
+        "best-seller",
+        "trending"
+      ],
+      "isReel": true,
+      "views": "12.4k",
+      "rating": 4.9,
+      "reviews": 234,
+      "blouse": true,
+      "desc": "A masterpiece of Varanasi's 2000-year-old weaving tradition. Pure mulberry silk with authentic gold zari work featuring classic floral jaal patterns. Each piece takes 3-4 months to hand-weave.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 1
+    },
+    {
+      "id": 2,
+      "name": "Kanjivaram Pure Silk",
+      "price": 3799,
+      "fabric": "Silk",
+      "occasion": "Wedding",
+      "colour": "Deep Pink",
+      "tags": [
+        "best-seller"
+      ],
+      "isReel": false,
+      "rating": 4.8,
+      "reviews": 156,
+      "blouse": true,
+      "desc": "Authentic Kanchipuram silk with temple border design. The korvai technique creates a contrasting border that is woven separately and interlocked with the body for exceptional durability.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 1
+    },
+    {
+      "id": 3,
+      "name": "Chanderi Cotton Saree",
+      "price": 1299,
+      "fabric": "Cotton",
+      "occasion": "Daily Wear",
+      "colour": "Teal",
+      "tags": [
+        "deals",
+        "trending"
+      ],
+      "isReel": true,
+      "views": "8.2k",
+      "rating": 4.7,
+      "reviews": 89,
+      "blouse": false,
+      "desc": "Featherlight Chanderi fabric with delicate coin motifs and sheer texture. Perfect for summer and office wear. Handwoven by artisans in Chanderi, Madhya Pradesh.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 2
+    },
+    {
+      "id": 4,
+      "name": "Paithani Silk Saree",
+      "price": 4599,
+      "fabric": "Silk",
+      "occasion": "Festive",
+      "colour": "Saffron",
+      "tags": [
+        "best-seller",
+        "trending"
+      ],
+      "isReel": true,
+      "views": "15.1k",
+      "rating": 5,
+      "reviews": 67,
+      "blouse": true,
+      "desc": "Maharashtra's pride — a Paithani saree with authentic peacock and lotus motifs woven in pure gold zari. The oblique square design in the body is a hallmark of genuine Paithani.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 1
+    },
+    {
+      "id": 5,
+      "name": "Sambalpuri Ikat Cotton",
+      "price": 1899,
+      "fabric": "Cotton",
+      "occasion": "Daily Wear",
+      "colour": "Royal Blue",
+      "tags": [
+        "deals",
+        "trending"
+      ],
+      "isReel": false,
+      "rating": 4.6,
+      "reviews": 112,
+      "blouse": false,
+      "desc": "GI-tagged Sambalpuri saree with traditional bandha (ikat) technique. Features conch shell and wheel motifs tie-dyed before weaving, creating the characteristic soft-edged tribal patterns.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 2
+    },
+    {
+      "id": 6,
+      "name": "Bandhani Georgette",
+      "price": 999,
+      "fabric": "Georgette",
+      "occasion": "Party",
+      "colour": "Purple",
+      "tags": [
+        "deals"
+      ],
+      "isReel": true,
+      "views": "6.7k",
+      "rating": 4.5,
+      "reviews": 78,
+      "blouse": false,
+      "desc": "Vibrant Rajasthani Bandhani with thousands of tiny resist-dyed dots creating traditional peacock and flower patterns. Lightweight georgette makes it perfect for dancing at celebrations.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 3
+    },
+    {
+      "id": 7,
+      "name": "Patola Double Ikat Silk",
+      "price": 8999,
+      "fabric": "Silk",
+      "occasion": "Wedding",
+      "colour": "Maroon",
+      "tags": [
+        "best-seller"
+      ],
+      "isReel": false,
+      "rating": 4.9,
+      "reviews": 23,
+      "blouse": true,
+      "desc": "A rare collector's piece from Patan, Gujarat. Double ikat means both warp and weft are resist-dyed separately and matched precisely while weaving. A single saree takes 4-6 months.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 1
+    },
+    {
+      "id": 8,
+      "name": "Kashmiri Kani Silk",
+      "price": 5499,
+      "fabric": "Silk",
+      "occasion": "Festive",
+      "colour": "Emerald",
+      "tags": [
+        "trending",
+        "best-seller"
+      ],
+      "isReel": true,
+      "views": "9.8k",
+      "rating": 4.8,
+      "reviews": 45,
+      "blouse": true,
+      "desc": "Handwoven in the valleys of Kashmir using the traditional Kani (needle) technique. The intricate paisley and chinar leaf motifs are woven without a loom, thread by thread — true art.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 1
+    },
+    {
+      "id": 9,
+      "name": "Linen Silk Blend",
+      "price": 2199,
+      "fabric": "Linen",
+      "occasion": "Office",
+      "colour": "Teal",
+      "tags": [
+        "deals",
+        "trending"
+      ],
+      "isReel": false,
+      "rating": 4.6,
+      "reviews": 134,
+      "blouse": false,
+      "desc": "Contemporary linen-silk blend for the modern working woman. Breathable, elegant and wrinkle-resistant. Natural texture with minimalist woven border in contrast colour.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 4
+    },
+    {
+      "id": 10,
+      "name": "Jamdani Muslin Saree",
+      "price": 3299,
+      "fabric": "Cotton",
+      "occasion": "Festive",
+      "colour": "Royal Blue",
+      "tags": [
+        "trending"
+      ],
+      "isReel": true,
+      "views": "11.2k",
+      "rating": 4.7,
+      "reviews": 56,
+      "blouse": false,
+      "desc": "UNESCO-recognised Jamdani from Bengal, woven on a cotton muslin base with supplementary weft patterns. The floating floral motifs appear to be embroidered but are entirely woven.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 2
+    },
+    {
+      "id": 11,
+      "name": "Pochampally Ikat Silk",
+      "price": 2799,
+      "fabric": "Silk",
+      "occasion": "Daily Wear",
+      "colour": "Saffron",
+      "tags": [
+        "deals",
+        "best-seller"
+      ],
+      "isReel": true,
+      "views": "7.3k",
+      "rating": 4.7,
+      "reviews": 98,
+      "blouse": true,
+      "desc": "Telangana's iconic ikat silk with geometric diamond patterns. GI-tagged craft where single ikat technique creates the characteristic smudged-edge effect in warm, earthy tones.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 1
+    },
+    {
+      "id": 12,
+      "name": "Chikankari Cotton Saree",
+      "price": 1599,
+      "fabric": "Cotton",
+      "occasion": "Daily Wear",
+      "colour": "Deep Pink",
+      "tags": [
+        "deals"
+      ],
+      "isReel": false,
+      "rating": 4.5,
+      "reviews": 167,
+      "blouse": false,
+      "desc": "Lucknowi Chikankari embroidery on fine cotton fabric. Delicate white-on-white shadow work and floral embroidery handstitched by artisans of Lucknow's old city.",
+      "image": "",
+      "stock": 10,
+      "categoryId": 2
+    }
+  ],
+  "orders": [],
+  "inquiries": []
+}

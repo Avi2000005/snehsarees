@@ -1,23 +1,26 @@
 import React from 'react';
-import { ArrowLeft, Heart, ShoppingBag } from 'lucide-react';
-import { products } from '../../data';
+import { ArrowLeft, Heart, ShoppingBag, Home } from 'lucide-react';
 import { ActivePage, Product } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 
 interface WishlistViewProps {
   wishlist: number[];
   onNavigate: (page: ActivePage, param?: string) => void;
+  onBack: () => void;
   onToggleWishlist: (id: number) => void;
   onAddToCart: (id: number, colour?: string) => void;
+  productsList: Product[];
 }
 
 export const WishlistView: React.FC<WishlistViewProps> = ({
   wishlist,
   onNavigate,
+  onBack,
   onToggleWishlist,
-  onAddToCart
+  onAddToCart,
+  productsList
 }) => {
-  const wishlistItems = products.filter((p) => wishlist.includes(p.id));
+  const wishlistItems = productsList.filter((p) => wishlist.includes(p.id));
 
   const renderGridCard = (p: Product) => {
     const isTrending = p.tags && p.tags.includes('trending');
@@ -29,7 +32,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
         className="grid-product-card bg-white rounded-xl overflow-hidden shadow-xs border border-[#E8E0D5] cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all"
       >
         <div className="grid-card-img relative h-[190px] md:h-[228px] lg:h-[250px] bg-[#F0E8DC]">
-          <SareeSwatch id={p.id} />
+          <SareeSwatch id={p.id} imageUrl={p.image} />
           {isTrending && (
             <div className="trending-badge absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase">
               TRENDING
@@ -46,16 +49,17 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
           </div>
         </div>
         <div className="grid-card-info p-2.5 md:p-3.5">
-          <div className="grid-product-name font-serif text-sm md:text-base font-semibold text-[#1A1A1A] leading-tight mb-1 line-clamp-2 min-h-[38px]">
+          <div className="grid-product-name font-sans text-sm md:text-base font-bold text-[#111111] leading-tight mb-1 line-clamp-2 min-h-[38px]">
             {p.name}
           </div>
-          <span className="grid-fabric-tag inline-block text-[10px] font-semibold text-[#888888] bg-[#F0E8DC] px-2 py-0.5 rounded-md mb-2">
+          <span className="grid-fabric-tag inline-block text-[10px] font-semibold text-[#222222] bg-[#FAF0E6] border border-[#F0C8A0]/60 px-2 py-0.5 rounded-md mb-2">
             {p.fabric}
           </span>
-          <div className="grid-rating text-[11px] text-[#C9A84C] mb-1">
-            ★★★★★ <span className="text-[#888888] ml-1">({p.reviews})</span>
+          <div className="grid-rating text-[11px] text-amber-500 mb-1">
+            {p.reviews > 0 ? '★'.repeat(Math.round(p.rating || 0)) + '☆'.repeat(5 - Math.round(p.rating || 0)) : '☆☆☆☆☆'}
+            <span className="text-[#333333] font-semibold ml-1">({p.reviews || 0})</span>
           </div>
-          <div className="grid-price text-base font-bold text-[#7B1C2E] mb-2.5 font-sans">
+          <div className="grid-price text-base font-bold text-[#C4601A] mb-2.5 font-sans">
             ₹{p.price.toLocaleString('en-IN')}
           </div>
           <div className="grid-card-btns flex flex-col gap-1.5">
@@ -64,7 +68,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
                 e.stopPropagation();
                 onAddToCart(p.id);
               }}
-              className="grid-cart-btn w-full border border-[#7B1C2E] text-[#7B1C2E] text-[11px] font-semibold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer"
+              className="grid-cart-btn w-full border border-[#C4601A] text-[#C4601A] text-[11px] font-semibold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer"
             >
               Add to Cart
             </button>
@@ -74,7 +78,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
                 onAddToCart(p.id);
                 onNavigate('checkout');
               }}
-              className="grid-buy-btn w-full bg-[#7B1C2E] text-white text-[11px] font-semibold py-1.5 rounded-lg hover:bg-[#9B2840] active:scale-98 transition-transform cursor-pointer"
+              className="grid-buy-btn w-full bg-[#C4601A] text-white text-[11px] font-semibold py-1.5 rounded-lg hover:bg-[#FFF0E8] active:scale-98 transition-transform cursor-pointer"
             >
               Buy Now
             </button>
@@ -90,21 +94,27 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
       <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
           className="va-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
-          onClick={() => onNavigate('home')}
+          onClick={onBack}
         >
           <ArrowLeft className="w-[22px] h-[22px]" />
         </button>
         <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
           My Wishlist
         </div>
-        <div className="w-[34px] md:w-10 h-[34px] md:h-10" /> {/* Spacer */}
+        <button
+          className="text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
+          onClick={() => onNavigate('home')}
+          title="Return to Home Section"
+        >
+          <Home className="w-[22px] h-[22px]" />
+        </button>
       </div>
 
       <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-4 pb-[80px]">
         {wishlistItems.length === 0 ? (
           /* Wishlist Empty placeholder state */
           <div className="wishlist-empty text-center py-16 px-6 max-w-sm mx-auto">
-            <div className="wishlist-empty-icon mb-4 flex justify-center text-maroon opacity-30">
+            <div className="wishlist-empty-icon mb-4 flex justify-center text-primrose opacity-30">
               <Heart className="w-14 h-14" strokeWidth={1.2} />
             </div>
             <h2 className="font-serif text-2xl font-semibold text-[#1A1A1A] mb-2 leading-tight">
@@ -115,7 +125,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
             </p>
             <button
               onClick={() => onNavigate('home')}
-              className="empty-cart-btn bg-[#7B1C2E] text-white px-8 py-3.5 rounded-full text-sm font-semibold hover:bg-[#9B2840]"
+              className="empty-cart-btn bg-[#C4601A] text-white px-8 py-3.5 rounded-full text-sm font-semibold hover:bg-[#FFF0E8]"
             >
               Explore Sarees
             </button>
@@ -130,3 +140,4 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
     </div>
   );
 };
+

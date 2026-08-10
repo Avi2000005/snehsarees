@@ -1,9 +1,10 @@
-import React from 'react';
-import { Menu, Search, ShoppingBag, Eye, Play } from 'lucide-react';
-import { products } from '../../data';
-import { ActivePage, Product } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Menu, Search, ShoppingBag, Eye, Play, Sparkles, ChevronLeft, ChevronRight, Star, Film, MessageSquare, X, User, BookOpen, MapPin, Layers, ShieldCheck, Compass, Feather, Scroll, Sun, HeartHandshake } from 'lucide-react';
+import { ActivePage, Product, Category, OfferBanner, Reel, Review, UserProfile } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
+import { API_URL } from '../../config';
 import logoUrl from '@/assets/logo.jpg';
+import saree3dBg from '../saree_heritage_3d_bg.png';
 
 interface HomeViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -14,6 +15,7 @@ interface HomeViewProps {
   wishlist: number[];
   activeHomeCategory: string;
   onSetCategory: (category: string) => void;
+  user: UserProfile | null;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -24,87 +26,178 @@ export const HomeView: React.FC<HomeViewProps> = ({
   cartCount,
   wishlist,
   activeHomeCategory,
-  onSetCategory
+  onSetCategory,
+  user
 }) => {
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<OfferBanner[]>([]);
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Interactive UI state
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [activeReel, setActiveReel] = useState<Reel | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_URL}/api/products`).then(res => res.json()),
+      fetch(`${API_URL}/api/categories`).then(res => res.json()),
+      fetch(`${API_URL}/api/banners`).then(res => res.json()),
+      fetch(`${API_URL}/api/reels`).then(res => res.json()),
+      fetch(`${API_URL}/api/reviews/recent`).then(res => res.json())
+    ]).then(([prodData, catData, bannerData, reelData, reviewData]) => {
+      setProductsList(prodData || []);
+      setCategories(catData || []);
+      setBanners(bannerData || []);
+      setReels(reelData || []);
+      setReviews(reviewData || []);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Error loading dynamic Home data:', err);
+      setLoading(false);
+    });
+  }, []);
+
+  // Auto-advance banner carousel every 5 seconds
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [banners]);
+
   const getFilteredSarees = () => {
     if (activeHomeCategory === 'all') {
-      return products;
+      return productsList;
     }
-    return products.filter((p) => {
-      if (activeHomeCategory === 'Banarasi') {
-        return p.name.toLowerCase().includes('banarasi');
+    const selectedCategoryObj = categories.find(c => c.slug === activeHomeCategory);
+    return productsList.filter((p) => {
+      if (selectedCategoryObj && p.categoryId === selectedCategoryObj.id) {
+        return true;
       }
-      return p.fabric === activeHomeCategory || p.occasion === activeHomeCategory;
+      return (p.fabric || '').toLowerCase() === activeHomeCategory.toLowerCase();
     });
   };
 
   const filtered = getFilteredSarees();
-  const dealProducts = filtered.filter((p) => p.tags.includes('deals'));
-  const bsProducts = filtered.filter((p) => p.tags.includes('best-seller'));
-  const trendProducts = filtered.filter((p) => p.tags.includes('trending'));
   const reelProducts = filtered.filter((p) => p.isReel);
 
-  const categories = [
-    { id: 'all', label: 'All', icon: (active: boolean) => (
-      <svg className={`w-[22px] h-[22px] ${active ? 'stroke-white' : 'stroke-maroon'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-        <path d="M4 6h16M4 12h16M4 18h16" />
-        <circle cx="4" cy="6" r="1" fill="currentColor" />
-        <circle cx="4" cy="12" r="1" fill="currentColor" />
-        <circle cx="4" cy="18" r="1" fill="currentColor" />
-      </svg>
-    )},
-    { id: 'Silk', label: 'Silk', icon: (active: boolean) => (
-      <svg className={`w-[22px] h-[22px] ${active ? 'stroke-white' : 'stroke-maroon'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-        <path d="M12 2C6 2 3 7 3 12s3 10 9 10 9-5 9-10S18 2 12 2z" />
-        <path d="M12 2c2 4 2 16 0 20M2 12c4 2 16 2 20 0" />
-      </svg>
-    )},
-    { id: 'Cotton', label: 'Cotton', icon: (active: boolean) => (
-      <svg className={`w-[22px] h-[22px] ${active ? 'stroke-white' : 'stroke-maroon'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-        <path d="M12 2a5 5 0 00-5 5c0 2.5 1.5 4.5 3 5.5V20h4v-7.5c1.5-1 3-3 3-5.5a5 5 0 00-5-5z" />
-        <path d="M9 20h6" />
-      </svg>
-    )},
-    { id: 'Banarasi', label: 'Banarasi', icon: (active: boolean) => (
-      <svg className={`w-[22px] h-[22px] ${active ? 'stroke-white' : 'stroke-[#C9A84C]'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-        <path d="M12 3l2 5h5l-4 3 1.5 5L12 13l-4.5 3L9 11 5 8h5z" />
-      </svg>
-    )},
-    { id: 'Wedding', label: 'Wedding', icon: (active: boolean) => (
-      <svg className={`w-[22px] h-[22px] ${active ? 'stroke-white' : 'stroke-maroon'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-        <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402C1 3.147 4.198 1 7.5 1c2.15 0 4.15 1.1 5.5 2.8C14.35 2.1 16.35 1 18.5 1 21.8 1 25 3.147 25 7.191" />
-        <path d="M12 21.593l-1-1" />
-      </svg>
-    )}
-  ];
-
-  const handleViewAllRoute = (sectionKey: string) => {
-    // Determine target based on home active selection
-    // Map section trigger to viewall type parameters
-    const sectionTypes: Record<string, string> = {
-      'deals': 'deals',
-      'new-launches': 'all',
-      'best-sellers': 'best-sellers',
-      'trending': 'trending',
-      'reels': 'reels'
+  const getActiveHeritage = () => {
+    const cat = categories.find((c) => c.slug === activeHomeCategory);
+    if (!cat) return null;
+    return {
+      title: cat.name + " Saree Heritage & Weaves",
+      origin: cat.slug === 'silk' ? 'Banaras & Kanchipuram' : cat.slug === 'cotton' ? 'Chanderi & Sambalpur' : 'Artisanal Weaving Clusters',
+      craft: cat.slug === 'silk' ? 'Handloom Silk Zari Warp' : cat.slug === 'cotton' ? 'Fine Combed Thread Weft' : 'Traditional Handloom',
+      details: cat.description || "Beautiful hand-loomed saree threads crafted with dedication. Learn details on history, fabrics, and borders from our saree knowledge base.",
+      history: cat.history || "Woven under royal patronage for centuries. These sarees reflect generations of craftsmanship passed down to today's handloom artisans.",
+      properties: cat.properties || "Natural breathable textures, elegant zari motifs, and lightweight organic drape lines.",
+      care: cat.care || "Dry clean recommended to preserve golden thread luster. Handle with sneh."
     };
-    onNavigate('viewall', sectionTypes[sectionKey] || 'all');
+  };
+
+  const heritage = getActiveHeritage();
+
+  const scrollToHeritage = () => {
+    setTimeout(() => {
+      const el = document.getElementById('category-heritage-section');
+      if (el) {
+        const yOffset = -150;
+        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      }
+    }, 50);
+  };
+
+  const handleViewAllRoute = (sectionKey?: string) => {
+    onNavigate('viewall', sectionKey === 'reels' ? 'reels' : 'all');
+  };
+
+  const renderCategoryIcon = (slug: string, active: boolean, imageUrl?: string) => {
+    // If admin uploaded a custom image, show it cover-style filling the container
+    if (imageUrl) {
+      return (
+        <img
+          src={imageUrl}
+          alt={slug}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      );
+    }
+
+    const strokeColor = active ? 'stroke-white' : 'stroke-[#C4601A]';
+    if (slug === 'silk') {
+      return (
+        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+          <path d="M12 2C6 2 3 7 3 12s3 10 9 10 9-5 9-10S18 2 12 2z" />
+          <path d="M12 2c2 4 2 16 0 20M2 12c4 2 16 2 20 0" />
+        </svg>
+      );
+    }
+    if (slug === 'cotton') {
+      return (
+        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+          <path d="M12 2a5 5 0 00-5 5c0 2.5 1.5 4.5 3 5.5V20h4v-7.5c1.5-1 3-3 3-5.5a5 5 0 00-5-5z" />
+          <path d="M9 20h6" />
+        </svg>
+      );
+    }
+    if (slug === 'georgette') {
+      return (
+        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+          <path d="M12 3l2 5h5l-4 3 1.5 5L12 13l-4.5 3L9 11 5 8h5z" />
+        </svg>
+      );
+    }
+    if (slug === 'linen') {
+      return (
+        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+          <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402C1 3.147 4.198 1 7.5 1c2.15 0 4.15 1.1 5.5 2.8C14.35 2.1 16.35 1 18.5 1 21.8 1 25 3.147 25 7.191" />
+          <path d="M12 21.593l-1-1" />
+        </svg>
+      );
+    }
+    // Generic fallback category icon
+    return (
+      <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
   };
 
   const renderProductScrollCard = (p: Product, showTrendingBadge: boolean = false) => {
     const favorited = wishlist.includes(p.id);
+    const isOutOfStock = p.stock === 0;
+    const isLowStock = p.stock !== undefined && p.stock > 0 && p.stock <= 3;
 
     return (
       <div
         key={p.id}
-        onClick={() => onNavigate('product', String(p.id))}
-        className="product-card shrink-0 w-[148px] md:w-[188px] lg:w-[210px] bg-white rounded-xl overflow-hidden shadow-xs border border-[#E8E0D5] cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all"
+        onClick={() => !isOutOfStock && onNavigate('product', String(p.id))}
+        className={`product-card shrink-0 w-[148px] md:w-[188px] lg:w-[210px] bg-white rounded-xl overflow-hidden shadow-xs border border-[#E8E0D5] relative transition-all duration-200 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-md hover:-translate-y-0.5'
+          }`}
       >
         <div className="product-card-img relative h-[180px] md:h-[228px] lg:h-[254px] bg-[#F0E8DC]">
-          <SareeSwatch id={p.id} />
+          <SareeSwatch id={p.id} imageUrl={p.image} />
           {showTrendingBadge && (
-            <div className="absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase">
+            <div className="absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase shadow-xs">
               TRENDING
+            </div>
+          )}
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+              <span className="bg-red-700 text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                OUT OF STOCK
+              </span>
+            </div>
+          )}
+          {isLowStock && !isOutOfStock && (
+            <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-md animate-pulse z-10">
+              Only {p.stock} Left!
             </div>
           )}
           <button
@@ -112,29 +205,47 @@ export const HomeView: React.FC<HomeViewProps> = ({
               e.stopPropagation();
               onToggleWishlist(p.id);
             }}
-            className="wishlist-btn absolute top-2 right-2 w-7.5 h-7.5 bg-white/90 rounded-full flex items-center justify-center text-sm z-10 active:scale-120 transition-transform cursor-pointer"
+            className="wishlist-btn absolute top-2 right-2 w-7.5 h-7.5 bg-white/90 rounded-full flex items-center justify-center text-sm z-10 active:scale-120 transition-transform cursor-pointer shadow-xs"
           >
             {favorited ? '♥' : '♡'}
           </button>
         </div>
         <div className="product-card-info p-2.5 md:p-3.5">
-          <div className="product-name font-serif text-[15px] lg:text-[16px] font-bold text-[#1A1A1A] leading-tight mb-1 line-clamp-2 min-h-[38px]">
+          <div className="product-name font-sans text-[14px] lg:text-[15px] font-bold text-[#111111] leading-tight mb-1 line-clamp-2 min-h-[38px]">
             {p.name}
           </div>
-          <div className="product-fabric text-[10px] md:text-xs font-semibold text-[#888888] mb-1.5 line-clamp-1">
+          <div className="product-fabric text-[10px] md:text-xs font-semibold text-[#222222] mb-1.5 line-clamp-1">
             {p.fabric} · {p.occasion}
           </div>
-          <div className="product-price text-[15px] lg:text-[16px] font-extrabold text-[#7B1C2E] mb-2 font-sans">
-            ₹{p.price.toLocaleString('en-IN')}
+          <div className="product-price flex items-center gap-1.5 mb-2 font-sans flex-wrap">
+            {p.discountPrice && p.discountPrice > 0 ? (
+              <>
+                <span className="text-[14px] lg:text-[15px] font-extrabold text-[#C4601A]">
+                  ₹{p.discountPrice.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-gray-600 font-medium line-through">
+                  ₹{p.price.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[9px] font-bold text-emerald-700">
+                  {Math.round(((p.price - p.discountPrice) / p.price) * 100)}% OFF
+                </span>
+              </>
+            ) : (
+              <span className="text-[14px] lg:text-[15px] font-extrabold text-[#C4601A]">
+                ₹{p.price.toLocaleString('en-IN')}
+              </span>
+            )}
           </div>
           <button
+            disabled={isOutOfStock}
             onClick={(e) => {
               e.stopPropagation();
               onAddToCart(p.id);
             }}
-            className="card-buy-btn w-full bg-[#7B1C2E] text-white text-[11px] lg:text-xs font-semibold py-1.5 md:py-2 rounded-lg tracking-wider hover:bg-[#9B2840] transition-colors cursor-pointer"
+            className={`card-buy-btn w-full text-white text-[10px] lg:text-xs font-bold py-1.5 md:py-2 rounded-lg tracking-wider transition-colors cursor-pointer shadow-2xs ${isOutOfStock ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#C4601A] hover:bg-[#FFF0E8]'
+              }`}
           >
-            Add to Cart
+            {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
           </button>
         </div>
       </div>
@@ -152,14 +263,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <Menu className="w-5 h-5 md:w-6 lg:w-6 text-[#1A1A1A]" />
         </button>
 
-        <div className="nav-brand font-serif text-[19px] md:text-[22px] lg:text-[26.4px] font-bold text-[#7B1C2E] tracking-wider text-center flex-1 truncate flex items-center justify-center gap-2">
-          <div className="w-8 h-8 rounded-full border border-[#C9A84C] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0">
-            <img src={logoUrl} alt="Snehsarees Logo" className="w-full h-full object-cover rounded-full" />
+        <div className="nav-brand font-serif text-[19px] md:text-[22px] lg:text-[26.4px] font-bold text-[#C4601A] tracking-wider text-center flex-1 truncate flex items-center justify-center gap-2">
+          <div className="w-8 h-8 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0">
+            <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
-          <span>Snehsarees</span>
+          <span><span className="text-[#C4601A]">Sneh</span> <span className="text-[#E8920E]">Sarees</span></span>
         </div>
 
-        <div className="nav-actions flex items-center gap-1.5 shrink-0">
+        <div className="nav-actions flex items-center gap-1 shrink-0">
           <button
             onClick={() => onNavigate('search')}
             className="nav-btn w-[34px] h-[34px] md:w-10 lg:w-11 lg:h-11 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors cursor-pointer"
@@ -167,24 +278,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <Search className="w-5 h-5 md:w-6 lg:w-6 text-[#1A1A1A]" />
           </button>
 
-          <button
-            onClick={() => onNavigate('cart')}
-            className="nav-btn w-[34px] h-[34px] md:w-10 lg:w-11 lg:h-11 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors relative cursor-pointer"
-          >
-            <ShoppingBag className="w-5 h-5 md:w-6 lg:w-6 text-[#1A1A1A]" />
-            {cartCount > 0 && (
-              <span className="cart-badge absolute -top-0.5 -right-0.5 bg-[#7B1C2E] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                {cartCount > 9 ? '9+' : cartCount}
-              </span>
-            )}
-          </button>
 
-          <button
-            onClick={() => onNavigate('landing')}
-            className="text-[10px] md:text-xs font-bold text-[#7B1C2E] border border-[#7B1C2E] rounded-full px-2 py-1 leading-none hover:bg-[#7B1C2E] hover:text-white transition-all shrink-0 cursor-pointer"
-          >
-            ← Snehsarees
-          </button>
+
+          {user ? (
+            <button
+              onClick={() => onNavigate('profile')}
+              className="nav-btn w-[34px] h-[34px] md:w-10 lg:w-11 lg:h-11 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors cursor-pointer"
+              title="My Profile"
+            >
+              <User className="w-5 h-5 md:w-6 lg:w-6 text-[#1A1A1A]" />
+            </button>
+          ) : (
+            <button
+              onClick={() => onNavigate('auth')}
+              className="text-[#C4601A] hover:bg-[#FFF0E8] text-xs font-bold px-3 py-1.5 rounded-full border border-[#C4601A]/20 transition-all cursor-pointer shrink-0 active:scale-95"
+              title="Login / Register"
+            >
+              Login
+            </button>
+          )}
         </div>
       </div>
 
@@ -193,218 +305,528 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <div className="search-bar-wrap py-2.5 md:py-3 cursor-pointer">
           <div
             onClick={() => onNavigate('search')}
-            className="search-bar w-full bg-[#F0E8DC] border border-[#E8E0D5] rounded-full p-2.5 px-4 flex items-center gap-2.5 focus-within:border-[#7B1C2E] transition-colors md:p-3"
+            className="search-bar w-full bg-[#F0E8DC] border border-[#E8E0D5] rounded-full p-2.5 px-4 flex items-center gap-2.5 focus-within:border-[#C4601A] transition-colors md:p-3"
           >
             <Search className="w-[18px] h-[18px] text-[#888888] shrink-0" />
             <input
               type="text"
-              placeholder="Search for sarees, fabrics, occasions..."
+              placeholder="Search for sarees, fabrics, categories..."
               readOnly
               className="flex-1 bg-transparent border-none outline-none text-sm text-[#1A1A1A] cursor-pointer placeholder-[#888888]"
             />
           </div>
         </div>
 
-        {/* Horizontal Category Tab strip */}
-        <div className="category-strip flex flex-wrap gap-2 md:gap-3 justify-center py-2 pb-3.5">
-          {categories.map((c) => {
-            const active = activeHomeCategory === c.id;
-            return (
-              <div
-                key={c.id}
-                onClick={() => onSetCategory(c.id)}
-                className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
-              >
-                <div
-                  className={`cat-icon w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center shadow-sm border border-[#E8E0D5] transition-all ${
-                    active
-                      ? 'bg-[#7B1C2E] border-[#7B1C2E] scale-95'
-                      : 'bg-white hover:bg-[#FAF6F0] active:scale-95'
-                  }`}
-                >
-                  {c.icon(active)}
-                </div>
-                <div
-                  className={`cat-label text-[10px] md:text-[11px] font-semibold text-center leading-tight transition-colors ${
-                    active ? 'text-[#7B1C2E] font-bold' : 'text-[#4A4A4A] group-hover:text-[#7B1C2E]'
-                  }`}
-                >
-                  {c.label}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Promo discount Banner */}
-        <div className="offers-banner bg-gradient-to-br from-[#7B1C2E] via-[#A0243A] to-[#7B1C2E] rounded-[20px] p-5 md:p-6 lg:p-7 min-h-[110px] md:min-h-[120px] lg:min-h-[148px] flex justify-between items-center relative overflow-hidden my-1 shadow-sm">
-          <div className="banner-text z-10 flex flex-col items-start">
-            <span className="banner-tag text-[9px] md:text-[10px] font-bold text-[#E8D08A] tracking-[0.15em] uppercase mb-1.5">
-              Special Offers
-            </span>
-            <span className="banner-title font-serif text-[20px] md:text-2xl lg:text-3xl font-semibold text-white leading-tight mb-2.5">
-              New Festive Collection Arrived
-            </span>
+        {!user && (
+          <div className="bg-white/90 backdrop-blur-xs rounded-2xl p-4 md:p-5 border border-[#E8E0D5] flex items-center justify-between mb-4 shadow-3xs hover:shadow-2xs transition-shadow">
+            <div className="text-left pr-4">
+              <span className="text-[10px] font-bold text-[#C4601A] uppercase tracking-wider block mb-0.5">Welcome Shopper</span>
+              <p className="text-[11px] md:text-xs text-[#6A6A6A] leading-relaxed max-w-[240px] sm:max-w-md font-medium">
+                Sign in to save items to your wishlist, track recent orders, and access bulk deals.
+              </p>
+            </div>
             <button
-              onClick={() => handleViewAllRoute('deals')}
-              className="banner-btn bg-[#C9A84C] text-[#5A1020] text-[11px] md:text-xs font-bold px-4 py-2 rounded-full cursor-pointer hover:brightness-110 shadow-xs"
+              onClick={() => onNavigate('auth')}
+              className="bg-[#C4601A] hover:bg-[#FFF0E8] text-white hover:text-[#C4601A] border border-transparent hover:border-[#C4601A]/30 text-xs font-bold px-4 py-2 rounded-xl cursor-pointer shadow-xs active:scale-95 transition-all shrink-0"
             >
-              Explore Now
+              Sign In
             </button>
           </div>
-          <div className="banner-emoji font-sans select-none z-10 scale-100 md:scale-110 lg:scale-[1.25]">
-            <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
-              <path
-                d="M20 8c-4 0-8 3-8 8s4 8 8 8h24c4 0 8 3 8 8s-4 8-8 8H12c-4 0-8 3-8 8s4 8 8 8"
-                stroke="rgba(255,255,255,0.7)"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <circle cx="20" cy="16" r="4" fill="#C9A84C" opacity="0.8" />
-              <circle cx="44" cy="32" r="4" fill="#C9A84C" opacity="0.8" />
-              <circle cx="20" cy="48" r="4" fill="#C9A84C" opacity="0.8" />
-            </svg>
-          </div>
-        </div>
+        )}
 
-        {/* Section: Deals */}
-        <div className="section-header flex justify-between items-center py-4 px-0">
-          <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A]">
-            Deals
-          </div>
-          <button
-            onClick={() => handleViewAllRoute('deals')}
-            className="view-all-btn text-[#7B1C2E] text-xs font-semibold py-1 cursor-pointer hover:underline"
-          >
-            View All →
-          </button>
-        </div>
-        <div className="h-scroll flex gap-3 md:gap-3.5 overflow-x-auto pb-3.5 no-scroll">
-          {dealProducts.length > 0 ? (
-            dealProducts.slice(0, 4).map((p) => renderProductScrollCard(p))
-          ) : (
-            <p className="text-xs text-[#888888] italic py-4">No deals found for this category</p>
-          )}
-        </div>
+        {/* Horizontal Category Tab strip with dynamic listings */}
+        {/* Outer: scroll container centered. Inner inline-flex: centered when fits, scrolls left when overflows */}
+        <div
+          className="category-strip-outer w-full overflow-x-auto py-2 pb-3.5 flex justify-center"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <div className="category-strip-inner inline-flex gap-2 md:gap-3 items-center">
 
-        <div className="saree-divider my-2.5" />
-
-        {/* Section: New Launches */}
-        <div className="section-header flex justify-between items-center py-4 px-0">
-          <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A]">
-            New Launches
-          </div>
-          <button
-            onClick={() => handleViewAllRoute('new-launches')}
-            className="view-all-btn text-[#7B1C2E] text-xs font-semibold py-1 cursor-pointer hover:underline"
-          >
-            View All →
-          </button>
-        </div>
-        <div className="h-scroll flex gap-3 md:gap-3.5 overflow-x-auto pb-3.5 no-scroll">
-          {filtered.slice(0, 4).map((p) => renderProductScrollCard(p))}
-        </div>
-
-        <div className="saree-divider my-2.5" />
-
-        {/* Section: Best Sellers */}
-        <div className="section-header flex justify-between items-center py-4 px-0">
-          <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A]">
-            Best Sellers
-          </div>
-          <button
-            onClick={() => handleViewAllRoute('best-sellers')}
-            className="view-all-btn text-[#7B1C2E] text-xs font-semibold py-1 cursor-pointer hover:underline"
-          >
-            View All →
-          </button>
-        </div>
-        <div className="h-scroll flex gap-3 md:gap-3.5 overflow-x-auto pb-3.5 no-scroll">
-          {bsProducts.length > 0 ? (
-            bsProducts.slice(0, 4).map((p) => renderProductScrollCard(p))
-          ) : (
-            <p className="text-xs text-[#888888] italic py-4 font-serif">Out of stock for this category</p>
-          )}
-        </div>
-
-        <div className="saree-divider my-2.5" />
-
-        {/* Section: Trending */}
-        <div className="section-header flex justify-between items-center py-4 px-0">
-          <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A]">
-            Trending
-          </div>
-          <button
-            onClick={() => handleViewAllRoute('trending')}
-            className="view-all-btn text-[#7B1C2E] text-xs font-semibold py-1 cursor-pointer hover:underline"
-          >
-            View All →
-          </button>
-        </div>
-        <div className="h-scroll flex gap-3 md:gap-3.5 overflow-x-auto pb-3.5 no-scroll">
-          {trendProducts.length > 0 ? (
-            trendProducts.slice(0, 4).map((p) => renderProductScrollCard(p, true))
-          ) : (
-            <p className="text-xs text-[#888888] italic py-4 font-serif">No trending sarees in this category</p>
-          )}
-        </div>
-
-        <div className="saree-divider my-2.5" />
-
-        {/* Section: Trending Reels */}
-        <div className="section-header flex justify-between items-center py-4 px-0">
-          <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A]">
-            Trending Reels
-          </div>
-          <button
-            onClick={() => handleViewAllRoute('reels')}
-            className="view-all-btn text-[#7B1C2E] text-xs font-semibold py-1 cursor-pointer hover:underline"
-          >
-            View All →
-          </button>
-        </div>
-        <div className="h-scroll flex gap-3 md:gap-3.5 overflow-x-auto pb-3.5 no-scroll">
-          {reelProducts.length > 0 ? (
-            reelProducts.slice(0, 4).map((p) => (
+            <div
+              onClick={() => onSetCategory('all')}
+              className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+            >
               <div
-                key={p.id}
-                onClick={() => onNavigate('product', String(p.id))}
-                className="reel-card shrink-0 w-[130px] h-[220px] md:w-[148px] md:h-[250px] lg:w-[162px] lg:h-[275px] rounded-xl overflow-hidden relative shadow-md hover:scale-[1.01] transition-transform cursor-pointer"
+                className={`cat-icon w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-sm border border-[#E8E0D5] transition-all ${activeHomeCategory === 'all'
+                  ? 'bg-[#C4601A] border-[#C4601A] scale-95'
+                  : 'bg-white hover:bg-[#FAF6F0] active:scale-95'
+                  }`}
               >
-                <div className="reel-card-img w-full h-full bg-[#922B21]">
-                  <SareeSwatch id={p.id + 3} />
-                </div>
-                <div className="reel-overlay absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                <div className="reel-views absolute top-2 left-2 bg-black/40 text-white text-[10px] font-medium px-2 py-0.75 rounded-full flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5" /> {p.views}
-                </div>
-                <div className="reel-play absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 bg-white/25 backdrop-blur-xs rounded-full flex items-center justify-center">
-                  <Play className="w-4 h-4 fill-white text-white shrink-0" />
-                </div>
-                <div className="reel-info absolute bottom-0 left-0 right-0 p-2.5 flex flex-col">
-                  <div className="reel-name font-serif text-xs font-semibold text-white leading-snug mb-1 line-clamp-2 min-h-[30px]">
-                    {p.name}
-                  </div>
-                  <div className="reel-price text-xs font-bold text-[#E8D08A] mb-1.5">
-                    ₹{p.price.toLocaleString('en-IN')}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToCart(p.id);
-                    }}
-                    className="reel-buy text-[10px] font-semibold text-white border border-white/60 py-1 px-2 mb-1.5 rounded-full inline-block text-center hover:bg-white hover:text-black hover:border-white transition-all cursor-pointer"
+                <svg className={`w-[22px] h-[22px] ${activeHomeCategory === 'all' ? 'stroke-white' : 'stroke-[#C4601A]'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </div>
+              <div className={`cat-label text-[9px] md:text-[10px] font-semibold text-center leading-tight ${activeHomeCategory === 'all' ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A]'}`}>
+                All
+              </div>
+            </div>
+
+            {categories.map((c) => {
+              const active = activeHomeCategory === c.slug;
+              const hasImage = !!c.imageUrl;
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => onSetCategory(c.slug)}
+                  className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+                >
+                  <div
+                    className={`cat-icon w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-sm border transition-all overflow-hidden ${active
+                      ? hasImage
+                        ? 'border-[#C4601A] ring-2 ring-[#C4601A]/30 scale-95'
+                        : 'bg-[#C4601A] border-[#C4601A] scale-95'
+                      : hasImage
+                        ? 'border-[#E8E0D5] hover:border-gray-400 active:scale-95'
+                        : 'bg-white border-[#E8E0D5] hover:bg-[#FAF6F0] active:scale-95'
+                      }`}
                   >
-                    Add to Cart
+                    {renderCategoryIcon(c.slug, active, c.imageUrl)}
+                  </div>
+                  <div className={`cat-label text-[9px] md:text-[10px] font-semibold text-center leading-tight ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
+                    {c.name}
+                  </div>
+                </div>
+              );
+            })}
+
+          </div>
+        </div>
+        {/* Dynamic Offer Banners Carousel */}
+        {banners.length > 0 ? (
+          <div 
+            onClick={() => {
+              if (banners[currentBannerIndex].imageUrl) {
+                handleViewAllRoute(banners[currentBannerIndex].ctaLink || 'deals');
+              }
+            }}
+            className={`relative rounded-[20px] overflow-hidden my-1 shadow-sm transition-all duration-500 min-h-[130px] md:min-h-[165px] lg:min-h-[190px] ${
+              banners[currentBannerIndex].imageUrl ? 'cursor-pointer hover:brightness-95' : ''
+            }`}
+            style={{
+              background: banners[currentBannerIndex].imageUrl
+                ? `url(${banners[currentBannerIndex].imageUrl}) center/cover no-repeat`
+                : `linear-gradient(135deg, ${banners[currentBannerIndex].bgFrom || '#C4601A'}, ${banners[currentBannerIndex].bgTo || '#D4A017'})`
+            }}
+          >
+            {!banners[currentBannerIndex].imageUrl ? (
+              <div className="p-5 md:p-6 lg:p-7 flex justify-between items-center relative z-10 w-full">
+                <div className="banner-text flex flex-col items-start max-w-[70%]">
+                  {banners[currentBannerIndex].badgeText && (
+                    <span className="banner-tag text-[9px] md:text-[10px] font-bold text-[#FFF8EC] tracking-[0.15em] uppercase mb-1.5">
+                      {banners[currentBannerIndex].badgeText}
+                    </span>
+                  )}
+                  <span className="banner-title font-serif text-[18px] md:text-2xl lg:text-3xl font-semibold text-white leading-tight mb-2.5">
+                    {banners[currentBannerIndex].title}
+                  </span>
+                  {banners[currentBannerIndex].subtitle && (
+                    <p className="text-[10px] md:text-xs text-white/80 mb-3 line-clamp-1">{banners[currentBannerIndex].subtitle}</p>
+                  )}
+                  <button
+                    onClick={() => handleViewAllRoute(banners[currentBannerIndex].ctaLink || 'deals')}
+                    className="banner-btn bg-[#F5E4BC] text-[#7A2F08] text-[10px] md:text-xs font-bold px-4 py-2 rounded-full cursor-pointer hover:brightness-110 shadow-xs transition-transform hover:scale-[1.02]"
+                  >
+                    {banners[currentBannerIndex].ctaText || 'Explore Now'}
+                  </button>
+                </div>
+                <div className="banner-emoji font-sans select-none z-10 scale-100 md:scale-110 lg:scale-[1.25]">
+                  <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
+                    <path d="M20 8c-4 0-8 3-8 8s4 8 8 8h24c4 0 8 3 8 8s-4 8-8 8H12c-4 0-8 3-8 8s4 8 8 8" stroke="rgba(255,255,255,0.7)" strokeWidth="3" strokeLinecap="round" />
+                    <circle cx="20" cy="16" r="4" fill="#F5E4BC" opacity="0.8" />
+                    <circle cx="44" cy="32" r="4" fill="#F5E4BC" opacity="0.8" />
+                    <circle cx="20" cy="48" r="4" fill="#F5E4BC" opacity="0.8" />
+                  </svg>
+                </div>
+              </div>
+            ) : (
+              /* Clickable image banner indicator hit area overlay */
+              <div className="absolute inset-0 z-10 flex items-end p-4 md:p-5 lg:p-6">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewAllRoute(banners[currentBannerIndex].ctaLink || 'deals');
+                  }}
+                  className="bg-[#C4601A] hover:bg-[#a84e15] active:scale-[0.98] text-white text-[10px] md:text-xs font-bold px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-md transition-all uppercase tracking-wider cursor-pointer"
+                >
+                  {banners[currentBannerIndex].ctaText || 'Explore Now'}
+                </button>
+              </div>
+            )}
+
+            {/* Carousel navigation controls */}
+            {banners.length > 1 && (
+              <>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentBannerIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white cursor-pointer z-20"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-white cursor-pointer z-20"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+                  {banners.map((_, i) => (
+                    <button 
+                      key={i} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentBannerIndex(i);
+                      }} 
+                      className={`w-1.5 h-1.5 rounded-full transition-colors ${currentBannerIndex === i ? 'bg-white' : 'bg-white/45'}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="offers-banner brand-gradient rounded-[20px] p-5 md:p-6 lg:p-7 min-h-[110px] md:min-h-[120px] lg:min-h-[148px] flex justify-between items-center relative overflow-hidden my-1 shadow-sm">
+            <div className="banner-text z-10 flex flex-col items-start">
+              <span className="banner-tag text-[9px] md:text-[10px] font-bold text-[#FFF8EC] tracking-[0.15em] uppercase mb-1.5">Special Offers</span>
+              <span className="banner-title font-serif text-[20px] md:text-2xl lg:text-3xl font-semibold text-white leading-tight mb-2.5">New Festive Collection Arrived</span>
+              <button onClick={() => handleViewAllRoute('deals')} className="banner-btn bg-[#F5E4BC] text-[#7A2F08] text-[11px] md:text-xs font-bold px-4 py-2 rounded-full cursor-pointer hover:brightness-110 shadow-xs">Explore Now</button>
+            </div>
+            <div className="banner-emoji font-sans select-none z-10 scale-100 md:scale-110 lg:scale-[1.25]">
+              <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
+                <path d="M20 8c-4 0-8 3-8 8s4 8 8 8h24c4 0 8 3 8 8s-4 8-8 8H12c-4 0-8 3-8 8s4 8 8 8" stroke="rgba(255,255,255,0.7)" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="20" cy="16" r="4" fill="#F5E4BC" opacity="0.8" /><circle cx="44" cy="32" r="4" fill="#F5E4BC" opacity="0.8" /><circle cx="20" cy="48" r="4" fill="#F5E4BC" opacity="0.8" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Spinner */}
+        {loading && (
+          <div className="w-full py-20 flex items-center justify-center text-xs text-gray-500 gap-2">
+            <div className="w-4 h-4 border-2 border-[#C4601A] border-t-transparent rounded-full animate-spin" />
+            Syncing saree catalog...
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            {/* === SPECIFIC CATEGORY VIEW: show ALL products in that category === */}
+            {activeHomeCategory !== 'all' && (
+              <div className="mb-6">
+                <div className="section-header flex justify-between items-center py-4 px-0">
+                  <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A] capitalize">
+                    {categories.find(c => c.slug === activeHomeCategory)?.name || activeHomeCategory} Collection
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {heritage && (
+                      <button
+                        onClick={scrollToHeritage}
+                        className="flex items-center gap-1 bg-[#FFF0E8] hover:bg-[#C4601A]/10 text-[#C4601A] border border-[#C4601A]/20 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all cursor-pointer shadow-3xs shrink-0"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        Weave Heritage
+                      </button>
+                    )}
+                    <span className="text-xs text-[#888888] font-medium shrink-0">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+
+                {filtered.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                    {filtered.map((p) => renderProductScrollCard(p))}
+                  </div>
+                ) : (
+                  <div className="w-full py-14 flex flex-col items-center justify-center gap-3 text-center bg-white/50 rounded-2xl border border-[#E8E0D5]/50 p-6">
+                    <div className="text-3xl">🪡</div>
+                    <div className="font-serif text-base text-[#C4601A] font-semibold">No sarees yet in this category</div>
+                    <div className="text-xs text-[#888888]">The admin hasn't added any sarees here yet. Check back soon!</div>
+                  </div>
+                )}
+
+                {/* Weave Heritage dynamic section (Modern Editorial 3D Saree Spread Style) */}
+                {heritage && (
+                  <div
+                    id="category-heritage-section"
+                    className="scroll-mt-36 md:scroll-mt-44 mt-12 rounded-3xl p-6 pt-12 md:p-10 md:pt-14 border border-[#F0C8A0] relative overflow-hidden shadow-2xl text-left bg-gradient-to-br from-[#FFF6EE] via-[#FDE8D7] to-[#F7D5BA] animate-fade-in"
+                  >
+                    {/* Subtle layered Kota Doria Khat-check background pattern */}
+                    <div className="absolute inset-0 opacity-[0.05] pointer-events-none select-none">
+                      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <pattern id="khat-check-pattern-home" width="32" height="32" patternUnits="userSpaceOnUse">
+                            <path d="M 0 32 L 32 32 M 32 0 L 32 32" fill="none" stroke="#C4601A" strokeWidth="1" />
+                            <path d="M 0 16 L 32 16 M 16 0 L 16 32" fill="none" stroke="#C4601A" strokeWidth="0.5" strokeDasharray="2 2" />
+                            <circle cx="16" cy="16" r="1.5" fill="#C4601A" opacity="0.5" />
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#khat-check-pattern-home)" />
+                      </svg>
+                    </div>
+
+                    {/* High-Performance 3D Saree Fabric Background Artwork */}
+                    <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 pointer-events-none select-none opacity-20 md:opacity-25 overflow-hidden">
+                      <img src={saree3dBg} alt="3D Saree Fabric Texture" className="w-full h-full object-cover object-right" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#FFF6EE] via-[#FDE8D7]/80 to-transparent" />
+                    </div>
+
+                    {/* Corner ambient glow */}
+                    <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-br from-[#E8920E]/25 to-[#C4601A]/30 rounded-full blur-3xl pointer-events-none" />
+
+                    <div className="relative z-10">
+                      {/* Eyebrow badge */}
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFF0E8] border border-[#F0C8A0]/60 text-[#C4601A] text-[10px] font-bold uppercase tracking-widest mb-3 shadow-2xs">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Weaving Heritage & Craft</span>
+                      </div>
+
+                      {/* Editorial Title */}
+                      <h3 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-[#7A2F08] mb-2 leading-tight">
+                        {heritage.title}
+                      </h3>
+
+                      {/* Accent line */}
+                      <div className="w-16 h-1 bg-gradient-to-r from-[#C4601A] to-[#E8920E] rounded-full mb-6" />
+
+                      {/* Icon-led Info Cards Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div className="bg-white/95 backdrop-blur-xs p-4 rounded-xl border border-[#F0C8A0]/60 shadow-xs flex items-center gap-3.5 hover:shadow-md transition-shadow">
+                          <div className="w-10 h-10 rounded-full bg-[#FFF0E8] border border-[#F0C8A0] flex items-center justify-center text-[#C4601A] shrink-0">
+                            <Compass className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider">Region of Origin</span>
+                            <span className="text-xs md:text-sm font-bold text-[#1A1A1A]">{heritage.origin}</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/95 backdrop-blur-xs p-4 rounded-xl border border-[#F0C8A0]/60 shadow-xs flex items-center gap-3.5 hover:shadow-md transition-shadow">
+                          <div className="w-10 h-10 rounded-full bg-[#FFF0E8] border border-[#F0C8A0] flex items-center justify-center text-[#C4601A] shrink-0">
+                            <Feather className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider">Weave Technique</span>
+                            <span className="text-xs md:text-sm font-bold text-[#1A1A1A]">{heritage.craft}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pull-quote Intro Description */}
+                      {heritage.details && (
+                        <div className="border-l-3 border-[#C4601A] pl-4 py-2.5 my-6 bg-[#FFF0E8]/70 backdrop-blur-xs rounded-r-xl border-t border-b border-r border-[#F0C8A0]/40">
+                          <p className="text-sm md:text-base text-[#7A2F08] font-serif italic leading-relaxed">
+                            "{heritage.details}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Three Lower Sections with left-border accents and subtle hover lift */}
+                      <div className="space-y-4">
+                        {/* Section 1: Chronology & History */}
+                        {heritage.history && (
+                          <div className="bg-white/95 backdrop-blur-xs p-5 rounded-xl border border-[#E8E0D5] border-l-4 border-l-[#C4601A] shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-[#C4601A]/40 transition-all duration-200">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <Scroll className="w-4 h-4 text-[#C4601A]" />
+                              <span className="text-xs font-bold text-[#C4601A] uppercase tracking-wider">
+                                Chronology & History
+                              </span>
+                            </div>
+                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed font-serif">
+                              {heritage.history}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Section 2: Saree Properties */}
+                        {heritage.properties && (
+                          <div className="bg-white/95 backdrop-blur-xs p-5 rounded-xl border border-[#E8E0D5] border-l-4 border-l-[#E8920E] shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-[#E8920E]/40 transition-all duration-200">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <Sun className="w-4 h-4 text-[#E8920E]" />
+                              <span className="text-xs font-bold text-[#E8920E] uppercase tracking-wider">
+                                Saree Properties & Weaving
+                              </span>
+                            </div>
+                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed">
+                              {heritage.properties}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Section 3: Saree Care & Preservation */}
+                        {heritage.care && (
+                          <div className="bg-white/95 backdrop-blur-xs p-5 rounded-xl border border-[#E8E0D5] border-l-4 border-l-[#7A2F08] shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-[#7A2F08]/40 transition-all duration-200">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <HeartHandshake className="w-4 h-4 text-[#7A2F08]" />
+                              <span className="text-xs font-bold text-[#7A2F08] uppercase tracking-wider">
+                                Saree Care & Preservation
+                              </span>
+                            </div>
+                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed">
+                              {heritage.care}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* === ALL VIEW: unified product grid === */}
+            {activeHomeCategory === 'all' && (
+              <>
+                {filtered.length > 0 ? (
+                  <div className="mb-6">
+                    <div className="section-header flex justify-between items-center py-4 px-0">
+                      <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#111111]">
+                        Our Saree Collection
+                      </div>
+                      <span className="text-xs text-[#333333] font-bold">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                      {filtered.map((p) => renderProductScrollCard(p))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full py-16 text-center text-[#888888] font-serif text-sm">
+                    No sarees found matching this category.
+                  </div>
+                )}
+
+                {/* Section: Recent Customer Reviews */}
+                {reviews.length > 0 && (
+                  <div className="mb-4">
+                    <div className="section-header flex justify-between items-center py-4 px-0">
+                      <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A] flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-[#C4601A]" /> Customer Love
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-500">Verified buyers reviews</span>
+                    </div>
+                    <div className="h-scroll flex gap-4 overflow-x-auto pb-4 no-scroll">
+                      {reviews.map((r) => (
+                        <div
+                           key={r.id}
+                           onClick={() => r.productId && onNavigate('product', String(r.productId))}
+                           className="shrink-0 w-[240px] md:w-[280px] bg-white rounded-2xl p-4 border border-[#E8E0D5] flex flex-col justify-between shadow-3xs cursor-pointer hover:shadow-xs hover:border-[#C4601A]/30 transition-all"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-bold text-[#1a1a1a] text-xs">{r.userName}</span>
+                              <div className="flex text-amber-500">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star key={i} className={`w-3.5 h-3.5 ${i < r.rating ? 'fill-amber-500' : 'text-gray-300'}`} />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-gray-600 italic line-clamp-3 mb-2 font-serif">"{r.body}"</p>
+                          </div>
+                          <div className="border-t border-gray-100 pt-2 flex items-center justify-between">
+                            <span className="text-[9px] text-[#888888] font-semibold truncate max-w-[70%]">Saree: {r.productName}</span>
+                            {r.isVerified && <span className="bg-emerald-50 text-emerald-700 text-[8px] font-bold px-1.5 py-0.5 rounded">Verified</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Reel Video Player Modal */}
+      {activeReel && (
+        <div className="fixed inset-0 bg-[#1A1A1A]/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-[380px] w-full border border-[#E8E0D5] overflow-hidden relative shadow-2xl flex flex-col h-[85vh] max-h-[640px]">
+            {/* Close Button */}
+            <button
+              onClick={() => setActiveReel(null)}
+              className="absolute right-3.5 top-3.5 p-1.5 bg-black/60 hover:bg-black/85 rounded-full text-white cursor-pointer z-25"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Video Container */}
+            <div className="flex-1 bg-black relative flex items-center justify-center overflow-hidden">
+              {activeReel.videoUrl.includes('youtube.com') || activeReel.videoUrl.includes('youtu.be') ? (
+                <iframe
+                  src={activeReel.videoUrl.replace('watch?v=', 'embed/').split('&')[0] + '?autoplay=1&mute=0&controls=1'}
+                  title="Reel video"
+                  className="w-full h-full aspect-video border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={activeReel.videoUrl}
+                  autoPlay
+                  controls
+                  loop
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              )}
+            </div>
+
+            {/* Product Purchase Overlay Details */}
+            {activeReel.product && (
+              <div className="p-4 bg-white border-t border-[#E8E0D5] flex gap-3.5 items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-13 rounded-lg overflow-hidden border border-[#E8E0D5] shrink-0 bg-[#F0E8DC]">
+                    <img src={activeReel.product.image} alt={activeReel.product.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block font-serif text-xs font-bold text-[#1A1A1A] truncate">{activeReel.product.name}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {activeReel.product.discountPrice ? (
+                        <>
+                          <span className="text-xs font-extrabold text-[#C4601A]">₹{activeReel.product.discountPrice.toLocaleString('en-IN')}</span>
+                          <span className="text-[10px] text-gray-400 line-through">₹{activeReel.product.price.toLocaleString('en-IN')}</span>
+                        </>
+                      ) : (
+                        <span className="text-xs font-extrabold text-[#C4601A]">₹{activeReel.product.price.toLocaleString('en-IN')}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button
+                    onClick={() => {
+                      if (activeReel.product) {
+                        onAddToCart(activeReel.product.id);
+                        setActiveReel(null);
+                      }
+                    }}
+                    className="bg-[#C4601A] hover:bg-[#FFF0E8] text-white text-[10px] font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Buy This Look
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (activeReel.product) {
+                        onNavigate('product', String(activeReel.product.id));
+                        setActiveReel(null);
+                      }
+                    }}
+                    className="text-[9px] font-bold text-gray-500 hover:text-[#C4601A] text-center"
+                  >
+                    View Details
                   </button>
                 </div>
               </div>
-            ))
-          ) : (
-            <p className="text-xs text-[#888888] italic py-4">No reels found for this category</p>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
+

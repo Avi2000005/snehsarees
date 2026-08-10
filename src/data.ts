@@ -1,4 +1,4 @@
-import { Product, ChatReply } from './types';
+﻿import { Product, ChatReply } from './types';
 
 export const SAREE_COLORS = [
   { name: 'Red', hex: '#C0392B' },
@@ -8,14 +8,14 @@ export const SAREE_COLORS = [
   { name: 'Purple', hex: '#6C3483' },
   { name: 'Saffron', hex: '#E67E22' },
   { name: 'Teal', hex: '#138D75' },
-  { name: 'Maroon', hex: '#7B1C2E' }
+  { name: 'Maroon', hex: '#C4601A' }
 ];
 
 export const SAREE_GRADIENTS = [
   'linear-gradient(135deg,#C0392B,#922B21)',
   'linear-gradient(135deg,#1A5276,#2980B9)',
   'linear-gradient(135deg,#1E8449,#27AE60)',
-  'linear-gradient(135deg,#7B1C2E,#C9A84C)',
+  'linear-gradient(135deg,#C4601A,#F5E4BC)',
   'linear-gradient(135deg,#6C3483,#A569BD)',
   'linear-gradient(135deg,#E67E22,#F39C12)',
   'linear-gradient(135deg,#138D75,#76D7C4)',
@@ -206,7 +206,7 @@ export const products: Product[] = [
 
 export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
   greet: {
-    msg: 'Namaste! 🙏 Welcome to Snehsarees. How can I help you today?',
+    msg: 'Namaste! 🙏 Welcome to Sneh Sarees. How can I help you today?',
     replies: ['Browse Sarees', 'Track my Order', 'Delivery Info', 'Contact Us']
   },
   browse: {
@@ -234,7 +234,7 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
     replies: ['Back to Menu']
   },
   contact: {
-    msg: '📞 Call/WhatsApp: +91 94140 67123\n📍 Snehsarees, Rajasthan, India\n⏰ Mon–Sat, 9am–7pm',
+    msg: '📞 Call/WhatsApp: +91 94140 67123\n📍 Sneh Sarees, Rajasthan, India\n⏰ Mon–Sat, 9am–7pm',
     replies: ['WhatsApp Us', 'Back to Menu']
   },
   shopsilk: {
@@ -354,3 +354,4 @@ export const SAREE_HISTORIES = [
     symbol: 'lotus'
   }
 ];
+

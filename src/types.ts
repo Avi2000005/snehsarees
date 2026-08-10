@@ -2,6 +2,7 @@ export interface Product {
   id: number;
   name: string;
   price: number;
+  discountPrice?: number;
   fabric: string;
   occasion: string;
   colour: string;
@@ -12,6 +13,22 @@ export interface Product {
   reviews: number;
   blouse: boolean;
   desc: string;
+  image?: string;
+  stock?: number;
+  categoryId?: number;
+  variants?: { colour: string; image: string }[];
+  reelUrl?: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  imageUrl?: string;
+  description?: string;
+  history?: string;
+  properties?: string;
+  care?: string;
 }
 
 export interface CartItem {
@@ -21,6 +38,7 @@ export interface CartItem {
   fabric: string;
   colour: string;
   qty: number;
+  image?: string;
 }
 
 export interface Order {
@@ -32,6 +50,76 @@ export interface Order {
   phone: string;
   address: string;
   createdAt: string;
+  status?: string;
+  trackingId?: string;
+  carrierName?: string;
+  trackingUrl?: string;
+  couponCode?: string;
+  discountAmount?: number;
+  processingAt?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  cancelledAt?: string;
+}
+
+export interface OfferBanner {
+  id: number;
+  title: string;
+  subtitle?: string;
+  badgeText?: string;
+  ctaText: string;
+  ctaLink: string;
+  bgFrom: string;
+  bgTo: string;
+  isActive: boolean;
+  sortOrder: number;
+  expiresAt?: string;
+  createdAt: string;
+  discountPercent?: number;
+  categoryId?: number;
+  imageUrl?: string;
+}
+
+export interface Coupon {
+  id: number;
+  code: string;
+  description?: string;
+  discountType: 'percent' | 'flat';
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscountCap?: number;
+  usageLimit?: number;
+  usedCount: number;
+  perUserLimit: number;
+  applicableCategoryId?: number;
+  isActive: boolean;
+  expiresAt?: string;
+  createdAt: string;
+}
+
+export interface Review {
+  id: number;
+  productId: number;
+  userId?: number;
+  userName: string;
+  userUsername?: string;
+  rating: number;
+  body?: string;
+  isVerified: boolean;
+  createdAt: string;
+  productName?: string;
+}
+
+export interface Reel {
+  id: number;
+  productId: number;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  product?: Product;
 }
 
 export interface ChatReply {
@@ -53,4 +141,50 @@ export type ActivePage =
   | 'orders'
   | 'profile'
   | 'bulk'
-  | 'knowledge';
+  | 'auth'
+  | 'admin';
+export type ReturnStatus = 'requested' | 'approved' | 'picked_up' | 'refunded' | 'rejected';
+export type ReturnReason = 'damaged' | 'wrong_item' | 'not_as_described' | 'changed_mind' | 'size_issue' | 'other';
+export type ReturnResolution = 'refund' | 'exchange';
+
+export interface ReturnItem {
+  id: number;
+  name: string;
+  qty: number;
+  price: number;
+}
+
+export interface ReturnRequest {
+  id: number;
+  orderId: string;
+  userId?: number;
+  customerName?: string;
+  phone?: string;
+  reason: ReturnReason;
+  description?: string;
+  resolution: ReturnResolution;
+  status: ReturnStatus;
+  items: ReturnItem[];
+  adminNote?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface UserAddress {
+  id: string;
+  label: string;
+  addressLine: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  isDefault: boolean;
+}
+
+export interface UserProfile {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  username?: string;
+  addresses?: UserAddress[];
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
 import { CHATBOT_RESPONSES, INTENT_MAP } from '../data';
 import { ActivePage } from '../types';
@@ -148,7 +148,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
       className="chatbot-panel fixed right-3 bottom-[80px] md:right-4 md:bottom-[92px] w-[300px] bg-white rounded-3xl shadow-2xl border border-[#E8E0D5] z-[199] flex flex-col overflow-hidden max-h-[420px]"
     >
       {/* Header */}
-      <div className="chatbot-header bg-[#7B1C2E] p-3 px-4 flex items-center gap-2.5">
+      <div className="chatbot-header bg-[#C4601A] p-3 px-4 flex items-center gap-2.5">
         <div className="chatbot-avatar w-[34px] h-[34px] rounded-full bg-white/20 flex items-center justify-center shrink-0">
           <Bot className="w-5 h-5 text-white" />
         </div>
@@ -175,7 +175,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
             className={`chat-msg max-w-[85%] px-3 py-2 rounded-[14px] text-xs leading-relaxed whitespace-pre-line ${
               m.sender === 'bot'
                 ? 'bg-white border border-[#E8E0D5] text-[#1A1A1A] rounded-bl-none self-start shadow-2xs'
-                : 'bg-[#7B1C2E] text-white rounded-br-none self-end shadow-2xs'
+                : 'bg-[#C4601A] text-white rounded-br-none self-end shadow-2xs'
             }`}
           >
             {m.text}
@@ -190,7 +190,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
           {quickReplies.map((reply, idx) => (
             <button
               key={idx}
-              className="quick-reply text-[11px] font-semibold text-[#7B1C2E] border-1.5 border-[#7B1C2E] rounded-full px-2.5 py-1.5 hover:bg-[#7B1C2E] hover:text-white transition-all cursor-pointer"
+              className="quick-reply text-[11px] font-semibold text-[#C4601A] border-1.5 border-[#C4601A] rounded-full px-2.5 py-1.5 hover:bg-[#C4601A] hover:text-white transition-all cursor-pointer"
               onClick={() => handleQuickReplyClick(reply)}
             >
               {reply}
@@ -202,7 +202,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
       {/* Input */}
       <div className="chatbot-input-row flex items-center gap-2 p-2.5 border-t border-[#E8E0D5] bg-white shrink-0">
         <input
-          className="chatbot-input flex-1 border border-[#E8E0D5] rounded-full px-3 py-1.5 text-xs outline-none bg-[#FAF6F0] focus:border-[#7B1C2E]"
+          className="chatbot-input flex-1 border border-[#E8E0D5] rounded-full px-3 py-1.5 text-xs outline-none bg-[#FAF6F0] focus:border-[#C4601A]"
           id="chatbot-input"
           type="text"
           placeholder="Type a message…"
@@ -213,7 +213,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
           }}
         />
         <button
-          className="chatbot-send w-8 h-8 rounded-full bg-[#7B1C2E] flex items-center justify-center shrink-0 hover:bg-[#9B2840] transition-colors cursor-pointer"
+          className="chatbot-send w-8 h-8 rounded-full bg-[#C4601A] flex items-center justify-center shrink-0 hover:bg-[#FFF0E8] transition-colors cursor-pointer"
           onClick={() => handleSendMessage()}
         >
           <Send className="w-3.5 h-3.5 text-white" />
@@ -222,3 +222,4 @@ export const Chatbot: React.FC<ChatbotProps> = ({
     </div>
   );
 };
+

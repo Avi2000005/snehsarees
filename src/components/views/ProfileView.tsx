@@ -1,81 +1,941 @@
-import React from 'react';
-import { ArrowLeft, User, Heart, ShoppingBag, Settings, LogIn } from 'lucide-react';
-import { ActivePage } from '../../types';
+import React, { useState } from 'react';
+import { ArrowLeft, User, ShoppingBag, LogIn, LogOut, Lock, Shield, FileText, HelpCircle, X, Home, MapPin, Edit3, Trash2, KeyRound, CheckCircle, Mail, Phone, Plus, Check } from 'lucide-react';
+import { ActivePage, UserProfile, UserAddress } from '../../types';
+import { API_URL } from '../../config';
 
 interface ProfileViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
+  onBack: () => void;
   showToast: (msg: string) => void;
+  user: UserProfile | null;
+  onUpdateUser: (user: UserProfile | null) => void;
+  onLogout: () => void;
+  token: string | null;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate, showToast }) => {
+type SubView = 'main' | 'edit-profile' | 'addresses' | 'change-password' | 'delete-account';
+
+export const ProfileView: React.FC<ProfileViewProps> = ({
+  onNavigate,
+  onBack,
+  showToast,
+  user,
+  onUpdateUser,
+  onLogout,
+  token,
+}) => {
+  const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | 'faqs' | null>(null);
+  const [subView, setSubView] = useState<SubView>('main');
+
+  // Edit Profile Form State
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editUsername, setEditUsername] = useState(user?.username || '');
+  const [editPhone, setEditPhone] = useState(user?.phone || '');
+  const [editEmail, setEditEmail] = useState(user?.email || '');
+  const [emailOtp, setEmailOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [emailChanging, setEmailChanging] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Address Form State
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [addrLabel, setAddrLabel] = useState('Home');
+  const [addrLine, setAddrLine] = useState('');
+  const [addrCity, setAddrCity] = useState('');
+  const [addrState, setAddrState] = useState('');
+  const [addrPin, setAddrPin] = useState('');
+  const [addrDefault, setAddrDefault] = useState(false);
+
+  // Password State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  // Delete Account State
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  // Helper API fetch
+  const apiCall = async (path: string, method: string, body: object) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${API_URL}/api/auth/${path}`, {
+      method,
+      headers,
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Operation failed');
+    return data;
+  };
+
+  // ── UPDATE BASIC PROFILE ───────────────────────────────────────────
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim()) return showToast('Name cannot be empty.');
+    setSavingProfile(true);
+    try {
+      const payload: any = {
+        name: editName.trim(),
+        username: editUsername.trim() || null,
+        phone: editPhone.trim() || null,
+      };
+
+      // Include new email + OTP if user is changing email
+      if (emailChanging && editEmail.toLowerCase() !== (user?.email || '').toLowerCase()) {
+        payload.email = editEmail.toLowerCase().trim();
+        payload.emailOtp = emailOtp.trim();
+      }
+
+      const data = await apiCall('profile', 'PUT', payload);
+      onUpdateUser(data.user);
+      showToast('Profile updated successfully! ✨');
+      setSubView('main');
+      setEmailChanging(false);
+      setOtpSent(false);
+      setEmailOtp('');
+    } catch (err: any) {
+      showToast(err.message);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // ── SEND EMAIL UPDATE OTP ──────────────────────────────────────────
+  const handleSendEmailOtp = async () => {
+    try {
+      showToast('Sending OTP to your current email...');
+      await apiCall('send-email-update-otp', 'POST', {});
+      setOtpSent(true);
+      showToast('Verification code sent to your old email address.');
+    } catch (err: any) {
+      showToast(err.message);
+    }
+  };
+
+  // ── MANAGE ADDRESSES ───────────────────────────────────────────────
+  const openAddAddress = () => {
+    setEditingAddressId(null);
+    setAddrLabel('Home');
+    setAddrLine('');
+    setAddrCity('');
+    setAddrState('');
+    setAddrPin('');
+    setAddrDefault(false);
+    setAddressModalOpen(true);
+  };
+
+  const openEditAddress = (addr: UserAddress) => {
+    setEditingAddressId(addr.id);
+    setAddrLabel(addr.label);
+    setAddrLine(addr.addressLine);
+    setAddrCity(addr.city);
+    setAddrState(addr.state);
+    setAddrPin(addr.pinCode);
+    setAddrDefault(addr.isDefault);
+    setAddressModalOpen(true);
+  };
+
+  const saveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addrLine || !addrCity || !addrState || !addrPin) {
+      return showToast('Please fill in all address fields.');
+    }
+
+    const currentAddresses = [...(user?.addresses || [])];
+
+    // If setting as default, unset others first
+    if (addrDefault) {
+      currentAddresses.forEach(a => a.isDefault = false);
+    }
+
+    if (editingAddressId) {
+      // Edit existing
+      const idx = currentAddresses.findIndex(a => a.id === editingAddressId);
+      if (idx !== -1) {
+        currentAddresses[idx] = {
+          id: editingAddressId,
+          label: addrLabel,
+          addressLine: addrLine,
+          city: addrCity,
+          state: addrState,
+          pinCode: addrPin,
+          isDefault: addrDefault || currentAddresses.length === 1,
+        };
+      }
+    } else {
+      // Add new
+      const newAddr: UserAddress = {
+        id: Date.now().toString(),
+        label: addrLabel,
+        addressLine: addrLine,
+        city: addrCity,
+        state: addrState,
+        pinCode: addrPin,
+        isDefault: addrDefault || currentAddresses.length === 0,
+      };
+      currentAddresses.push(newAddr);
+    }
+
+    try {
+      const data = await apiCall('profile', 'PUT', { addresses: currentAddresses });
+      onUpdateUser(data.user);
+      showToast('Address saved successfully!');
+      setAddressModalOpen(false);
+    } catch (err: any) {
+      showToast(err.message);
+    }
+  };
+
+  const deleteAddress = async (addrId: string) => {
+    const currentAddresses = (user?.addresses || []).filter(a => a.id !== addrId);
+    // If we deleted the default address and there are others, set the first one as default
+    if (currentAddresses.length > 0 && !currentAddresses.some(a => a.isDefault)) {
+      currentAddresses[0].isDefault = true;
+    }
+    try {
+      const data = await apiCall('profile', 'PUT', { addresses: currentAddresses });
+      onUpdateUser(data.user);
+      showToast('Address removed.');
+    } catch (err: any) {
+      showToast(err.message);
+    }
+  };
+
+  const setDefaultAddress = async (addrId: string) => {
+    const currentAddresses = [...(user?.addresses || [])].map(a => ({
+      ...a,
+      isDefault: a.id === addrId
+    }));
+    try {
+      const data = await apiCall('profile', 'PUT', { addresses: currentAddresses });
+      onUpdateUser(data.user);
+      showToast('Default address updated.');
+    } catch (err: any) {
+      showToast(err.message);
+    }
+  };
+
+  // ── PASSWORD CHANGE ───────────────────────────────────────────────
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) return showToast('Password must be at least 6 characters.');
+    if (newPassword !== confirmPassword) return showToast('Passwords do not match.');
+    setUpdatingPassword(true);
+    try {
+      await apiCall('profile', 'PUT', { password: newPassword });
+      showToast('Password changed successfully! 🔐');
+      setNewPassword('');
+      setConfirmPassword('');
+      setSubView('main');
+    } catch (err: any) {
+      showToast(err.message);
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  // ── DELETE ACCOUNT ────────────────────────────────────────────────
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmText.toLowerCase() !== 'delete') {
+      return showToast('Please type "DELETE" exactly to confirm.');
+    }
+    setDeletingAccount(true);
+    try {
+      await apiCall('account', 'DELETE', {});
+      showToast('Your account has been deleted. We are sorry to see you go. 👋');
+      onLogout();
+    } catch (err: any) {
+      showToast(err.message);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   return (
     <div id="page-profile" className="bg-[#FAF6F0] min-h-screen">
       {/* Header bar */}
       <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
           className="va-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
-          onClick={() => onNavigate('home')}
+          onClick={subView === 'main' ? onBack : () => setSubView('main')}
         >
           <ArrowLeft className="w-[22px] h-[22px]" />
         </button>
         <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
-          My Profile
+          {subView === 'main' && 'My Profile'}
+          {subView === 'edit-profile' && 'Edit Account'}
+          {subView === 'addresses' && 'Saved Addresses'}
+          {subView === 'change-password' && 'Security'}
+          {subView === 'delete-account' && 'Delete Account'}
         </div>
-        <div className="w-[34px] md:w-10 h-[34px] md:h-10" /> {/* Spacer */}
-      </div>
-
-      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[820px] mx-auto pt-6 pb-[80px] flex flex-col items-center">
-        {/* Avatar badge */}
-        <div className="w-20 h-20 bg-[#7B1C2E] rounded-full flex items-center justify-center shadow-md mb-4 scroll-mt-2">
-          <User className="w-10 h-10 text-white" />
-        </div>
-
-        <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-1">
-          Guest User
-        </h2>
-        <p className="text-xs text-[#888888] mb-6">
-          Sign in to access your saved orders across multiple devices
-        </p>
-
         <button
-          onClick={() => showToast('Login feature is coming soon!')}
-          className="bg-[#7B1C2E] text-white text-xs font-bold px-8 py-3.5 rounded-full hover:bg-[#9B2840] active:scale-95 transition-all text-center mb-8 shadow-xs cursor-pointer inline-flex items-center gap-2"
+          className="text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
+          onClick={() => onNavigate('home')}
+          title="Return to Home Section"
         >
-          <LogIn className="w-4 h-4" /> Sign In / Register
+          <Home className="w-[22px] h-[22px]" />
         </button>
-
-        {/* Dashboard quick routes */}
-        <div className="w-full bg-white rounded-xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs">
-          <button
-            onClick={() => onNavigate('orders')}
-            className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
-          >
-            <span className="flex items-center gap-3">
-              <ShoppingBag className="w-4.5 h-4.5 text-[#7B1C2E]" /> My Orders
-            </span>
-            <span className="text-[#888888]">→</span>
-          </button>
-          <button
-            onClick={() => onNavigate('wishlist')}
-            className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
-          >
-            <span className="flex items-center gap-3">
-              <Heart className="w-4.5 h-4.5 text-[#7B1C2E]" /> My Wishlist
-            </span>
-            <span className="text-[#888888]">→</span>
-          </button>
-          <button
-            onClick={() => showToast('Settings feature coming soon!')}
-            className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
-          >
-            <span className="flex items-center gap-3">
-              <Settings className="w-4.5 h-4.5 text-[#7B1C2E]" /> Account Settings
-            </span>
-            <span className="text-[#888888]">→</span>
-          </button>
-        </div>
       </div>
 
+      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[820px] mx-auto pt-6 pb-[80px]">
+        
+        {/* ─── MAIN VIEW ─── */}
+        {subView === 'main' && (
+          <div className="flex flex-col items-center">
+            {/* Avatar badge */}
+            <div className="w-20 h-20 bg-[#C4601A] rounded-full flex items-center justify-center shadow-md mb-4 scroll-mt-2">
+              <User className="w-10 h-10 text-white" />
+            </div>
+
+            {user ? (
+              <>
+                <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-1">
+                  {user.name}
+                </h2>
+                <p className="text-xs text-[#888888] mb-6">
+                  {user.username ? `@${user.username}` : 'No username set'} {user.email ? `· ${user.email}` : ''}
+                </p>
+
+                {/* Dashboard Options */}
+                <div className="w-full bg-white rounded-xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs mb-6">
+                  <button
+                    onClick={() => onNavigate('orders')}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <ShoppingBag className="w-4.5 h-4.5 text-[#C4601A]" /> My Orders
+                    </span>
+                    <span className="text-[#888888] font-normal">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEditName(user.name);
+                      setEditUsername(user.username || '');
+                      setEditPhone(user.phone || '');
+                      setEditEmail(user.email || '');
+                      setSubView('edit-profile');
+                    }}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <User className="w-4.5 h-4.5 text-[#C4601A]" /> Edit Account Details
+                    </span>
+                    <span className="text-[#888888] font-normal">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSubView('addresses')}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <MapPin className="w-4.5 h-4.5 text-[#C4601A]" /> Saved Delivery Addresses
+                    </span>
+                    <span className="text-[#888888] font-normal">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSubView('change-password')}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Lock className="w-4.5 h-4.5 text-[#C4601A]" /> Change Password
+                    </span>
+                    <span className="text-[#888888] font-normal">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSubView('delete-account')}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Trash2 className="w-4.5 h-4.5 text-red-500" /> Delete My Account
+                    </span>
+                    <span className="text-[#888888] font-normal">→</span>
+                  </button>
+                </div>
+
+                <div className="w-full bg-white rounded-xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs mb-8">
+                  <button
+                    onClick={() => setActiveModal('privacy')}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Shield className="w-4.5 h-4.5 text-[#C4601A]" /> Privacy Policy
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('terms')}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <FileText className="w-4.5 h-4.5 text-[#C4601A]" /> Terms &amp; Conditions
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('faqs')}
+                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <HelpCircle className="w-4.5 h-4.5 text-[#C4601A]" /> FAQs
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+                </div>
+
+                <button
+                  onClick={onLogout}
+                  className="bg-red-50 text-red-600 text-xs font-bold px-8 py-3.5 rounded-full hover:bg-red-100 active:scale-95 transition-all text-center mb-8 shadow-xs cursor-pointer inline-flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> Sign Out Account
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-1">
+                  Guest User
+                </h2>
+                <p className="text-xs text-[#888888] mb-6">
+                  Sign in to manage your saved addresses, track orders, and write reviews
+                </p>
+
+                <button
+                  onClick={() => onNavigate('auth')}
+                  className="bg-[#C4601A] text-white text-xs font-bold px-8 py-3.5 rounded-full hover:bg-[#FFF0E8] active:scale-95 transition-all text-center mb-8 shadow-xs cursor-pointer inline-flex items-center gap-2"
+                >
+                  <LogIn className="w-4 h-4" /> Sign In / Register
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ─── EDIT PROFILE VIEW ─── */}
+        {subView === 'edit-profile' && user && (
+          <div className="bg-white rounded-2xl p-6 border border-[#E8E0D5] shadow-xs max-w-[500px] mx-auto">
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-4 h-4 text-[#888]" />
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-0.5">
+                  Username
+                </label>
+                <span className="text-[10px] text-gray-500 block mb-1.5">This will be shown publicly when you write product reviews</span>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-xs font-bold text-[#888]">@</span>
+                  <input
+                    type="text"
+                    value={editUsername}
+                    onChange={e => setEditUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                    placeholder="saree_lover_12"
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-8 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 w-4 h-4 text-[#888]" />
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={e => setEditPhone(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-4 mt-2">
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1">
+                  Email Address
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-[#888]" />
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={e => {
+                        setEditEmail(e.target.value);
+                        if (e.target.value.toLowerCase().trim() !== (user.email || '').toLowerCase()) {
+                          setEmailChanging(true);
+                        } else {
+                          setEmailChanging(false);
+                          setOtpSent(false);
+                        }
+                      }}
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                    />
+                  </div>
+                  {emailChanging && !otpSent && user.email && (
+                    <button
+                      type="button"
+                      onClick={handleSendEmailOtp}
+                      className="bg-[#C4601A] text-white px-3 py-2.5 rounded-xl text-[10px] font-bold hover:bg-[#a84e15] transition-colors cursor-pointer shrink-0"
+                    >
+                      Send OTP to Old Email
+                    </button>
+                  )}
+                </div>
+
+                {emailChanging && user.email && (
+                  <div className="bg-[#FFF8F3] border border-[#F5E4BC] rounded-xl p-3.5 mt-3 space-y-3">
+                    <p className="text-[10px] text-gray-600 leading-relaxed">
+                      Verification code is required to authorize changing from <strong>{user.email}</strong>.
+                    </p>
+                    {otpSent && (
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="6-digit OTP"
+                          value={emailOtp}
+                          onChange={e => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+                          className="bg-white border border-[#E8E0D5] rounded-lg py-2 px-3 text-center tracking-[0.2em] font-bold text-sm w-36 focus:outline-none focus:border-[#C4601A]"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSendEmailOtp}
+                          className="text-[10px] text-[#C4601A] font-bold hover:underline"
+                        >
+                          Resend Code
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setSubView('main')}
+                  className="flex-1 border border-[#E8E0D5] py-3 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="flex-1 bg-[#C4601A] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#a84e15] transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {savingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ─── SAVED ADDRESSES VIEW ─── */}
+        {subView === 'addresses' && user && (
+          <div className="space-y-4 max-w-[600px] mx-auto">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-xs text-gray-500 font-semibold">{user.addresses?.length || 0} Saved Addresses</span>
+              <button
+                onClick={openAddAddress}
+                className="bg-[#C4601A] text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-[#a84e15] transition-colors flex items-center gap-1.5 cursor-pointer shadow-3xs"
+              >
+                <Plus className="w-4 h-4" /> Add Address
+              </button>
+            </div>
+
+            {/* Address Cards */}
+            {user.addresses && user.addresses.length > 0 ? (
+              <div className="space-y-3">
+                {user.addresses.map((addr) => (
+                  <div
+                    key={addr.id}
+                    className={`bg-white border rounded-2xl p-5 shadow-3xs relative flex flex-col justify-between transition-all ${
+                      addr.isDefault ? 'border-[#C4601A] ring-1 ring-[#C4601A]/20' : 'border-[#E8E0D5]'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-extrabold uppercase bg-[#FAF6F0] border border-[#E8E0D5] text-[#C4601A] px-2.5 py-0.5 rounded-md">
+                          {addr.label}
+                        </span>
+                        {addr.isDefault && (
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Check className="w-3 h-3" /> Default Address
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#1A1A1A] font-semibold leading-relaxed mb-1">{addr.addressLine}</p>
+                      <p className="text-xs text-gray-500">{addr.city}, {addr.state} - {addr.pinCode}</p>
+                    </div>
+
+                    <div className="flex gap-4 border-t border-gray-100 mt-4 pt-3.5 text-xs font-bold">
+                      {!addr.isDefault && (
+                        <button
+                          onClick={() => setDefaultAddress(addr.id)}
+                          className="text-[#C4601A] hover:underline cursor-pointer"
+                        >
+                          Set as Default
+                        </button>
+                      )}
+                      <button
+                        onClick={() => openEditAddress(addr)}
+                        className="text-gray-600 hover:text-[#C4601A] flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => deleteAddress(addr.id)}
+                        className="text-red-600 hover:text-red-700 flex items-center gap-1 ml-auto cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white border border-[#E8E0D5] rounded-2xl p-10 text-center text-gray-500">
+                <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm font-semibold">No saved addresses found</p>
+                <p className="text-xs text-gray-400 mt-1">Add an address to make checkout faster next time.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── CHANGE PASSWORD VIEW ─── */}
+        {subView === 'change-password' && user && (
+          <div className="bg-white rounded-2xl p-6 border border-[#E8E0D5] shadow-xs max-w-[400px] mx-auto">
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  New Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-[#888]" />
+                  <input
+                    type="password"
+                    placeholder="Min. 6 characters"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 w-4 h-4 text-[#888]" />
+                  <input
+                    type="password"
+                    placeholder="Repeat new password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSubView('main')}
+                  className="flex-1 border border-[#E8E0D5] py-2.5 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingPassword}
+                  className="flex-1 bg-[#C4601A] text-white py-2.5 rounded-xl text-xs font-bold hover:bg-[#a84e15] transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {updatingPassword ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ─── DELETE ACCOUNT VIEW ─── */}
+        {subView === 'delete-account' && user && (
+          <div className="bg-white rounded-2xl p-6 border border-red-200 shadow-xs max-w-[400px] mx-auto">
+            <h3 className="font-serif text-lg font-bold text-red-600 mb-2">Delete Your Account Permanently?</h3>
+            <p className="text-xs text-gray-600 leading-relaxed mb-4">
+              This action is irreversible. All of your saved addresses, wishlist, and profile information will be deleted forever.
+            </p>
+
+            <form onSubmit={handleDeleteAccount} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-red-700 uppercase tracking-wider mb-1.5">
+                  Type "DELETE" to confirm
+                </label>
+                <input
+                  type="text"
+                  placeholder="Type DELETE"
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  className="w-full bg-red-50/50 border border-red-200 rounded-xl py-2.5 px-4 text-xs font-bold text-red-700 focus:outline-none focus:border-red-500 focus:bg-red-50/20"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSubView('main')}
+                  className="flex-1 border border-[#E8E0D5] py-2.5 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingAccount || deleteConfirmText.toLowerCase() !== 'delete'}
+                  className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                >
+                  {deletingAccount ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {/* ─── ADDRESS ADD/EDIT MODAL ─── */}
+      {addressModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-[450px] bg-white rounded-2xl border border-[#E8E0D5] shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-[#E8E0D5] bg-[#FAF6F0] flex justify-between items-center">
+              <h2 className="font-serif text-lg font-bold text-[#C4601A]">
+                {editingAddressId ? 'Edit Address' : 'Add New Address'}
+              </h2>
+              <button
+                onClick={() => setAddressModalOpen(false)}
+                className="p-1 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={saveAddress} className="p-5 space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Address Label
+                </label>
+                <div className="flex gap-2">
+                  {['Home', 'Work', 'Other'].map((lbl) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      onClick={() => setAddrLabel(lbl)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        addrLabel === lbl
+                          ? 'bg-[#C4601A] border-[#C4601A] text-white shadow-xs'
+                          : 'bg-white border-[#E8E0D5] text-[#888] hover:bg-gray-50'
+                      }`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Address Line
+                </label>
+                <input
+                  type="text"
+                  placeholder="Street name, house/apartment number"
+                  value={addrLine}
+                  onChange={e => setAddrLine(e.target.value)}
+                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Jaipur"
+                    value={addrCity}
+                    onChange={e => setAddrCity(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rajasthan"
+                    value={addrState}
+                    onChange={e => setAddrState(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Pincode / Postal Code
+                </label>
+                <input
+                  type="text"
+                  placeholder="6-digit PIN"
+                  value={addrPin}
+                  onChange={e => setAddrPin(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="chk-default-addr"
+                  checked={addrDefault}
+                  onChange={e => setAddrDefault(e.target.checked)}
+                  className="rounded text-[#C4601A] focus:ring-[#C4601A]"
+                />
+                <label htmlFor="chk-default-addr" className="text-xs font-semibold text-gray-600 select-none cursor-pointer">
+                  Set as default shipping address
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setAddressModalOpen(false)}
+                  className="flex-1 border border-[#E8E0D5] py-3 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#C4601A] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#a84e15] transition-colors cursor-pointer"
+                >
+                  Save Address
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modals for Privacy, Terms, FAQs */}
+      {activeModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="relative w-full max-w-[500px] h-[480px] bg-white rounded-2xl border border-[#E8E0D5] shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[#E8E0D5] bg-[#FAF6F0] flex justify-between items-center shrink-0">
+              <h2 className="font-serif text-lg md:text-xl font-bold text-[#C4601A]">
+                {activeModal === 'privacy' && 'Privacy Policy'}
+                {activeModal === 'terms' && 'Terms & Conditions'}
+                {activeModal === 'faqs' && 'Frequently Asked Questions'}
+              </h2>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="p-1 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-5 md:p-6 overflow-y-auto flex-1 font-sans text-xs md:text-sm text-[#4A4A4A] leading-relaxed space-y-4">
+              {activeModal === 'privacy' && (
+                <>
+                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">1. Information Collection</p>
+                  <p>We collect essential information to capture and fulfill handloom saree orders. This includes your name, shipping address, contact phone number, and preferred payment choice.</p>
+                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">2. Order Dispatch &amp; WhatsApp</p>
+                  <p>Because Sneh Sarees manages authentic weaver dispatches, your confirmed orders generate ready-to-send WhatsApp messages to coordinate artisanal delivery safely.</p>
+                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">3. No Commercial Sharing</p>
+                  <p>We value consumer privacy above all. Your delivery information or product preferences will never be sold, or shared with third-party digital networks or marketing systems.</p>
+                </>
+              )}
+
+              {activeModal === 'terms' && (
+                <>
+                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">1. Handcrafted Artisan Saree Standard</p>
+                  <p>Each saree displayed in our catalogue is curated or loomed manually by hand weavers. Any Minor irregularities in dye layers, block alignments, or weave nodes are normal features of Handcrafted Indian art and are highly prized.</p>
+                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">2. Secure Invoicing &amp; Quotes</p>
+                  <p>All listed retail prices are quoted in Indian Rupees (₹) inclusive of local weaving taxes. Sneh Sarees covers free domestic express shipping for all orders.</p>
+                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">3. Order Fulfillments</p>
+                  <p>Placing an order creates a direct invoice track. Weaver partners inspect your saree package personally before courier handover.</p>
+                </>
+              )}
+
+              {activeModal === 'faqs' && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: How do I verify authenticity?</h4>
+                    <p className="text-gray-600 pl-1">A: Our sarees carry Handloom Mark or Silk Mark endorsements where specified, indicating genuine yarn sourcing straight from local weaver clusters.</p>
+                  </div>
+                  <hr className="border-[#E8E0D5]" />
+                  <div>
+                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: Is a blouse piece included?</h4>
+                    <p className="text-gray-600 pl-1">A: Yes! Standard handloom pieces are supplied with 80cm of running unstitched blouse material matching the saree yardage.</p>
+                  </div>
+                  <hr className="border-[#E8E0D5]" />
+                  <div>
+                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: What are the typical transit periods?</h4>
+                    <p className="text-gray-600 pl-1">A: Sneh Sarees uses courier agencies for rapid shipping. Deliveries take 5–7 business days to most addresses in India.</p>
+                  </div>
+                  <hr className="border-[#E8E0D5]" />
+                  <div>
+                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: What is the return guideline?</h4>
+                    <p className="text-gray-600 pl-1">A: As these are loomed yarn pieces, returns or exchanges are allowed within 7 days ONLY if damage is present on first opening.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-[#FAF6F0] p-4 border-t border-[#E8E0D5] text-right shrink-0">
+              <button
+                onClick={() => setActiveModal(null)}
+                className="bg-[#C4601A] font-semibold text-white px-5 py-2 rounded-lg text-xs hover:bg-[#FFF0E8] transition-colors cursor-pointer"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,9 +4,18 @@ import { SAREE_GRADIENTS } from '../data';
 interface SareeSwatchProps {
   id: number;
   className?: string;
+  imageUrl?: string;
 }
 
-export const SareeSwatch: React.FC<SareeSwatchProps> = ({ id, className = "w-full h-full" }) => {
+export const SareeSwatch: React.FC<SareeSwatchProps> = ({ id, className = "w-full h-full", imageUrl }) => {
+  if (imageUrl) {
+    return (
+      <div className={`${className} relative overflow-hidden`}>
+        <img src={imageUrl} alt="Saree Image" className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+
   const index = typeof id === 'number' && !isNaN(id) ? Math.floor(Math.abs(id)) % SAREE_GRADIENTS.length : 0;
   const grad = SAREE_GRADIENTS[index] || SAREE_GRADIENTS[0];
 

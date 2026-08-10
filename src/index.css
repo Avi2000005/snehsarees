@@ -1,27 +1,71 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-serif: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  --font-cinzel: "Cinzel", Georgia, serif;
   --font-sans: "Plus Jakarta Sans", sans-serif;
-  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-display: "Cinzel", "Playfair Display", Georgia, serif;
   --font-body: "Plus Jakarta Sans", sans-serif;
 
-  --color-maroon: #7B1C2E;
-  --color-maroon-dark: #5A1020;
-  --color-maroon-light: #9B2840;
-  --color-gold: #C9A84C;
-  --color-gold-light: #E8D08A;
+  --color-primrose: #C4601A;
+  --color-primrose-dark: #7A2F08;
+  --color-primrose-light: #FFF0E8;
+  --color-cream: #F5E4BC;
+  --color-cream-light: #FFF8EC;
   --color-ivory: #FAF6F0;
   --color-ivory-dark: #F0E8DC;
   --color-[#25D366]: #25D366;
+}
+
+/* ─── Brand warm gradient palette ─────────────────────────────────────────── */
+:root {
+  /* Warm amber-to-coral brand gradient stops */
+  --brand-from:    #E8920E;   /* amber         */
+  --brand-via:     #C4601A;   /* terracotta    */
+  --brand-to:      #7A2F08;   /* deep coral    */
+
+  /* Solid tints derived from the gradient mid-stop */
+  --brand-solid:   #C4601A;   /* primary solid (buttons, header, footer) */
+  --brand-hover:   #D4702A;   /* hover state   */
+  --brand-text:    #A84A10;   /* text on light backgrounds */
+  --brand-muted:   rgba(196, 96, 26, 0.10);  /* soft tint for icon rings */
+
+  /* ── Ivory / Pearl Cream accent palette ─────────────────────────────────── */
+  --accent:          #F5E4BC;   /* pearl cream — labels, borders, stars on dark bg  */
+  --accent-deep:     #C4601A;   /* warm ochre  — prices, active states on light bg  */
+  --accent-hover:    #FFF0E8;   /* lightest cream — hover fill                      */
+  --accent-dark:     #7A2F08;   /* deep amber-brown — darkest accent                */
+  --accent-light:    #FFF8EC;   /* palest cream — subtle background fills           */
+  --accent-muted:    rgba(245, 228, 188, 0.18); /* soft cream tint rings           */
+
+  /* ──────────────────────────────────────────────────────────────────────── */
+  /* Plug in a texture image here whenever you have one:                     */
+  /*   --brand-texture: url('/assets/kota-texture.webp');                    */
+  --brand-texture: none;
 }
 
 /* Custom design specifications */
 body {
   font-family: var(--font-body);
   background-color: var(--color-ivory);
-  color: #1A1A1A;
+  color: #000000;
+}
+
+/* Global High Contrast Text Overrides for crisp legibility */
+.text-gray-400,
+.text-gray-500 {
+  color: #222222 !important;
+}
+
+.text-gray-600,
+.text-gray-700 {
+  color: #111111 !important;
+}
+
+.text-gray-800,
+.text-gray-900 {
+  color: #000000 !important;
 }
 
 /* Scrollbar behaviors */
@@ -37,9 +81,9 @@ body {
   height: 12px;
   background-image: repeating-linear-gradient(
     90deg,
-    #C9A84C 0px, #C9A84C 3px,
+    #F5E4BC 0px, #F5E4BC 3px,
     transparent 3px, transparent 8px,
-    #7B1C2E 8px, #7B1C2E 10px,
+    #C4601A 8px, #C4601A 10px,
     transparent 10px, transparent 16px
   );
   opacity: 0.35;
@@ -72,3 +116,44 @@ body {
   pointer-events: none;
   z-index: 1;
 }
+
+/* ─── Brand gradient utilities ──────────────────────────────────────────────── */
+
+/* Full warm yellow → coral gradient — use on hero, KT section, bulk banner, footer */
+.brand-gradient {
+  background-image:
+    var(--brand-texture, none),
+    linear-gradient(135deg, var(--brand-from), var(--brand-via) 55%, var(--brand-to));
+  background-blend-mode: overlay, normal;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Solid mid-tone brand colour — use on icon circles, inline buttons */
+.brand-solid-bg {
+  background-color: var(--brand-solid);
+}
+.brand-solid-bg:hover {
+  background-color: var(--brand-hover);
+}
+
+/* Lighter horizontal gradient variant — bulk banner row */
+.brand-gradient-h {
+  background-image:
+    var(--brand-texture, none),
+    linear-gradient(90deg, var(--brand-from), var(--brand-via));
+  background-blend-mode: overlay, normal;
+  background-size: cover;
+  background-position: center;
+}
+
+.khadi-cloth-bg {
+  background-color: #faf7f0;
+  background-image: 
+    linear-gradient(90deg, rgba(196, 96, 26, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(196, 96, 26, 0.035) 1px, transparent 1px);
+  background-size: 3.5px 3.5px;
+  box-shadow: inset 0 0 40px rgba(92, 64, 51, 0.06);
+}
+
+
