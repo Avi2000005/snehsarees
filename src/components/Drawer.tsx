@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, X, Tag, Layers, ArrowLeft } from 'lucide-react';
+import { LogOut, X, Tag, Layers, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { ActivePage } from '../types';
 import { API_URL } from '../config';
 
@@ -137,10 +137,21 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
             <span className="text-[13px] font-semibold text-[#1A1A1A] group-hover:text-[#C4601A]">Back to Landing</span>
           </button>
 
+          {/* Admin Portal */}
+          <a
+            href="/admin.html"
+            className="drawer-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#FFF0E8] transition-all cursor-pointer group"
+          >
+            <div className="w-8.5 h-8.5 rounded-lg bg-[#FAF6F0] border border-[#E8E0D5] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ShieldCheck className="w-4 h-4 text-[#C4601A]" />
+            </div>
+            <span className="text-[13px] font-semibold text-[#1A1A1A] group-hover:text-[#C4601A]">Admin Portal</span>
+          </a>
+
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="drawer-item w-full text-left flex items-center gap-3 px-4 py-3.5 border-b border-[#F0EAE2] hover:bg-red-50 text-red-600 transition-colors cursor-pointer"
+            className="drawer-item w-full text-left flex items-center gap-3 px-4 py-3 border-b border-[#F0EAE2] hover:bg-red-50 text-red-600 transition-colors cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
               <LogOut className="w-4 h-4 text-red-500" />

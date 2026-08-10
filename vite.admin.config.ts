@@ -17,7 +17,8 @@ export default defineConfig(() => {
           admin: path.resolve(__dirname, 'admin.html'),
         },
       },
-      outDir: 'dist/admin',
+      outDir: 'dist/client',
+      emptyOutDir: false,
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
