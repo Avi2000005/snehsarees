@@ -41,6 +41,11 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(loggerMiddleware);
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'Sneh Sarees Backend API is live and operational ✨', status: 'ok', health: '/health', api: '/api' });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
