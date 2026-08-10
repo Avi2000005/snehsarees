@@ -174,6 +174,7 @@ export interface UserAddress {
   id: string;
   label: string;
   addressLine: string;
+  addressLine2?: string;
   city: string;
   state: string;
   pinCode: string;

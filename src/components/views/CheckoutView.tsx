@@ -69,6 +69,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [newLabel, setNewLabel] = useState('Home');
   const [newLine, setNewLine] = useState('');
+  const [newLine2, setNewLine2] = useState('');
   const [newCity, setNewCity] = useState('');
   const [newState, setNewState] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -78,7 +79,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const handleAddNewAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLine.trim() || !newCity.trim() || !newState.trim() || !newPin.trim()) {
-      showToast('Please fill in all address fields.');
+      showToast('Please fill in all required address fields.');
       return;
     }
 
@@ -91,6 +92,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       id: Date.now().toString(),
       label: newLabel,
       addressLine: newLine.trim(),
+      addressLine2: newLine2.trim(),
       city: newCity.trim(),
       state: newState.trim(),
       pinCode: newPin.trim(),
@@ -124,6 +126,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       setShowAddModal(false);
       setNewLabel('Home');
       setNewLine('');
+      setNewLine2('');
       setNewCity('');
       setNewState('');
       setNewPin('');
@@ -203,7 +206,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setCouponError(null);
   };
 
-  const handleContinueToPayment = () => {
+  const handleContinueToPayment = async () => {
     if (
       !name.trim() ||
       !phone.trim() ||
@@ -224,6 +227,49 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     if (pincode.trim().length !== 6) {
       showToast('Enter a valid 6-digit pincode');
       return;
+    }
+
+    // Auto-save new address to user profile if logged in and not already saved
+    if (token && user) {
+      const existingAddress = (user.addresses || []).find(
+        (a) =>
+          a.addressLine.trim().toLowerCase() === addr1.trim().toLowerCase() &&
+          a.city.trim().toLowerCase() === city.trim().toLowerCase() &&
+          a.state.trim().toLowerCase() === state.trim().toLowerCase() &&
+          a.pinCode.trim() === pincode.trim()
+      );
+
+      if (!existingAddress) {
+        const newAddr: UserAddress = {
+          id: Date.now().toString(),
+          label: 'Saved Address',
+          addressLine: addr1.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          pinCode: pincode.trim(),
+          isDefault: !user.addresses || user.addresses.length === 0,
+        };
+
+        const updatedAddresses = [...(user.addresses || []), newAddr];
+        try {
+          const res = await fetch(`${API_URL}/api/auth/profile`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ addresses: updatedAddresses }),
+          });
+          const data = await res.json();
+          if (res.ok && data.user) {
+            onUpdateUser(data.user);
+            setSelectedAddressId(newAddr.id);
+            showToast('New shipping address saved to your account! 🏠');
+          }
+        } catch (err) {
+          console.error('Auto-save checkout address error:', err);
+        }
+      }
     }
 
     setStep(2);
@@ -513,14 +559,6 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                       </div>
                     );
                   })}
-                  {/* Plus Card inside list */}
-                  <div
-                    onClick={() => setShowAddModal(true)}
-                    className="min-w-[150px] flex-shrink-0 bg-[#FAF6F0] border-2 border-dashed border-[#E8E0D5] hover:border-[#C4601A] rounded-xl p-4 cursor-pointer flex flex-col items-center justify-center gap-2 transition-all hover:bg-white text-center"
-                  >
-                    <Plus className="w-5 h-5 text-[#C4601A]" />
-                    <span className="text-xs font-bold text-[#C4601A]">Add Address</span>
-                  </div>
                 </div>
               </div>
             ) : (
@@ -1045,11 +1083,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  Address Line
+                  Address Line 1 *
                 </label>
                 <input
                   type="text"
-                  placeholder="Street name, house/apartment number"
+                  placeholder="House / Flat No., Street, Colony"
                   value={newLine}
                   onChange={e => setNewLine(e.target.value)}
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
@@ -1057,10 +1095,23 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 />
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Address Line 2 (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Landmark, Area, Near to..."
+                  value={newLine2}
+                  onChange={e => setNewLine2(e.target.value)}
+                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                    City
+                    City *
                   </label>
                   <input
                     type="text"
@@ -1073,14 +1124,15 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                    State
+                    Pincode *
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Rajasthan"
-                    value={newState}
-                    onChange={e => setNewState(e.target.value)}
+                    placeholder="6-digit PIN"
+                    value={newPin}
+                    onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                    maxLength={6}
                     required
                   />
                 </div>
@@ -1088,15 +1140,14 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  Pincode / Postal Code
+                  State *
                 </label>
                 <input
                   type="text"
-                  placeholder="6-digit PIN"
-                  value={newPin}
-                  onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. Rajasthan"
+                  value={newState}
+                  onChange={e => setNewState(e.target.value)}
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                  maxLength={6}
                   required
                 />
               </div>

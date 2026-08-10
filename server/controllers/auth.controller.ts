@@ -58,10 +58,18 @@ export const sendRegistrationOtp = async (req: Request, res: Response, next: Nex
 // ─── STEP 2: Register with OTP verification ───────────────────────────────────
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, otp, password, name } = req.body;
+    const { email, otp, password, name, username, phone } = req.body;
 
-    if (!email || !otp || !password || !name) {
-      return res.status(400).json({ error: 'Email, OTP, name, and password are all required.' });
+    if (!email || !otp || !password || !name || !username || !phone) {
+      return res.status(400).json({ error: 'All fields (Email, OTP, Full Name, Username, Phone Number, Password) are required.' });
+    }
+
+    if (username.trim().length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters.' });
+    }
+
+    if (phone.replace(/\D/g, '').length < 10) {
+      return res.status(400).json({ error: 'Enter a valid 10-digit phone number.' });
     }
 
     if (password.length < 6) {
@@ -74,17 +82,34 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       return res.status(400).json({ error: 'Invalid or expired OTP. Please request a new one.' });
     }
 
-    // Double-check email not taken
-    const existing = await db.getUserByEmail(email);
-    if (existing) {
+    const cleanUsername = username.toLowerCase().trim().replace(/[^a-z0-9_]/g, '');
+    const cleanPhone = phone.trim();
+
+    // Check if email not taken
+    const existingEmail = await db.getUserByEmail(email);
+    if (existingEmail) {
       return res.status(400).json({ error: 'This email is already registered. Please login.' });
+    }
+
+    // Check if username not taken
+    const existingUsername = await db.getUserByUsername(cleanUsername);
+    if (existingUsername) {
+      return res.status(400).json({ error: 'This username is already taken. Please choose another.' });
+    }
+
+    // Check if phone not taken
+    const existingPhone = await db.getUserByPhone(cleanPhone);
+    if (existingPhone) {
+      return res.status(400).json({ error: 'This phone number is already registered to an account.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await db.createUser({
-      email,
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
-      name,
+      name: name.trim(),
+      username: cleanUsername,
+      phone: cleanPhone,
     });
 
     const token = jwt.sign(
@@ -101,6 +126,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         id: user.id,
         email: user.email,
         name: user.name,
+        username: user.username,
+        phone: user.phone,
+        addresses: user.addresses || []
       },
     });
   } catch (err) {
@@ -138,12 +166,19 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       return res.status(401).json({ error: 'Invalid admin email or password.' });
     }
 
-    // 2. Customer Email Login
-    if (email) {
-      const user = await db.getUserByEmail(email);
+    // 2. Customer Email / Username / Phone Login
+    const loginIdentifier = (email || phone || '').trim();
+    if (loginIdentifier) {
+      let user = await db.getUserByEmail(loginIdentifier);
+      if (!user) {
+        user = await db.getUserByUsername(loginIdentifier.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+      }
+      if (!user) {
+        user = await db.getUserByPhone(loginIdentifier);
+      }
 
       if (!user || !user.password) {
-        return res.status(401).json({ error: 'No account found with this email. Please register first.' });
+        return res.status(401).json({ error: 'No account found with this email, username, or phone. Please register first.' });
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
@@ -165,6 +200,9 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
           id: user.id,
           email: user.email,
           name: user.name,
+          username: user.username,
+          phone: user.phone,
+          addresses: user.addresses || [],
           role: 'user',
         },
       });

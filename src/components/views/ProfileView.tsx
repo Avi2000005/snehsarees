@@ -42,6 +42,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addrLabel, setAddrLabel] = useState('Home');
   const [addrLine, setAddrLine] = useState('');
+  const [addrLine2, setAddrLine2] = useState('');
   const [addrCity, setAddrCity] = useState('');
   const [addrState, setAddrState] = useState('');
   const [addrPin, setAddrPin] = useState('');
@@ -121,6 +122,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setEditingAddressId(null);
     setAddrLabel('Home');
     setAddrLine('');
+    setAddrLine2('');
     setAddrCity('');
     setAddrState('');
     setAddrPin('');
@@ -132,6 +134,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setEditingAddressId(addr.id);
     setAddrLabel(addr.label);
     setAddrLine(addr.addressLine);
+    setAddrLine2(addr.addressLine2 || '');
     setAddrCity(addr.city);
     setAddrState(addr.state);
     setAddrPin(addr.pinCode);
@@ -160,6 +163,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           id: editingAddressId,
           label: addrLabel,
           addressLine: addrLine,
+          addressLine2: addrLine2,
           city: addrCity,
           state: addrState,
           pinCode: addrPin,
@@ -172,6 +176,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         id: Date.now().toString(),
         label: addrLabel,
         addressLine: addrLine,
+        addressLine2: addrLine2,
         city: addrCity,
         state: addrState,
         pinCode: addrPin,
@@ -768,11 +773,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  Address Line
+                  Address Line 1 *
                 </label>
                 <input
                   type="text"
-                  placeholder="Street name, house/apartment number"
+                  placeholder="House / Flat No., Street, Colony"
                   value={addrLine}
                   onChange={e => setAddrLine(e.target.value)}
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
@@ -780,10 +785,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 />
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Address Line 2 (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Landmark, Area, Near to..."
+                  value={addrLine2}
+                  onChange={e => setAddrLine2(e.target.value)}
+                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                    City
+                    City *
                   </label>
                   <input
                     type="text"
@@ -796,14 +814,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                    State
+                    Pincode *
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Rajasthan"
-                    value={addrState}
-                    onChange={e => setAddrState(e.target.value)}
+                    placeholder="6-digit PIN"
+                    value={addrPin}
+                    onChange={e => setAddrPin(e.target.value.replace(/\D/g, ''))}
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                    maxLength={6}
                     required
                   />
                 </div>
@@ -811,13 +830,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  Pincode / Postal Code
+                  State *
                 </label>
                 <input
                   type="text"
-                  placeholder="6-digit PIN"
-                  value={addrPin}
-                  onChange={e => setAddrPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. Rajasthan"
+                  value={addrState}
+                  onChange={e => setAddrState(e.target.value)}
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                   required
                 />

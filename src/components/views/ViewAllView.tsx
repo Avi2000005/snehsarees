@@ -352,7 +352,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
   return (
     <div id="page-viewall">
       {/* Top Header */}
-      <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+      <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-40 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <div className="flex items-center gap-1.5">
           <button
             className="va-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
@@ -380,7 +380,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
         {/* Left Category Sidebar */}
         <div
           id="va-sidebar"
-          className="va-sidebar shrink-0 w-[92px] md:w-[106px] lg:w-[120px] bg-[#FAF6F0] border-r border-[#E8E0D5] sticky top-[56px] md:top-[60px] lg:top-[68px] h-[calc(100vh-56px-64px)] md:h-[calc(100vh-60px-60px)] lg:h-[calc(100vh-68px-60px)] overflow-y-auto no-scroll"
+          className="va-sidebar shrink-0 w-[92px] md:w-[106px] lg:w-[120px] bg-[#FAF6F0] border-r border-[#E8E0D5] sticky top-[56px] md:top-[60px] lg:top-[68px] h-[calc(100vh-56px-64px)] md:h-[calc(100vh-60px-60px)] lg:h-[calc(100vh-68px-60px)] overflow-y-auto no-scroll z-20"
         >
           {getSidebarItems().map((item) => {
             const active = selectedCategoryGroup === item.id;
@@ -423,7 +423,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
         {/* Right side Products view */}
         <div className="va-main flex-1 min-w-0 pb-[80px] md:pb-[96px]">
           {/* Sorter / Filter floating toolbar */}
-          <div className="sort-filter-bar sticky top-[56px] md:top-[60px] lg:top-[68px] bg-white border-b border-[#E8E0D5] flex gap-2.5 p-2.5 px-4 z-10 select-none">
+          <div className="sort-filter-bar sticky top-[56px] md:top-[60px] lg:top-[68px] bg-white/98 backdrop-blur-md border-b border-[#E8E0D5] flex gap-2.5 p-2.5 px-4 z-30 select-none shadow-2xs">
             <button
               onClick={() => setShowSortModal(true)}
               className="sort-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-3.5 text-xs font-semibold text-[#4A4A4A] bg-white hover:border-[#C4601A] transition-colors cursor-pointer"
@@ -528,7 +528,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                 <div className="px-4 mt-6">
                   <div
                     id="category-heritage-section"
-                    className="scroll-mt-36 md:scroll-mt-44 rounded-3xl p-6 pt-12 md:p-10 md:pt-14 border border-[#F0C8A0] relative overflow-hidden shadow-2xl text-left bg-gradient-to-br from-[#FFF6EE] via-[#FDE8D7] to-[#F7D5BA] animate-fade-in"
+                    className="scroll-mt-36 md:scroll-mt-44 rounded-3xl p-6 pt-12 md:p-10 md:pt-14 border border-[#F0C8A0] relative z-0 overflow-hidden shadow-2xl text-left bg-gradient-to-br from-[#FFF6EE] via-[#FDE8D7] to-[#F7D5BA] animate-fade-in"
                   >
                     {/* Subtle layered Kota Doria Khat-check background pattern */}
                     <div className="absolute inset-0 opacity-[0.05] pointer-events-none select-none">
@@ -553,7 +553,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                     {/* Corner ambient glow */}
                     <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-br from-[#E8920E]/25 to-[#C4601A]/30 rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="relative z-10">
+                    <div className="relative z-1">
                       {/* Eyebrow badge */}
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFF0E8] border border-[#F0C8A0]/60 text-[#C4601A] text-[10px] font-bold uppercase tracking-widest mb-3 shadow-2xs">
                         <Sparkles className="w-3.5 h-3.5" />

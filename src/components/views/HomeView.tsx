@@ -553,7 +553,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 {heritage && (
                   <div
                     id="category-heritage-section"
-                    className="scroll-mt-36 md:scroll-mt-44 mt-12 rounded-3xl p-6 pt-12 md:p-10 md:pt-14 border border-[#F0C8A0] relative overflow-hidden shadow-2xl text-left bg-gradient-to-br from-[#FFF6EE] via-[#FDE8D7] to-[#F7D5BA] animate-fade-in"
+                    className="scroll-mt-36 md:scroll-mt-44 mt-12 rounded-3xl p-6 pt-12 md:p-10 md:pt-14 border border-[#F0C8A0] relative z-0 overflow-hidden shadow-2xl text-left bg-gradient-to-br from-[#FFF6EE] via-[#FDE8D7] to-[#F7D5BA] animate-fade-in"
                   >
                     {/* Subtle layered Kota Doria Khat-check background pattern */}
                     <div className="absolute inset-0 opacity-[0.05] pointer-events-none select-none">
@@ -578,7 +578,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     {/* Corner ambient glow */}
                     <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-br from-[#E8920E]/25 to-[#C4601A]/30 rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="relative z-10">
+                    <div className="relative z-1">
                       {/* Eyebrow badge */}
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFF0E8] border border-[#F0C8A0]/60 text-[#C4601A] text-[10px] font-bold uppercase tracking-widest mb-3 shadow-2xs">
                         <Sparkles className="w-3.5 h-3.5" />

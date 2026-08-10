@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ActivePage, UserProfile } from '../../types';
-import { ArrowLeft, Mail, Lock, User, LogIn, UserPlus, Home, Eye, EyeOff, RefreshCw, ShieldCheck, KeyRound } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User, LogIn, UserPlus, Home, Eye, EyeOff, RefreshCw, ShieldCheck, KeyRound, AtSign, Phone } from 'lucide-react';
 import { API_URL } from '../../config';
 
 interface AuthViewProps {
@@ -34,6 +34,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -124,12 +126,31 @@ export const AuthView: React.FC<AuthViewProps> = ({
   // ── REGISTER: Verify OTP + Create Account ──────────────────────────
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otp || !name || !password || !confirmPassword) return showToast('Please fill in all fields.');
-    if (password !== confirmPassword) return showToast('Passwords do not match.');
-    if (password.length < 6) return showToast('Password must be at least 6 characters.');
+    if (!otp || !name || !username || !phone || !password || !confirmPassword) {
+      return showToast('Please fill in all registration fields.');
+    }
+    if (username.trim().length < 3) {
+      return showToast('Username must be at least 3 characters.');
+    }
+    if (phone.replace(/\D/g, '').length < 10) {
+      return showToast('Enter a valid 10-digit phone number.');
+    }
+    if (password !== confirmPassword) {
+      return showToast('Passwords do not match.');
+    }
+    if (password.length < 6) {
+      return showToast('Password must be at least 6 characters.');
+    }
     setLoading(true);
     try {
-      const data = await apiCall('register', { email, otp, password, name });
+      const data = await apiCall('register', {
+        email,
+        otp,
+        password,
+        name: name.trim(),
+        username: username.toLowerCase().trim(),
+        phone: phone.trim()
+      });
       localStorage.setItem('laxmi_user_token', data.token);
       showToast(`Account created! Welcome, ${data.user.name} 🎉`);
       onLoginSuccess(data.token, data.user);
@@ -258,22 +279,22 @@ export const AuthView: React.FC<AuthViewProps> = ({
         {mode === 'login' && (
           <div className="bg-white rounded-2xl p-6 border border-[#E8E0D5] shadow-xs">
             <form onSubmit={handleLogin} className="space-y-4">
-              {/* Email */}
+              {/* Email / Username / Phone */}
               <div>
                 <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  Email Address
+                  Email, Username, or Phone
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
+                  <User className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
                   <input
                     id="login-email"
-                    type="email"
+                    type="text"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="Email, @username, or mobile number"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
                     required
-                    autoComplete="email"
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -429,6 +450,45 @@ export const AuthView: React.FC<AuthViewProps> = ({
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="Your full name"
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Username */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Username
+                </label>
+                <div className="relative">
+                  <AtSign className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
+                  <input
+                    id="register-username"
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    placeholder="e.g. avinash_chate"
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
+                  <input
+                    id="register-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
                     required
                   />
