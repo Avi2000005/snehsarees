@@ -469,7 +469,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a
-                  href="https://facebook.com/snehsarees"
+                  href="https://www.facebook.com/share/1DH5hK94pk"
                   target="_blank"
                   rel="noreferrer"
                   className="w-10 h-10 rounded-full brand-solid-bg text-white flex items-center justify-center transition-all cursor-pointer hover:-translate-y-0.5 shadow-xs hover:shadow-md"

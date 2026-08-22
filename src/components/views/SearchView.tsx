@@ -233,7 +233,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
           <Home className="w-[22px] h-[22px]" />
         </button>
         <div className="search-input-wrap flex-1 flex items-center bg-[#F0E8DC] border border-[#E8E0D5] focus-within:border-[#C4601A] rounded-full p-2 px-3.5 gap-2 transition-colors">
-          <Search className="w-4 h-4 text-[#888888] shrink-0" />
+          <button
+            type="button"
+            onClick={() => query.trim() && executeSearch(query.trim())}
+            className="text-[#888888] hover:text-[#C4601A] transition-colors cursor-pointer shrink-0 p-0.5"
+            title="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
           <input
             type="text"
             id="search-input"
