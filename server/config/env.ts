@@ -16,7 +16,7 @@ export const ENV = {
   CLOUDINARY_API_KEY: (process.env.CLOUDINARY_API_KEY || '').trim(),
   CLOUDINARY_API_SECRET: (process.env.CLOUDINARY_API_SECRET || '').trim(),
   NODE_ENV: (process.env.NODE_ENV || 'development').trim(),
-  FRONTEND_URL: (process.env.FRONTEND_URL || '').trim(),
+  FRONTEND_URL: (process.env.FRONTEND_URL || 'https://www.snehsarees.in').trim(),
   SHIPROCKET_EMAIL: (process.env.SHIPROCKET_EMAIL || '').trim(),
   SHIPROCKET_PASSWORD: (process.env.SHIPROCKET_PASSWORD || '').trim(),
   // Brevo email service for OTP

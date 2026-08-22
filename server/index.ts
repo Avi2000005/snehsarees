@@ -15,9 +15,11 @@ const allowedOrigins = [
 ];
 
 const isAllowedOrigin = (origin: string): boolean => {
+  if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;
   if (ENV.FRONTEND_URL && origin === ENV.FRONTEND_URL) return true;
   if (origin.endsWith('.vercel.app')) return true;
+  if (origin.endsWith('.snehsarees.in') || origin === 'https://snehsarees.in' || origin === 'http://snehsarees.in') return true;
   return false;
 };
 

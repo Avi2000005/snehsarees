@@ -265,11 +265,11 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
                             </h3>
                             {/* Origin */}
                             <p className="font-mono text-[10px] md:text-xs text-[#8D7F60] uppercase tracking-wider mb-2.5 text-center sm:text-left">
-                              {cat.slug === 'silk' ? 'Originated in Banaras & Kanchipuram' : cat.slug === 'cotton' ? 'Originated in Madhya Pradesh & Odisha' : 'Originated in India'}
+                              Kota Doria &amp; Traditional Saree Collection
                             </p>
                             {/* Description */}
                             <p className="text-[#3E2723] text-xs md:text-sm leading-relaxed font-serif text-center sm:text-left select-text whitespace-pre-wrap">
-                              {cat.description || "Traditional handloom heritage, woven with dedication. Admin can edit this section to add historic facts, weave types, and details about motifs."}
+                              {cat.description || "Authentic saree collection. Admin can edit this category to add details on fabrics, textures, and care."}
                             </p>
 
                             {cat.history && (

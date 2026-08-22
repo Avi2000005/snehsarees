@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
 import { CHATBOT_RESPONSES, INTENT_MAP } from '../data';
 import { ActivePage } from '../types';
@@ -56,13 +56,14 @@ export const Chatbot: React.FC<ChatbotProps> = ({
           console.error('Chatbot WhatsApp launch error:', e);
           showToast('Failed to open WhatsApp. Please enable popups.');
         }
+      } else if (action === 'shop') {
+        onNavigate('viewall', 'all');
+        onClose();
       } else {
-        // 'silk' | 'cotton' | 'wedding'
-        const categoryName = action.charAt(0).toUpperCase() + action.slice(1);
-        onSetCategory(categoryName);
+        onSetCategory(action);
         onNavigate('home');
         onClose();
-        showToast(`Filtered by ${categoryName}`);
+        showToast(`Filtered by ${action}`);
       }
     }, 800);
   };
@@ -71,7 +72,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
     const lowerInput = userInput.toLowerCase();
     let key = '';
 
-    // 1. Direct intent mapping first (so specific inputs like "shop cotton" get priority)
+    // 1. Direct intent mapping first
     for (const [phrase, intent] of Object.entries(INTENT_MAP)) {
       if (lowerInput.includes(phrase)) {
         key = intent;
@@ -81,16 +82,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
 
     // 2. Keyword fallback checks if no exact intent was mapped
     if (!key) {
-      if (lowerInput.includes('silk')) {
-        key = 'silk';
-      } else if (lowerInput.includes('cotton')) {
-        key = 'cotton';
-      } else if (
-        lowerInput.includes('wedding') ||
-        lowerInput.includes('bridal')
-      ) {
-        key = 'wedding';
-      } else if (lowerInput.includes('deliver') || lowerInput.includes('ship')) {
+      if (lowerInput.includes('deliver') || lowerInput.includes('ship')) {
         key = 'delivery';
       } else if (lowerInput.includes('order') || lowerInput.includes('track')) {
         key = 'order';
@@ -102,7 +94,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
         key = 'contact';
       } else if (lowerInput.includes('whatsapp')) {
         key = 'whatsapp';
-      } else if (lowerInput.includes('browse') || lowerInput.includes('saree')) {
+      } else if (lowerInput.includes('browse') || lowerInput.includes('saree') || lowerInput.includes('shop')) {
         key = 'browse';
       } else {
         key = 'fallback';

@@ -871,7 +871,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                     <Lock className="w-3.5 h-3.5" /> 256-Bit Encrypted Payment
                   </span>
                   <span className="flex items-center gap-1.5 text-[#C4601A]">
-                    <ShieldCheck className="w-3.5 h-3.5" /> 100% Authentic Handloom
+                    <ShieldCheck className="w-3.5 h-3.5" /> 100% Quality Checked
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-1 text-[11px] font-semibold text-gray-500 border-t border-[#E8E0D5]">

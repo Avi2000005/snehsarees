@@ -386,20 +386,20 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       <section className="py-12 px-8 md:px-12 max-w-[1100px] mx-auto brand-gradient-h rounded-2xl my-8 text-white text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-6 shadow-md relative overflow-hidden z-10">
         <div className="flex-1 relative z-10">
           <h3 className="text-xs font-bold tracking-[0.2em] text-[#F5E4BC] uppercase mb-2">
-            Wholesale & Boutiques
+            Bulk Orders
           </h3>
           <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold mb-3 leading-tight">
             Interested in Bulk Orders?
           </h2>
           <p className="text-white text-sm md:text-base max-w-[580px] leading-relaxed font-sans">
-            Whether for boutique retail, wedding gifting, or cultural events, Sneh Sarees provides handloom sarees in volume at direct-from-weaver rates. We customize colors, weaves, and packaging to match your aesthetic.
+            Planning a family function, gifting occasion, or buying for a group? We offer authentic Kota Doria sarees in bulk quantities from our store. Contact us on WhatsApp to discuss requirements and pricing.
           </p>
         </div>
         <button
           onClick={() => onNavigate('bulk')}
           className="bg-[#F5E4BC] text-[#7A2F08] px-8 py-4 rounded-full text-sm font-bold shadow-md hover:bg-white hover:text-[#C4601A] hover:shadow-xl hover:-translate-y-0.5 transition-all shrink-0 cursor-pointer relative z-10 active:scale-95"
         >
-          Inquire Wholesale Quote →
+          Enquire for Bulk →
         </button>
       </section>
 
@@ -419,7 +419,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
           <div className="flex flex-col gap-6 justify-between">
             <div className="space-y-6">
               <p className="text-[#111111] font-sans text-sm md:text-base leading-relaxed">
-                Have questions about our weaves, customization options, or an active order? Reach out to us, and our team will assist you as soon as possible.
+                Have questions about our sarees, available collections, or an active order? Reach out to us, and our team will assist you as soon as possible.
               </p>
 
               <div className="space-y-5">
@@ -460,7 +460,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
               <h4 className="text-xs font-bold text-[#222222] uppercase tracking-wider mb-3">Connect With Us</h4>
               <div className="flex gap-3">
                 <a
-                  href="https://instagram.com/snehsarees"
+                  href="https://www.instagram.com/_sneh_sarees_?igsi=MWU0YzhuMDFzZGJhaQ=="
                   target="_blank"
                   rel="noreferrer"
                   className="w-10 h-10 rounded-full brand-solid-bg text-white flex items-center justify-center transition-all cursor-pointer hover:-translate-y-0.5 shadow-xs hover:shadow-md"
@@ -558,7 +558,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
           <div className="text-center md:text-left">
             <div className="font-serif text-3xl font-bold mb-1 tracking-wide">Sneh <span className="text-[#F5E4BC]">Sarees</span></div>
             <p className="text-xs text-white/80 max-w-sm">
-              Curating authentic Kota Doria (Kotadoria) handloom heirlooms straight from traditional master weavers in Kota, Rajasthan.
+              Authentic Kota Doria (Kotadoria) sarees from our family store in Kota, Rajasthan — trusted quality at honest prices.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs font-semibold text-white/90">
@@ -585,10 +585,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
 
         <div className="max-w-5xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-white/70 gap-3">
           <p className="tracking-wider">
-            © {new Date().getFullYear()} Sneh Sarees. Handcrafted with pride in India.
+            © {new Date().getFullYear()} Sneh Sarees. Kota, Rajasthan.
           </p>
           <p className="text-[11px] text-white/60">
-            Pan-India Express Delivery · 100% Authentic Kota Doria Guarantee
+            Offline &amp; Online Store · Kota, Rajasthan · Authentic Kota Doria
           </p>
         </div>
       </footer>

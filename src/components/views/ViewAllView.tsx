@@ -59,13 +59,13 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
     const cat = categories.find((c) => c.slug === selectedCategoryGroup);
     if (!cat) return null;
     return {
-      title: cat.name + " Saree Heritage & Weaves",
-      origin: cat.slug === 'silk' ? 'Banaras & Kanchipuram' : cat.slug === 'cotton' ? 'Chanderi & Sambalpur' : 'Artisanal Weaving Clusters',
-      craft: cat.slug === 'silk' ? 'Handloom Silk Zari Warp' : cat.slug === 'cotton' ? 'Fine Combed Thread Weft' : 'Traditional Handloom',
-      details: cat.description || "Beautiful hand-loomed saree threads crafted with dedication. Learn details on history, fabrics, and borders from our saree knowledge base.",
-      history: cat.history || "Woven under royal patronage for centuries. These sarees reflect generations of craftsmanship passed down to today's handloom artisans.",
-      properties: cat.properties || "Natural breathable textures, elegant zari motifs, and lightweight organic drape lines.",
-      care: cat.care || "Dry clean recommended to preserve golden thread luster. Handle with sneh."
+      title: cat.name + " Saree Collection",
+      origin: "Kota Doria Collection",
+      craft: "Authentic Saree Weaves",
+      details: cat.description || "Beautiful sarees chosen for their lightweight texture, quality, and elegant drape.",
+      history: cat.history || "Timeless designs celebrating traditional Kota Doria art and elegance.",
+      properties: cat.properties || "Natural breathable textures, elegant borders, and comfortable all-day wear.",
+      care: cat.care || "Dry clean or gentle hand wash recommended. Handle with care."
     };
   };
 
@@ -338,7 +338,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
     const custom = categories.map(cat => ({
       id: cat.slug,
       label: cat.name,
-      icon: cat.slug === 'silk' ? '🧵' : cat.slug === 'cotton' ? '🌿' : cat.slug === 'georgette' ? '✨' : '🛍️',
+      icon: '🛍️',
       imageUrl: cat.imageUrl || ''
     }));
     // Filter standard fallbacks
@@ -680,48 +680,52 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           </h3>
 
           {/* Occasion */}
-          <div className="filter-group mb-5">
-            <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
-              Occasion
-            </h4>
-            <div className="filter-options flex flex-wrap gap-1.5">
-              {['Wedding', 'Puja', 'Party', 'Daily Wear', 'Office'].map((occ) => (
-                <button
-                  key={occ}
-                  onClick={() => setSelectedOccasion(selectedOccasion === occ ? null : occ)}
-                  className={`filter-option rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer transition-all ${
-                    selectedOccasion === occ
-                      ? 'bg-[#C4601A] text-white border-primrose'
-                      : 'bg-white text-[#4A4A4A] border border-[#E8E0D5] hover:border-[#C4601A]'
-                  }`}
-                >
-                  {occ}
-                </button>
-              ))}
+          {Array.from(new Set(productsList.map(p => p.occasion).filter(Boolean))).length > 0 && (
+            <div className="filter-group mb-5">
+              <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
+                Occasion
+              </h4>
+              <div className="filter-options flex flex-wrap gap-1.5">
+                {Array.from(new Set(productsList.map(p => p.occasion).filter(Boolean))).map((occ) => (
+                  <button
+                    key={occ}
+                    onClick={() => setSelectedOccasion(selectedOccasion === occ ? null : occ)}
+                    className={`filter-option rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer transition-all ${
+                      selectedOccasion === occ
+                        ? 'bg-[#C4601A] text-white border-primrose'
+                        : 'bg-white text-[#4A4A4A] border border-[#E8E0D5] hover:border-[#C4601A]'
+                    }`}
+                  >
+                    {occ}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Fabric */}
-          <div className="filter-group mb-5">
-            <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
-              Fabric
-            </h4>
-            <div className="filter-options flex flex-wrap gap-1.5">
-              {['Silk', 'Cotton', 'Georgette', 'Linen', 'Organza', 'Crepe'].map((fab) => (
-                <button
-                  key={fab}
-                  onClick={() => setSelectedFabric(selectedFabric === fab ? null : fab)}
-                  className={`filter-option rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer transition-all ${
-                    selectedFabric === fab
-                      ? 'bg-[#C4601A] text-white border-primrose'
-                      : 'bg-white text-[#4A4A4A] border border-[#E8E0D5] hover:border-[#C4601A]'
-                  }`}
-                >
-                  {fab}
-                </button>
-              ))}
+          {Array.from(new Set(productsList.map(p => p.fabric).filter(Boolean))).length > 0 && (
+            <div className="filter-group mb-5">
+              <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
+                Fabric
+              </h4>
+              <div className="filter-options flex flex-wrap gap-1.5">
+                {Array.from(new Set(productsList.map(p => p.fabric).filter(Boolean))).map((fab) => (
+                  <button
+                    key={fab}
+                    onClick={() => setSelectedFabric(selectedFabric === fab ? null : fab)}
+                    className={`filter-option rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer transition-all ${
+                      selectedFabric === fab
+                        ? 'bg-[#C4601A] text-white border-primrose'
+                        : 'bg-white text-[#4A4A4A] border border-[#E8E0D5] hover:border-[#C4601A]'
+                    }`}
+                  >
+                    {fab}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Price Range */}
           <div className="filter-group mb-5">

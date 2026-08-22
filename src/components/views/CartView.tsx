@@ -75,7 +75,7 @@ export const CartView: React.FC<CartViewProps> = ({
               Your Cart is Empty
             </h3>
             <p className="empty-desc text-xs text-[#888888] max-w-xs mb-6 leading-relaxed">
-              Explore our curated handloom collections and discover authentic weaver heirlooms.
+              Explore our Kota Doria saree collections and discover your favorite designs.
             </p>
             <button
               onClick={() => onNavigate('home')}

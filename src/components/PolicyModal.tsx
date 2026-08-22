@@ -104,7 +104,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                   <span className="w-6 h-6 rounded-full bg-[#FFF0E8] text-[#C4601A] flex items-center justify-center text-xs font-bold">1</span>
                   Information We Collect
                 </h4>
-                <p>When you visit or make a purchase on Sneh Sarees, we collect necessary personal details to process and fulfill your artisanal saree orders:</p>
+                <p>When you visit or make a purchase on Sneh Sarees, we collect necessary personal details to process and fulfill your saree orders:</p>
                 <ul className="list-disc pl-5 space-y-1 text-xs text-gray-700">
                   <li><strong>Personal Identifiers:</strong> Name, email address, contact phone number, and delivery addresses.</li>
                   <li><strong>Order Information:</strong> Saree selections, quantities, price details, and transaction reference/UTR identifiers.</li>
@@ -120,7 +120,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </h4>
                 <p>Your data is used strictly for legitimate commercial and fulfillment objectives:</p>
                 <ul className="list-disc pl-5 space-y-1 text-xs text-gray-700">
-                  <li>To verify, inspect, package, and deliver your handloom saree orders.</li>
+                  <li>To verify, inspect, package, and deliver your saree orders.</li>
                   <li>To send real-time order confirmation receipts, WhatsApp updates, and courier AWB tracking links.</li>
                   <li>To provide responsive customer support and resolve post-order service or return inquiries.</li>
                   <li>To prevent fraudulent transactions and maintain system integrity.</li>
@@ -156,7 +156,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                   Your Privacy Rights &amp; Account Deletion
                 </h4>
                 <p>
-                  You have full rights to access, review, modify, or permanently delete your account data at any time via your Profile settings or by emailing our Grievance Officer at <strong>support@snehsarees.com</strong>.
+                  You have full rights to access, review, modify, or permanently delete your account data at any time via your Profile settings or by emailing our Grievance Officer at <strong>info@snehsarees.in</strong>.
                 </p>
               </section>
             </div>
@@ -168,7 +168,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               <div className="bg-[#FFF8F3] border border-[#F0C8A0] rounded-xl p-4">
                 <h3 className="font-serif text-base font-bold text-[#C4601A] mb-1">Terms &amp; Conditions of Service</h3>
                 <p className="text-xs text-[#7A3A12]">
-                  Please read these Terms carefully before using our website or purchasing handcrafted handloom products from Sneh Sarees.
+                  Please read these Terms carefully before using our website or purchasing sarees from Sneh Sarees store.
                 </p>
               </div>
 
@@ -185,13 +185,13 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               <section className="space-y-2">
                 <h4 className="font-serif font-bold text-[#1A1A1A] text-sm md:text-base flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#FFF0E8] text-[#C4601A] flex items-center justify-center text-xs font-bold">2</span>
-                  Handcrafted &amp; Handloom Characteristics
+                  Saree Fabric &amp; Product Characteristics
                 </h4>
                 <p>
-                  All sarees featured in our catalog are artisanal handloom products woven or hand-embroidered by regional master artisans:
+                  All sarees featured in our store catalog are authentic traditional textiles:
                 </p>
                 <ul className="list-disc pl-5 space-y-1 text-xs text-gray-700">
-                  <li>Minor irregularities in yarn weave, slubs, selvedge knots, block dye nuances, and zari alignments are natural characteristics of authentic handcrafted heritage art.</li>
+                  <li>Natural variations in yarn weave, textures, selvedge finishes, and zari nuances are characteristic of traditional textile art.</li>
                   <li>Digital screen calibrations and lighting differences across phones/monitors may produce slight perceptible color variations from physical fabrics.</li>
                 </ul>
               </section>
@@ -242,9 +242,9 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
           {activeTab === 'shipping' && (
             <div className="space-y-6 animate-fade-in">
               <div className="bg-[#FFF8F3] border border-[#F0C8A0] rounded-xl p-4">
-                <h3 className="font-serif text-base font-bold text-[#C4601A] mb-1">Shipping &amp; Express Delivery Policy</h3>
+                <h3 className="font-serif text-base font-bold text-[#C4601A] mb-1">Shipping &amp; Delivery Policy</h3>
                 <p className="text-xs text-[#7A3A12]">
-                  We partner with top-tier courier networks to ensure your handcrafted sarees arrive safely, on time, and in pristine condition.
+                  We ship your handcrafted sarees via trusted courier services to ensure they arrive safely, on time, and in pristine condition.
                 </p>
               </div>
 
@@ -275,7 +275,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                   Dispatch &amp; Processing Timelines
                 </h4>
                 <p>
-                  Every saree undergoes a meticulous master-weaver quality inspection and multi-layer moisture-proof packaging before dispatch.
+                  Every saree undergoes a meticulous quality inspection and multi-layer moisture-proof packaging at our store before dispatch.
                 </p>
                 <ul className="list-disc pl-5 space-y-1 text-xs text-gray-700">
                   <li><strong>Dispatch Window:</strong> 1 to 2 business days from payment confirmation.</li>
@@ -342,7 +342,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </h4>
                 <ul className="list-disc pl-5 space-y-1 text-xs text-gray-700">
                   <li><strong>Before Dispatch:</strong> You can cancel your order free of charge at any time prior to courier dispatch by contacting our support team on WhatsApp with your Order ID. 100% of the paid amount is refunded immediately.</li>
-                  <li><strong>After Dispatch &amp; Delivery:</strong> Once the parcel is in transit or delivered, orders cannot be cancelled. As our sarees are authentic handcrafted Kota Doria handlooms inspected before dispatch, we currently do not offer returns or exchanges after delivery.</li>
+                  <li><strong>After Dispatch &amp; Delivery:</strong> Once the parcel is in transit or delivered, orders cannot be cancelled. As our sarees are thoroughly quality inspected before dispatch, we currently do not offer returns or exchanges after delivery.</li>
                 </ul>
               </section>
 
@@ -373,7 +373,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900">
                   <p className="font-bold">⚠️ Cash on Delivery is currently unavailable:</p>
                   <p className="mt-1 text-amber-800">
-                    To maintain direct artisan-to-doorstep coordination and prevent transit delivery rejections, all orders are accepted on a prepaid online basis via UPI QR Code.
+                    To ensure secure order processing and prevent delivery disruptions, all orders are accepted on a prepaid basis via UPI QR Code.
                   </p>
                 </div>
               </section>
@@ -403,10 +403,10 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               <div className="space-y-3">
                 <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8E0D5]">
                   <h4 className="font-serif font-bold text-[#1A1A1A] text-xs sm:text-sm mb-1.5 flex items-center gap-2">
-                    <span className="text-[#C4601A]">Q:</span> Are your sarees 100% authentic Kota Doria?
+                    <span className="text-[#C4601A]">Q:</span> Are your sarees authentic Kota Doria?
                   </h4>
                   <p className="text-xs text-gray-700 pl-4">
-                    A: Yes! Every saree in our catalog is procured directly from traditional master weavers of Kota Doria (Kotadoria) in Kota, Rajasthan. We specialize exclusively in authentic, handcrafted Kota Doria sarees featuring genuine Khat-weave square grids without synthetic machine compromises.
+                    A: Yes! Sneh Sarees is a dedicated saree store based in Kota, Rajasthan. We specialize in Kota Doria (Kotadoria) sarees featuring the authentic Khat-weave square grid pattern.
                   </p>
                 </div>
 
@@ -442,7 +442,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                     <span className="text-[#C4601A]">Q:</span> Do you accept returns or exchanges after delivery?
                   </h4>
                   <p className="text-xs text-gray-700 pl-4">
-                    A: Because every saree is an authentic, delicate handcrafted Kota Doria handloom weave checked thoroughly prior to dispatch, we currently do not accept returns or exchanges once delivered. However, you can cancel your order anytime before courier dispatch with a 100% instant refund.
+                    A: Because every saree is checked thoroughly at our store prior to dispatch, we currently do not accept returns or exchanges once delivered. However, you can cancel your order anytime before courier dispatch with a 100% instant refund.
                   </p>
                 </div>
 
@@ -451,7 +451,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                     <span className="text-[#C4601A]">Q:</span> Do you accept bulk or wedding trousseau orders?
                   </h4>
                   <p className="text-xs text-gray-700 pl-4">
-                    A: Yes! We cater to wedding parties, boutiques, and bulk gifting with authentic Kota Doria wholesale pricing tiers. You can submit an inquiry through our <strong>Bulk Order</strong> page or connect with us directly on WhatsApp.
+                    A: Yes! We cater to wedding parties, family functions, and bulk orders directly from our store in Kota. You can submit an inquiry through our <strong>Bulk Order</strong> page or connect with us directly on WhatsApp.
                   </p>
                 </div>
               </div>
@@ -482,7 +482,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
         {/* Modal Bottom Close Bar */}
         <div className="bg-[#FAF6F0] p-3.5 px-6 border-t border-[#E8E0D5] flex items-center justify-between shrink-0">
           <span className="text-[11px] text-[#888888]">
-            © {new Date().getFullYear()} Sneh Sarees · Handcrafted with pride in India
+            © {new Date().getFullYear()} Sneh Sarees · Kota, Rajasthan
           </span>
           <button
             onClick={onClose}

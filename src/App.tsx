@@ -58,11 +58,7 @@ export default function App() {
   // Core app synchronized states
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<number[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([
-    'Kotadoria Silk',
-    'Kotadoria Cotton',
-    'Zari Border'
-  ]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<number[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
@@ -84,10 +80,37 @@ export default function App() {
       .catch(err => console.error('App products load error:', err));
   }, [page]);
 
-  // 1. Initial State Hydration from Database via Auth Token
+  // 1. Initial State Hydration & Deep Linking from URL
   useEffect(() => {
+    // 1a. URL Deep Link detection (e.g. https://www.snehsarees.in/?product=12 or ?view=bulk or ?category=silk)
     try {
-      const storedToken = localStorage.getItem('laxmi_user_token');
+      const params = new URLSearchParams(window.location.search);
+      const prodId = params.get('product') || params.get('productId');
+      const viewParam = params.get('view');
+      const catParam = params.get('category');
+
+      if (prodId) {
+        const parsed = parseInt(prodId, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          setPage('detail');
+          setPageParam(parsed);
+          setHistoryStack([{ page: 'landing' }, { page: 'home' }, { page: 'detail', param: parsed }]);
+        }
+      } else if (catParam) {
+        setPage('viewall');
+        setPageParam(catParam);
+        setHistoryStack([{ page: 'landing' }, { page: 'viewall', param: catParam }]);
+      } else if (viewParam && ['landing', 'home', 'viewall', 'bulk', 'profile', 'cart', 'orders', 'wishlist', 'search'].includes(viewParam)) {
+        setPage(viewParam as ActivePage);
+        setHistoryStack([{ page: 'landing' }, { page: viewParam as ActivePage }]);
+      }
+    } catch (e) {
+      console.error('Error parsing initial URL params:', e);
+    }
+
+    // 1b. Read Auth Token
+    try {
+      const storedToken = localStorage.getItem('sneh_user_token') || localStorage.getItem('laxmi_user_token');
       if (storedToken) {
         setToken(storedToken);
         fetch(`${API_URL}/api/auth/me`, {
@@ -308,6 +331,7 @@ export default function App() {
   const handleLogout = () => {
     setToken(null);
     setUser(null);
+    localStorage.removeItem('sneh_user_token');
     localStorage.removeItem('laxmi_user_token');
     setOrders([]);
     showToast('Logged out successfully.');

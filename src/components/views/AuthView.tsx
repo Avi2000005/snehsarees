@@ -77,6 +77,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
     setLoading(true);
     try {
       const data = await apiCall('login', { email, password });
+      localStorage.setItem('sneh_user_token', data.token);
       localStorage.setItem('laxmi_user_token', data.token);
       showToast(`Welcome back, ${data.user.name}! 🎉`);
       onLoginSuccess(data.token, data.user);
@@ -151,6 +152,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
         username: username.toLowerCase().trim(),
         phone: phone.trim()
       });
+      localStorage.setItem('sneh_user_token', data.token);
       localStorage.setItem('laxmi_user_token', data.token);
       showToast(`Account created! Welcome, ${data.user.name} 🎉`);
       onLoginSuccess(data.token, data.user);
@@ -254,7 +256,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             )}
           </div>
           <h2 className="font-serif text-3xl font-bold text-[#C4601A] tracking-wide mb-1">Sneh Sarees</h2>
-          <p className="text-xs text-[#222222] font-semibold">Premium Handloom Silks & Bridal Swatches</p>
+          <p className="text-xs text-[#222222] font-semibold">Authentic Kota Doria Sarees &amp; Traditional Drapes</p>
         </div>
 
         {/* Login / Register Tab Switcher — only on login/register-email */}

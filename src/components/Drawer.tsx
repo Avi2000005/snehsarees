@@ -71,7 +71,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
         <div className="drawer-header brand-gradient px-5 pt-10 pb-5 text-white shrink-0 flex items-center justify-between border-b border-[#F5E4BC]/20">
           <div>
             <div className="font-serif text-xl font-bold mb-0.5">Categories</div>
-            <div className="text-[11px] text-white/80">Explore handcrafted saree collections</div>
+            <div className="text-[11px] text-white/80">Explore authentic saree collections</div>
           </div>
           <button
             onClick={onClose}

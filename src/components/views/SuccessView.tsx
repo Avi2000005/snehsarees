@@ -62,7 +62,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) =
         Order Confirmed!
       </h1>
       <p className="success-subtitle text-xs text-[#333333] font-semibold mb-6 text-center leading-relaxed">
-        Your beautiful handcrafted saree is on its way
+        Your beautiful saree is being packed and prepared for delivery
       </p>
 
       <div className="success-order-id bg-white border border-[#E8E0D5] rounded-xl px-5 py-3 text-sm text-[#111111] font-bold mb-4 w-full text-center shadow-xs">

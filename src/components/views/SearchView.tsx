@@ -33,11 +33,18 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [results, setResults] = useState<Product[]>([]);
   const [isSearched, setIsSearched] = useState(false);
 
+  const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
+
   useEffect(() => {
     fetch(`${API_URL}/api/products`)
       .then(res => res.json())
       .then(data => setProductsList(data || []))
       .catch(err => console.error('SearchView product load error:', err));
+
+    fetch(`${API_URL}/api/categories`)
+      .then(res => res.json())
+      .then(data => setCategories(data || []))
+      .catch(err => console.error('SearchView category load error:', err));
   }, []);
 
   useEffect(() => {
@@ -290,20 +297,27 @@ export const SearchView: React.FC<SearchViewProps> = ({
             </div>
 
             {/* Popular tags search */}
-            <div className="search-section-label text-xs font-bold text-[#1A1A1A] p-4 px-0 uppercase tracking-wider mt-2">
-              Popular Kotadoria Categories
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              {['Kotadoria Cotton', 'Kotadoria Silk', 'Zari Border', 'Gotta Patti', 'Handblock', 'Daily Wear'].map((term) => (
-                <button
-                  key={term}
-                  onClick={() => executeSearch(term)}
-                  className="bg-[#FAF6F0] text-xs text-[#C4601A] border border-[#C4601A]/20 hover:border-[#C4601A]/50 rounded-full px-3.5 py-1.5 font-bold cursor-pointer transition-colors"
-                >
-                  {term}
-                </button>
-              ))}
-            </div>
+            {(categories.length > 0 || productsList.length > 0) && (
+              <>
+                <div className="search-section-label text-xs font-bold text-[#1A1A1A] p-4 px-0 uppercase tracking-wider mt-2">
+                  Popular Categories
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  {(categories.length > 0
+                    ? categories.map(c => c.name)
+                    : Array.from(new Set(productsList.map(p => p.fabric || p.occasion).filter(Boolean)))
+                  ).slice(0, 8).map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => executeSearch(term)}
+                      className="bg-[#FAF6F0] text-xs text-[#C4601A] border border-[#C4601A]/20 hover:border-[#C4601A]/50 rounded-full px-3.5 py-1.5 font-bold cursor-pointer transition-colors"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 

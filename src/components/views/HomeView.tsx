@@ -91,13 +91,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
     const cat = categories.find((c) => c.slug === activeHomeCategory);
     if (!cat) return null;
     return {
-      title: cat.name + " Saree Heritage & Weaves",
-      origin: cat.slug === 'silk' ? 'Banaras & Kanchipuram' : cat.slug === 'cotton' ? 'Chanderi & Sambalpur' : 'Artisanal Weaving Clusters',
-      craft: cat.slug === 'silk' ? 'Handloom Silk Zari Warp' : cat.slug === 'cotton' ? 'Fine Combed Thread Weft' : 'Traditional Handloom',
-      details: cat.description || "Beautiful hand-loomed saree threads crafted with dedication. Learn details on history, fabrics, and borders from our saree knowledge base.",
-      history: cat.history || "Woven under royal patronage for centuries. These sarees reflect generations of craftsmanship passed down to today's handloom artisans.",
-      properties: cat.properties || "Natural breathable textures, elegant zari motifs, and lightweight organic drape lines.",
-      care: cat.care || "Dry clean recommended to preserve golden thread luster. Handle with sneh."
+      title: cat.name + " Saree Collection",
+      origin: "Kota Doria Collection",
+      craft: "Authentic Saree Weaves",
+      details: cat.description || "Carefully curated saree fabrics chosen for their quality, lightweight feel, and elegant drape.",
+      history: cat.history || "Timeless designs celebrating traditional Kota Doria art and elegance.",
+      properties: cat.properties || "Lightweight textures, elegant borders, and comfortable all-day wear.",
+      care: cat.care || "Dry clean or gentle hand wash recommended. Handle with care."
     };
   };
 
@@ -119,7 +119,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   };
 
   const renderCategoryIcon = (slug: string, active: boolean, imageUrl?: string) => {
-    // If admin uploaded a custom image, show it cover-style filling the container
     if (imageUrl) {
       return (
         <img
@@ -131,38 +130,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
     }
 
     const strokeColor = active ? 'stroke-white' : 'stroke-[#C4601A]';
-    if (slug === 'silk') {
-      return (
-        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-          <path d="M12 2C6 2 3 7 3 12s3 10 9 10 9-5 9-10S18 2 12 2z" />
-          <path d="M12 2c2 4 2 16 0 20M2 12c4 2 16 2 20 0" />
-        </svg>
-      );
-    }
-    if (slug === 'cotton') {
-      return (
-        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-          <path d="M12 2a5 5 0 00-5 5c0 2.5 1.5 4.5 3 5.5V20h4v-7.5c1.5-1 3-3 3-5.5a5 5 0 00-5-5z" />
-          <path d="M9 20h6" />
-        </svg>
-      );
-    }
-    if (slug === 'georgette') {
-      return (
-        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-          <path d="M12 3l2 5h5l-4 3 1.5 5L12 13l-4.5 3L9 11 5 8h5z" />
-        </svg>
-      );
-    }
-    if (slug === 'linen') {
-      return (
-        <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-          <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402C1 3.147 4.198 1 7.5 1c2.15 0 4.15 1.1 5.5 2.8C14.35 2.1 16.35 1 18.5 1 21.8 1 25 3.147 25 7.191" />
-          <path d="M12 21.593l-1-1" />
-        </svg>
-      );
-    }
-    // Generic fallback category icon
     return (
       <svg className={`w-[22px] h-[22px] ${strokeColor}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -835,7 +802,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="md:col-span-2 space-y-3">
             <div className="font-serif text-2xl font-bold text-[#C4601A]">Sneh Sarees</div>
             <p className="text-xs text-gray-600 leading-relaxed max-w-sm">
-              Discover authentic Kota Doria handloom artistry. We partner directly with master weavers in Kota, Rajasthan to bring you authentic, lightweight, and breathable Kotadoria sarees directly to your doorstep.
+              Discover authentic Kota Doria sarees. Sneh Sarees is a dedicated saree store based in Kota, Rajasthan, offering authentic, lightweight, and elegant Kotadoria sarees.
             </p>
             <div className="flex items-center gap-3 pt-2 text-xs font-bold text-[#1A1A1A]">
               <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">100% Authentic Kota Doria</span>
@@ -898,7 +865,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         <div className="max-w-6xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">
           <p>© {new Date().getFullYear()} Sneh Sarees. All rights reserved.</p>
-          <p>Handcrafted with pride in India · Direct Artisan Coordination</p>
+          <p>Kota, Rajasthan · Saree Store</p>
         </div>
 
         {/* Guaranteed clearance buffer so bottom nav bar never covers text */}

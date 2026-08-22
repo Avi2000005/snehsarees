@@ -171,15 +171,15 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
           </div>
 
           <h2 className="font-serif text-2xl md:text-3xl font-bold mb-3 text-white tracking-wide">
-            Wholesale Partnership
+            Bulk &amp; Family Orders
           </h2>
           <p className="text-white/85 text-xs md:text-sm leading-relaxed mb-4">
-            We partner with boutique owners, wedding coordinators, and retailers across the globe to supply pure handloom sarees at direct weaver prices. 
+            We supply authentic Kota Doria sarees in bulk for weddings, family functions, and special occasions directly from our store in Kota, Rajasthan.
           </p>
           <ul className="text-[11px] md:text-xs text-[#F5E4BC] font-semibold space-y-1.5 list-disc pl-4">
-            <li>Direct artisan sourcing & customizable weaving styles</li>
-            <li>Minimum wholesale quantity starting from just 10 pieces</li>
-            <li>Inspected packaging and secure nationwide express shipping</li>
+            <li>Authentic Kota Doria saree varieties &amp; colors</li>
+            <li>Bulk pricing starting from just 10 pieces</li>
+            <li>Quality checked packaging and secure express delivery</li>
           </ul>
         </div>
 

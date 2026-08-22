@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShoppingBag, Heart, RefreshCw, Star, Play, BookOpen, X, Globe, Home, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Heart, RefreshCw, Star, Play, BookOpen, X, Globe, Home, ShoppingCart, Share2, Check } from 'lucide-react';
 import { ActivePage, Product, Review, Category, UserProfile } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
-import { API_URL } from '../../config';
+import { API_URL, SITE_URL } from '../../config';
 
 interface ProductDetailViewProps {
   productId: number;
@@ -34,6 +34,31 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [categoryInfo, setCategoryInfo] = useState<Category | null>(null);
   const [showReelPlayer, setShowReelPlayer] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleShare = async () => {
+    if (!p) return;
+    const shareUrl = `${SITE_URL}/?product=${p.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${p.name} | Sneh Sarees`,
+          text: `Check out ${p.name} on Sneh Sarees: ${shareUrl}`,
+          url: shareUrl
+        });
+        return;
+      } catch (e) {
+        // user cancelled or fallback
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch (err) {
+      console.error('Clipboard copy error:', err);
+    }
+  };
 
   // Review states (read-only — writing happens in My Orders)
   const [reviewsList, setReviewsList] = useState<Review[]>([]);
@@ -199,8 +224,21 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            className="pd-share text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full cursor-pointer relative transition-colors"
+            onClick={handleShare}
+            title="Share Saree Link"
+          >
+            {copiedLink ? <Check className="w-[20px] h-[20px] text-emerald-600" /> : <Share2 className="w-[20px] h-[20px] text-[#1A1A1A]" />}
+            {copiedLink && (
+              <span className="absolute -bottom-7 right-0 bg-[#1A1A1A] text-white text-[10px] font-sans font-medium px-2 py-0.5 rounded shadow whitespace-nowrap z-30">
+                Link copied!
+              </span>
+            )}
+          </button>
+          <button
             className="pd-wishlist text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full cursor-pointer"
             onClick={() => onToggleWishlist(p.id)}
+            title="Wishlist"
           >
             <Heart
               className={`w-[22px] h-[22px] ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-[#1A1A1A]'}`}
@@ -209,6 +247,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           <button
             className="pd-cart text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full relative cursor-pointer"
             onClick={() => onNavigate('cart')}
+            title="Cart"
           >
             <ShoppingCart className="w-[22px] h-[22px]" />
             {cartCount > 0 && (

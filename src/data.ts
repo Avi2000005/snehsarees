@@ -148,24 +148,18 @@ export const products: Product[] = [
 
 export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
   greet: {
-    msg: 'Namaste! 🙏 Welcome to Sneh Sarees — your home for authentic Kota Doria (Kotadoria) handlooms. How can I assist you today?',
-    replies: ['Browse Kotadoria', 'Track my Order', 'Delivery Info', 'Contact Us']
+    msg: 'Namaste! 🙏 Welcome to Sneh Sarees — Kota Doria saree store in Kota, Rajasthan. How can I assist you today?',
+    replies: ['Browse Sarees', 'Track my Order', 'Delivery Info', 'Contact Us']
   },
   browse: {
-    msg: 'Explore our authentic Kotadoria collections! We specialize in Kotadoria Cotton, Kotadoria Silk, Zari Border, and Gotta Patti sarees. Tap a category on the shop page to filter.',
-    replies: ['Kotadoria Silk', 'Kotadoria Cotton', 'Kotadoria Wedding', 'Back to Menu']
+    msg: 'Explore our saree collections on our shop page to filter by your favorite styles, fabrics, and designs!',
+    replies: ['Shop All Sarees', 'Back to Menu'],
+    action: 'shop'
   },
-  silk: {
-    msg: 'Our Kotadoria Silk collection combines lightweight Khat weave with lustrous silk and zari — starting from ₹2,199! Handpicked directly from Kota master weavers. ✨',
-    replies: ['Shop Silk', 'Back to Menu']
-  },
-  cotton: {
-    msg: 'Our Kotadoria Cotton sarees are celebrated for their airy, breathable Khat square grid. Perfect for daily wear, pujas, and office from ₹1,299! 🌿',
-    replies: ['Shop Cotton', 'Back to Menu']
-  },
-  wedding: {
-    msg: 'Planning a wedding or festive event? Explore our Kotadoria Gotta Patti and heavy Zari bridal sarees. Every piece is handcrafted with love in Rajasthan. 💍',
-    replies: ['Shop Wedding', 'Back to Menu']
+  shopall: {
+    msg: 'Taking you to our complete saree collection! ✨',
+    replies: [],
+    action: 'shop'
   },
   order: {
     msg: "To track your order, WhatsApp us your Order ID at +91 94140 67123 and we'll update you instantly!",
@@ -176,7 +170,7 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
     replies: ['Back to Menu']
   },
   returns: {
-    msg: 'As our sarees are authentic handcrafted Kota Doria handloom products, we currently do not accept returns or exchanges after delivery. However, you can cancel any order free of cost before courier dispatch with a 100% instant refund. For help, feel free to WhatsApp us!',
+    msg: 'As every saree is thoroughly quality-checked before dispatch, we currently do not accept returns or exchanges after delivery. However, you can cancel any order free of cost before courier dispatch with a 100% instant refund. For help, feel free to WhatsApp us!',
     replies: ['WhatsApp Us', 'Back to Menu']
   },
   cancellation: {
@@ -184,23 +178,8 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
     replies: ['Back to Menu']
   },
   contact: {
-    msg: '📞 Call/WhatsApp: +91 94140 67123\n📍 Sneh Sarees, Rajasthan, India\n⏰ Mon–Sat, 9am–7pm',
+    msg: '📞 Call/WhatsApp: +91 94140 67123\n📍 Sneh Sarees, Kota, Rajasthan, India\n⏰ Mon–Sat, 9am–7pm',
     replies: ['WhatsApp Us', 'Back to Menu']
-  },
-  shopsilk: {
-    msg: 'Taking you to our Kotadoria Silk collection! ✨',
-    replies: [],
-    action: 'silk'
-  },
-  shopcotton: {
-    msg: 'Taking you to our Kotadoria Cotton collection! 🌿',
-    replies: [],
-    action: 'cotton'
-  },
-  shopwedding: {
-    msg: 'Taking you to Kotadoria Wedding sarees! 💍',
-    replies: [],
-    action: 'wedding'
   },
   whatsapp: {
     msg: 'Opening WhatsApp for you!',
@@ -209,7 +188,7 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
   },
   menu: {
     msg: 'Sure! What else can I help you with?',
-    replies: ['Browse Kotadoria', 'Track my Order', 'Delivery Info', 'Cancellation Info', 'Contact Us']
+    replies: ['Browse Sarees', 'Track my Order', 'Delivery Info', 'Cancellation Info', 'Contact Us']
   },
   fallback: {
     msg: 'I\'m not sure about that, but our team on WhatsApp can help! Would you like to connect?',
@@ -218,14 +197,10 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
 };
 
 export const INTENT_MAP: Record<string, string> = {
-  'browse kotadoria': 'browse',
   'browse sarees': 'browse',
-  'kotadoria silk': 'silk',
-  'silk sarees': 'silk',
-  'kotadoria cotton': 'cotton',
-  'cotton sarees': 'cotton',
-  'kotadoria wedding': 'wedding',
-  'wedding sarees': 'wedding',
+  'browse kotadoria': 'browse',
+  'shop all': 'shopall',
+  'shop all sarees': 'shopall',
   'track my order': 'order',
   'delivery info': 'delivery',
   'returns policy': 'returns',
@@ -233,9 +208,6 @@ export const INTENT_MAP: Record<string, string> = {
   'refund': 'returns',
   'cancellation': 'cancellation',
   'contact us': 'contact',
-  'shop silk': 'shopsilk',
-  'shop cotton': 'shopcotton',
-  'shop wedding': 'shopwedding',
   'whatsapp us': 'whatsapp',
   'back to menu': 'menu'
 };

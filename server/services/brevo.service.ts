@@ -50,9 +50,9 @@ function getEmailTemplate(otp: string, purpose: OtpPurpose) {
                 <p style="margin:12px 0 0;color:#999;font-size:11px;">Valid for <strong>10 minutes</strong> · Do not share this with anyone</p>
               </div>
               
-              <p style="margin:0;color:#aaa;font-size:12px;text-align:center;">
+              <p style="margin:0;color:#888888;font-size:12px;text-align:center;line-height:1.6;">
                 If you didn't request this, you can safely ignore this email.<br/>
-                &copy; ${new Date().getFullYear()} Sneh Sarees · All rights reserved
+                &copy; ${new Date().getFullYear()} <a href="https://www.snehsarees.in" style="color:#C4601A;text-decoration:none;font-weight:600;">Sneh Sarees</a> · <a href="https://www.snehsarees.in" style="color:#888888;text-decoration:underline;">www.snehsarees.in</a> · Kota, Rajasthan
               </p>
             </td>
           </tr>

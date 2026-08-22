@@ -128,7 +128,7 @@ export interface Reel {
 export interface ChatReply {
   msg: string;
   replies: string[];
-  action?: 'silk' | 'cotton' | 'wedding' | 'wa';
+  action?: 'shop' | 'wa' | string;
 }
 
 export type ActivePage =
