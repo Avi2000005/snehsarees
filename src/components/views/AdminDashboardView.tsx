@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ActivePage, Product, Order, Category, OfferBanner, Coupon, Review, Reel, ReturnRequest } from '../../types';
 import { Inquiry } from '../../../server/models/inquiry.model';
 import { API_URL } from '../../config';
-import { 
-  ArrowLeft, LogIn, Lock, Mail, LayoutDashboard, ShoppingBag, 
+import {
+  ArrowLeft, LogIn, Lock, Mail, LayoutDashboard, ShoppingBag,
   Users, Layers, Trash2, Edit3, PlusCircle, CheckCircle, RefreshCw, X, MapPin,
   Tag, MessageSquare, Film, RotateCcw
 } from 'lucide-react';
@@ -23,6 +23,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Security: session auto-expiry (4 hours)
+  const SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState('');
 
   // Dashboard Data
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'inquiries' | 'categories' | 'banners' | 'coupons' | 'reviews' | 'reels' | 'returns'>('dashboard');
@@ -121,10 +126,44 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   // Check sessionStorage for active token
   useEffect(() => {
     const savedToken = sessionStorage.getItem('laxmi_admin_token');
-    if (savedToken) {
+    const savedExpiry = sessionStorage.getItem('laxmi_admin_expiry');
+    if (savedToken && savedExpiry) {
+      const expiryMs = parseInt(savedExpiry, 10);
+      if (Date.now() < expiryMs) {
+        setToken(savedToken);
+        setSessionExpiresAt(expiryMs);
+      } else {
+        // Already expired — clear silently
+        sessionStorage.removeItem('laxmi_admin_token');
+        sessionStorage.removeItem('laxmi_admin_expiry');
+        showToast('Admin session expired. Please log in again.');
+      }
+    } else if (savedToken) {
       setToken(savedToken);
     }
   }, []);
+
+  // Session expiry countdown tick
+  useEffect(() => {
+    if (!token || !sessionExpiresAt) return;
+    const tick = () => {
+      const msLeft = sessionExpiresAt - Date.now();
+      if (msLeft <= 0) {
+        handleLogout();
+        showToast('Admin session expired. Please log in again.');
+        return;
+      }
+      const hLeft = Math.floor(msLeft / 3600000);
+      const mLeft = Math.floor((msLeft % 3600000) / 60000);
+      const sLeft = Math.floor((msLeft % 60000) / 1000);
+      setSessionTimeLeft(
+        hLeft > 0 ? `${hLeft}h ${mLeft}m` : mLeft > 0 ? `${mLeft}m ${sLeft}s` : `${sLeft}s`
+      );
+    };
+    tick();
+    const id = setInterval(tick, 10000);
+    return () => clearInterval(id);
+  }, [token, sessionExpiresAt]);
 
   // Fetch data when authenticated
   useEffect(() => {
@@ -150,6 +189,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         fetch(`${API_URL}/api/admin/returns`, { headers }),
       ]);
 
+      // Check if any response is 401 Unauthorized
+      const unauthorized = [resOrders, resInq, resBanners, resCoupons, resReviews, resReels, resReturns].some(r => r.status === 401);
+      if (unauthorized) {
+        handleLogout();
+        showToast('Admin session expired or invalid. Please log in again.');
+        return;
+      }
+
       if (resProd.ok) setProducts(await resProd.json());
       if (resOrders.ok) setOrders(await resOrders.json());
       if (resInq.ok) setInquiries(await resInq.json());
@@ -173,13 +220,20 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
+      if (!data.user || data.user.role !== 'admin') {
+        throw new Error('Access denied. Administrator credentials required.');
+      }
+
+      const expiryMs = Date.now() + SESSION_DURATION_MS;
       sessionStorage.setItem('laxmi_admin_token', data.token);
+      sessionStorage.setItem('laxmi_admin_expiry', String(expiryMs));
       setToken(data.token);
+      setSessionExpiresAt(expiryMs);
       showToast('Successfully logged in as Admin!');
     } catch (err: any) {
       showToast(err.message || 'Invalid email or password.');
@@ -190,7 +244,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   const handleLogout = () => {
     sessionStorage.removeItem('laxmi_admin_token');
+    sessionStorage.removeItem('laxmi_admin_expiry');
     setToken(null);
+    setSessionExpiresAt(null);
+    setSessionTimeLeft('');
+    setEmail('');
+    setPassword('');
     showToast('Logged out of Admin Portal.');
   };
 
@@ -428,7 +487,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     };
 
     try {
-      const url = editingProduct 
+      const url = editingProduct
         ? `${API_URL}/api/admin/products/${editingProduct.id}`
         : `${API_URL}/api/admin/products`;
       const method = editingProduct ? 'PUT' : 'POST';
@@ -883,7 +942,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const totalSales = orders
     .filter((o) => (o as any).status === 'paid' || (o as any).status === 'placed' || (o as any).status === 'shipped' || (o as any).status === 'processing' || (o as any).status === 'delivered')
     .filter((o) => (o as any).status !== 'cancelled')
-    .reduce((sum, o) => sum + o.total, 0);
+    .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+  const pendingPaymentCount = orders.filter((o) => (o as any).status === 'pending_payment').length;
 
   // Authentication Gate View
   if (!token) {
@@ -893,7 +954,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <button onClick={onBack} className="flex items-center gap-1 text-xs text-[#888888] hover:text-[#C4601A] mb-6">
             <ArrowLeft className="w-4 h-4" /> Return to Store
           </button>
-          
+
           <div className="text-center mb-6">
             <div className="w-12 h-12 bg-[#C4601A]/10 rounded-full flex items-center justify-center mx-auto mb-3">
               <Lock className="w-6 h-6 text-[#C4601A]" />
@@ -913,7 +974,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="info@snehsarees.in"
+                  placeholder="Enter admin email"
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                   required
                 />
@@ -958,6 +1019,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         <span className="font-serif text-lg md:text-xl font-bold text-[#C4601A] flex-1 flex items-center gap-2">
           Sneh Sarees <span className="bg-[#F5E4BC]/25 text-[#C4601A] text-[10px] px-2 py-0.5 rounded font-sans uppercase font-bold">Admin</span>
         </span>
+        {sessionTimeLeft && (
+          <span className="hidden sm:flex items-center gap-1 text-[9px] font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full mr-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+            Session · {sessionTimeLeft}
+          </span>
+        )}
         <button
           onClick={handleLogout}
           className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-full cursor-pointer transition-colors"
@@ -972,89 +1039,73 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         <div className="w-full md:w-[220px] bg-white rounded-2xl p-4 border border-[#E8E0D5] h-fit space-y-1">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'dashboard' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'dashboard' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <LayoutDashboard className="w-4.5 h-4.5" /> Dashboard
           </button>
           <button
             onClick={() => setActiveTab('products')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'products' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'products' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <Layers className="w-4.5 h-4.5" /> Products Catalog
           </button>
           <button
             onClick={() => setActiveTab('orders')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'orders' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'orders' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <ShoppingBag className="w-4.5 h-4.5" /> Orders
           </button>
           <button
             onClick={() => setActiveTab('inquiries')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'inquiries' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'inquiries' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <Users className="w-4.5 h-4.5" /> Wholesale Leads
           </button>
           <button
             onClick={() => setActiveTab('categories')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'categories' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'categories' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <Layers className="w-4.5 h-4.5" /> Saree Categories
           </button>
-          
+
           <button
             onClick={() => setActiveTab('banners')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'banners' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'banners' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <Layers className="w-4.5 h-4.5 text-amber-500" /> Offer Banners
           </button>
 
           <button
             onClick={() => setActiveTab('coupons')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'coupons' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'coupons' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <Tag className="w-4.5 h-4.5 text-emerald-500" /> Coupon Codes
           </button>
 
           <button
             onClick={() => setActiveTab('reviews')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'reviews' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'reviews' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <MessageSquare className="w-4.5 h-4.5 text-blue-500" /> Customer Reviews
           </button>
 
           <button
             onClick={() => setActiveTab('reels')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'reels' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'reels' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
           >
             <Film className="w-4.5 h-4.5 text-red-500" /> Video Reels
           </button>
 
-          <button
-            onClick={() => setActiveTab('returns')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-              activeTab === 'returns' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
-            }`}
-          >
-            <RotateCcw className="w-4.5 h-4.5 text-purple-500" /> Return Requests
-          </button>
+          {/* Return Requests saved for Version 2 */}
 
 
 
@@ -1079,21 +1130,23 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <div className="space-y-6">
               {/* Stats Overview Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs">
+                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Total Revenue</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#C4601A] mt-1">₹{totalSales.toLocaleString()}</h3>
+                  <h3 className="font-serif text-2xl font-bold text-[#C4601A] mt-1 truncate">
+                    ₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                  </h3>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs">
+                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Store Orders</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1">{orders.length}</h3>
+                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{orders.length}</h3>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs">
+                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Bulk Leads</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1">{inquiries.length}</h3>
+                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{inquiries.length}</h3>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs">
+                <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Catalog Size</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1">{products.length} Items</h3>
+                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{products.length} Items</h3>
                 </div>
               </div>
 
@@ -1134,8 +1187,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
 
               <div className="bg-white rounded-2xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs">
-                {(selectedAdminCategory === 'all' 
-                  ? products 
+                {(selectedAdminCategory === 'all'
+                  ? products
                   : products.filter(p => p.categoryId === parseInt(selectedAdminCategory, 10))
                 ).map((p) => (
                   <div key={p.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#FAF6F0]/20">
@@ -1175,6 +1228,22 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {!dataLoading && activeTab === 'orders' && (
             <div className="space-y-4">
               <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Orders Pipeline</h3>
+
+              {/* Pending Payment Alert Banner */}
+              {pendingPaymentCount > 0 && (
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-start gap-3">
+                  <span className="text-2xl">⏳</span>
+                  <div className="flex-1">
+                    <p className="font-bold text-amber-900 text-sm">
+                      {pendingPaymentCount} order{pendingPaymentCount > 1 ? 's' : ''} awaiting payment verification
+                    </p>
+                    <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                      Customers have placed QR payment orders. Check WhatsApp for payment screenshots and click <strong>"✓ Confirm Payment Received"</strong> below to deduct stock and process the orders.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {orders.map((o) => (
                   <div key={o.id} className="bg-white border border-[#E8E0D5] rounded-xl p-4 space-y-3 text-xs shadow-2xs">
@@ -1185,16 +1254,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         (o as any).status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
                         (o as any).status === 'shipped' ? 'bg-blue-100 text-blue-800' :
                         (o as any).status === 'delivered' ? 'bg-emerald-100 text-emerald-800' :
+                        (o as any).status === 'pending_payment' ? 'bg-amber-100 text-amber-900 border border-amber-300 animate-pulse' :
                         'bg-amber-100 text-amber-800'
                       }`}>
-                        {(o as any).status || 'placed'}
+                        {(o as any).status === 'pending_payment' ? '⏳ Awaiting Payment' : ((o as any).status || 'placed')}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                       <div>Customer: <strong>{o.name}</strong></div>
                       <div>Phone: <strong>{o.phone}</strong></div>
-                      <div className="col-span-2 flex items-start gap-1">
+                      <div className="col-span-1 sm:col-span-2 flex items-center gap-1.5 bg-[#FAF6F0] border border-[#E8E0D5] px-2.5 py-1 rounded-lg text-[#1A1A1A]">
+                        <Mail className="w-3.5 h-3.5 text-[#C4601A] shrink-0" />
+                        <span>Account Email: <strong className="text-[#C4601A]">{o.userEmail || (o as any).email || 'Not provided / Guest'}</strong></span>
+                      </div>
+                      <div className="col-span-1 sm:col-span-2 flex items-start gap-1">
                         <MapPin className="w-3.5 h-3.5 text-[#C4601A] shrink-0 mt-0.5" />
                         <span>Address: <strong>{o.address}</strong></span>
                         <button
@@ -1222,41 +1296,54 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
                     {/* Action buttons — hidden for cancelled/delivered orders */}
                     {(o as any).status !== 'cancelled' && (o as any).status !== 'delivered' && (
-                    <div className="flex gap-2 justify-end pt-1 flex-wrap">
-                      <button
-                        onClick={() => handleUpdateOrderStatus(o.id, 'processing')}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer"
-                      >
-                        Process
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShippingOrder(o);
-                          setShipTrackingId((o as any).trackingId || '');
-                          setShipCarrierName((o as any).carrierName || 'India Post');
-                          setShipTrackingUrl((o as any).trackingUrl || '');
-                        }}
-                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        🚚 Ship & Track
-                      </button>
-                      <button
-                        onClick={() => handleUpdateOrderStatus(o.id, 'delivered')}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer"
-                      >
-                        Mark Delivered
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Cancel order ${o.id}? Stock will be restored for all items.`)) {
-                            handleUpdateOrderStatus(o.id, 'cancelled');
-                          }
-                        }}
-                        className="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        <X className="w-3 h-3" /> Cancel Order
-                      </button>
-                    </div>
+                      <div className="flex gap-2 justify-end pt-1 flex-wrap">
+                        {/* Confirm Payment button — only for pending_payment orders */}
+                        {(o as any).status === 'pending_payment' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Confirm payment received for order ${o.id}? This will deduct inventory and confirm the order.`)) {
+                                handleUpdateOrderStatus(o.id, 'placed');
+                              }
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+                          >
+                            ✓ Confirm Payment Received
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleUpdateOrderStatus(o.id, 'processing')}
+                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer"
+                        >
+                          Process
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShippingOrder(o);
+                            setShipTrackingId((o as any).trackingId || '');
+                            setShipCarrierName((o as any).carrierName || 'India Post');
+                            setShipTrackingUrl((o as any).trackingUrl || '');
+                          }}
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          🚚 Ship & Track
+                        </button>
+                        <button
+                          onClick={() => handleUpdateOrderStatus(o.id, 'delivered')}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer"
+                        >
+                          Mark Delivered
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Cancel order ${o.id}? Stock will be restored for all items.`)) {
+                              handleUpdateOrderStatus(o.id, 'cancelled');
+                            }
+                          }}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Cancel Order
+                        </button>
+                      </div>
                     )}
 
                     {/* Cancelled notice */}
@@ -1280,10 +1367,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <div key={inq.id} className="bg-white border border-[#E8E0D5] rounded-xl p-4 text-xs space-y-3 shadow-2xs">
                     <div className="flex items-center justify-between border-b border-[#E8E0D5] pb-2">
                       <span className="font-bold text-[#1A1A1A]">{inq.name}</span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold ${
-                        inq.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
-                        inq.status === 'closed' ? 'bg-gray-100 text-gray-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold ${inq.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
+                          inq.status === 'closed' ? 'bg-gray-100 text-gray-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
                         {inq.status}
                       </span>
                     </div>
@@ -1325,7 +1411,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {!dataLoading && activeTab === 'categories' && (
             <div className="space-y-4">
               <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Manage Saree Categories</h3>
-              
+
               {/* Category creation/edit form */}
               <form onSubmit={handleCreateCategory} className="bg-white border border-[#E8E0D5] rounded-xl p-4 space-y-3">
                 <h4 className="font-serif text-sm font-bold text-[#C4601A]">
@@ -1343,7 +1429,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                           setNewCatSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
                         }
                       }}
-                      placeholder="e.g. Banarasi Silk"
+                      placeholder="Category name"
                       className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                       required
                     />
@@ -1354,7 +1440,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       type="text"
                       value={newCatSlug}
                       onChange={(e) => setNewCatSlug(e.target.value)}
-                      placeholder="e.g. banarasi-silk"
+                      placeholder="URL-friendly slug"
                       className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                       required
                       disabled={!!editingCatId}
@@ -1385,7 +1471,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     <textarea
                       value={newCatHistory}
                       onChange={(e) => setNewCatHistory(e.target.value)}
-                      placeholder="e.g. Originating in Kanchipuram under the reign of Pallava kings..."
+                      placeholder="Describe the history and origin of this saree type"
                       rows={3}
                       className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                     />
@@ -1397,7 +1483,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     <textarea
                       value={newCatProperties}
                       onChange={(e) => setNewCatProperties(e.target.value)}
-                      placeholder="e.g. Lustrous golden zari border, heavy fabric, temple designs..."
+                      placeholder="Describe the key properties, texture, and design features"
                       rows={3}
                       className="w-full bg-[#FAF6F0] border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                     />
@@ -1409,7 +1495,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     <textarea
                       value={newCatCare}
                       onChange={(e) => setNewCatCare(e.target.value)}
-                      placeholder="e.g. Dry clean only. Wrap in a soft cotton muslin cloth."
+                      placeholder="Describe how to care for and preserve this saree"
                       rows={3}
                       className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                     />
@@ -1530,28 +1616,28 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {!dataLoading && activeTab === 'banners' && (
             <div className="space-y-6">
               <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Manage Scrollable Offer Banners</h3>
-              
+
               <form onSubmit={handleCreateBanner} className="bg-white p-5 rounded-2xl border border-[#E8E0D5] space-y-4 shadow-2xs">
                 <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2">Add New Banner Banner</span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Banner Title</label>
-                    <input type="text" value={bannerTitle} onChange={(e) => setBannerTitle(e.target.value)} placeholder="e.g. Silk Saree Special" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" required />
+                    <input type="text" value={bannerTitle} onChange={(e) => setBannerTitle(e.target.value)} placeholder="Banner title" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" required />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Subtitle</label>
-                    <input type="text" value={bannerSubtitle} onChange={(e) => setBannerSubtitle(e.target.value)} placeholder="e.g. Up to 30% OFF this season" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
+                    <input type="text" value={bannerSubtitle} onChange={(e) => setBannerSubtitle(e.target.value)} placeholder="Banner subtitle" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Badge Text</label>
-                    <input type="text" value={bannerBadge} onChange={(e) => setBannerBadge(e.target.value)} placeholder="e.g. Festive Offer" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
+                    <input type="text" value={bannerBadge} onChange={(e) => setBannerBadge(e.target.value)} placeholder="Badge label" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">CTA Text</label>
-                    <input type="text" value={bannerCtaText} onChange={(e) => setBannerCtaText(e.target.value)} placeholder="e.g. Explore Now" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
+                    <input type="text" value={bannerCtaText} onChange={(e) => setBannerCtaText(e.target.value)} placeholder="Button text" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">CTA Section Link</label>
@@ -1595,21 +1681,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Banner Image (Optional)</label>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={handleBannerImageUpload} 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerImageUpload}
                           className="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#C4601A] file:text-white file:cursor-pointer"
                         />
                         {uploadingBannerImage && <span className="text-[9px] text-[#C4601A] block mt-0.5 animate-pulse">Uploading...</span>}
                       </div>
                       <div className="flex-1">
-                        <input 
-                          type="text" 
-                          value={bannerImageUrl} 
-                          onChange={(e) => setBannerImageUrl(e.target.value)} 
-                          placeholder="Or paste image URL" 
-                          className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" 
+                        <input
+                          type="text"
+                          value={bannerImageUrl}
+                          onChange={(e) => setBannerImageUrl(e.target.value)}
+                          placeholder="Or paste image URL"
+                          className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
                         />
                       </div>
                     </div>
@@ -1619,9 +1705,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     {bannerImageUrl && (
                       <div className="relative w-full max-w-[200px] h-[60px] rounded-lg border border-[#E8E0D5] overflow-hidden mt-1.5 bg-gray-50">
                         <img src={bannerImageUrl} alt="Banner Preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button" 
-                          onClick={() => setBannerImageUrl('')} 
+                        <button
+                          type="button"
+                          onClick={() => setBannerImageUrl('')}
                           className="absolute right-1 top-1 p-0.5 bg-black/60 rounded-full text-white hover:bg-black cursor-pointer"
                         >
                           <X className="w-3 h-3" />
@@ -1667,13 +1753,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {!dataLoading && activeTab === 'coupons' && (
             <div className="space-y-6">
               <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Manage Coupon Codes</h3>
-              
+
               <form onSubmit={handleCreateCoupon} className="bg-white p-5 rounded-2xl border border-[#E8E0D5] space-y-4 shadow-2xs">
                 <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2">Create New Coupon</span>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Coupon Code</label>
-                    <input type="text" value={cpCode} onChange={(e) => setCpCode(e.target.value)} placeholder="e.g. FESTIVE200" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" required />
+                    <input type="text" value={cpCode} onChange={(e) => setCpCode(e.target.value)} placeholder="Coupon code" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" required />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Discount Type</label>
@@ -1684,7 +1770,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Discount Value</label>
-                    <input type="number" value={cpValue} onChange={(e) => setCpValue(e.target.value)} placeholder="e.g. 10 or 200" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" required />
+                    <input type="number" value={cpValue} onChange={(e) => setCpValue(e.target.value)} placeholder="Discount value" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" required />
                   </div>
                 </div>
 
@@ -1710,7 +1796,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Coupon Description</label>
-                    <input type="text" value={cpDesc} onChange={(e) => setCpDesc(e.target.value)} placeholder="e.g. ₹200 off on order above ₹1499" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
+                    <input type="text" value={cpDesc} onChange={(e) => setCpDesc(e.target.value)} placeholder="Coupon description" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Restricted to Category <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
@@ -1758,7 +1844,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-[#1a1a1a]">{r.userName}</span>
-                        <span className="text-amber-500 font-bold">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</span>
+                        <span className="text-amber-500 font-bold">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
                         {r.isVerified && <span className="bg-emerald-50 text-emerald-700 text-[8px] font-bold px-1.5 py-0.25 rounded uppercase">Verified Purchase</span>}
                       </div>
                       <span className="block text-[10px] text-[#888888]">Product: <strong>{r.productName || `Product #${r.productId}`}</strong></span>
@@ -1797,7 +1883,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2">
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Reel Caption</label>
-                    <input type="text" value={reelCaption} onChange={(e) => setReelCaption(e.target.value)} placeholder="e.g. Style guide for banarasi silk saree" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
+                    <input type="text" value={reelCaption} onChange={(e) => setReelCaption(e.target.value)} placeholder="Reel caption" className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Sort Order</label>
@@ -1848,13 +1934,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-sm text-[#C4601A]">Request #{ret.id}</span>
-                            <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase leading-none ${
-                              ret.status === 'refunded' ? 'bg-emerald-100 text-emerald-700' :
-                              ret.status === 'rejected' ? 'bg-red-100 text-red-600' :
-                              ret.status === 'approved' ? 'bg-blue-100 text-blue-700' :
-                              ret.status === 'picked_up' ? 'bg-purple-100 text-purple-700' :
-                              'bg-amber-100 text-amber-700'
-                            }`}>
+                            <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase leading-none ${ret.status === 'refunded' ? 'bg-emerald-100 text-emerald-700' :
+                                ret.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                                  ret.status === 'approved' ? 'bg-blue-100 text-blue-700' :
+                                    ret.status === 'picked_up' ? 'bg-purple-100 text-purple-700' :
+                                      'bg-amber-100 text-amber-700'
+                              }`}>
                               {ret.status}
                             </span>
                           </div>
@@ -1862,9 +1947,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                             Order ID: <span className="font-mono">{ret.orderId}</span> · Requested on {new Date(ret.createdAt).toLocaleDateString('en-IN')}
                           </span>
                         </div>
-                        <div className="text-right sm:text-right">
+                        <div className="text-right sm:text-right text-[11px]">
                           <span className="font-bold text-[#1a1a1a] block">{ret.customerName || 'Customer'}</span>
                           <span className="text-gray-500 block">{ret.phone || 'No phone'}</span>
+                          {ret.userEmail && (
+                            <span className="text-[#C4601A] font-semibold block text-[10px]">{ret.userEmail}</span>
+                          )}
                         </div>
                       </div>
 
@@ -2066,7 +2154,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   type="text"
                   value={shipTrackingId}
                   onChange={(e) => setShipTrackingId(e.target.value)}
-                  placeholder="e.g. EM123456789IN"
+                  placeholder="Tracking ID"
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                   required
                 />
@@ -2081,7 +2169,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   type="url"
                   value={shipTrackingUrl}
                   onChange={(e) => setShipTrackingUrl(e.target.value)}
-                  placeholder="https://..."
+                  placeholder="Tracking URL"
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                 />
                 <p className="text-[9px] text-[#888888] mt-1">
@@ -2111,7 +2199,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
-            
+
             <h4 className="font-serif text-lg font-bold text-[#C4601A] mb-4">
               {editingProduct ? 'Edit Saree Inventory' : 'Add New Saree'}
             </h4>
@@ -2123,7 +2211,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   type="text"
                   value={prodName}
                   onChange={(e) => setProdName(e.target.value)}
-                  placeholder="e.g. Kanjivaram Golden Zari Saree"
+                  placeholder="Saree name"
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                   required
                 />
@@ -2161,7 +2249,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     type="number"
                     value={prodPrice}
                     onChange={(e) => setProdPrice(e.target.value)}
-                    placeholder="e.g. 2999"
+                    placeholder="Price (₹)"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                     required
                   />
@@ -2173,7 +2261,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     type="number"
                     value={prodDiscountPrice}
                     onChange={(e) => setProdDiscountPrice(e.target.value)}
-                    placeholder="e.g. 2499"
+                    placeholder="Discount price (₹)"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                   />
                 </div>
@@ -2208,7 +2296,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       type="text"
                       value={customColourVal}
                       onChange={(e) => setCustomColourVal(e.target.value)}
-                      placeholder="e.g. Lavender"
+                      placeholder="Color name"
                       className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A] mt-1.5"
                       required
                     />
@@ -2254,7 +2342,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     type="number"
                     value={prodStock}
                     onChange={(e) => setProdStock(e.target.value)}
-                    placeholder="e.g. 10"
+                    placeholder="Stock quantity"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                     required
                     min="0"
@@ -2283,7 +2371,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   type="text"
                   value={prodReelUrl}
                   onChange={(e) => setProdReelUrl(e.target.value)}
-                  placeholder="e.g. https://www.youtube.com/watch?v=... or direct mp4 url"
+                  placeholder="Video URL (YouTube or direct MP4)"
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                 />
               </div>
@@ -2306,7 +2394,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-[#C4601A]">
                   Saree Color Variants (Photos)
                 </span>
-                
+
                 {/* List of existing variants */}
                 {prodVariants.length > 0 && (
                   <div className="flex gap-2 flex-wrap pb-1">
@@ -2334,7 +2422,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         type="text"
                         value={newVariantColour}
                         onChange={(e) => setNewVariantColour(e.target.value)}
-                        placeholder="Variant Color (e.g. Blue)"
+                        placeholder="Variant color"
                         className="w-full bg-white border border-[#E8E0D5] rounded-lg p-2 text-[10px] font-semibold focus:outline-none focus:border-[#C4601A]"
                       />
                     </div>
@@ -2373,7 +2461,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <textarea
                   value={prodDesc}
                   onChange={(e) => setProdDesc(e.target.value)}
-                  placeholder="Detail the handloom work, border design, weaving style, and care instructions..."
+                  placeholder="Describe the handloom work, border design, weaving style, and care instructions"
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A] min-h-[90px]"
                 />
               </div>

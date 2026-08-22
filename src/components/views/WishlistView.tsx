@@ -110,7 +110,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
         </button>
       </div>
 
-      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-4 pb-[80px]">
+      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-4 pb-32">
         {wishlistItems.length === 0 ? (
           /* Wishlist Empty placeholder state */
           <div className="wishlist-empty text-center py-16 px-6 max-w-sm mx-auto">

@@ -15,11 +15,13 @@ import { ProductDetailView } from './components/views/ProductDetailView';
 import { CartView } from './components/views/CartView';
 import { CheckoutView } from './components/views/CheckoutView';
 import { SuccessView } from './components/views/SuccessView';
+import { PendingPaymentView } from './components/views/PendingPaymentView';
 import { WishlistView } from './components/views/WishlistView';
 import { OrdersView } from './components/views/OrdersView';
 import { ProfileView } from './components/views/ProfileView';
 import { BulkView } from './components/views/BulkView';
 import { AuthView } from './components/views/AuthView';
+import { AdminDashboardView } from './components/views/AdminDashboardView';
 import { API_URL } from './config';
 
 // Global Fetch Proxy to automatically send HTTP-only cookies on API calls
@@ -57,9 +59,9 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([
-    'Red Silk',
-    'Banarasi',
-    'Wedding Saree'
+    'Kotadoria Silk',
+    'Kotadoria Cotton',
+    'Zari Border'
   ]);
   const [recentlyViewed, setRecentlyViewed] = useState<number[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -455,6 +457,9 @@ export default function App() {
       case 'success':
         return <SuccessView order={currentOrder} onNavigate={handleNavigate} />;
 
+      case 'pending_payment':
+        return <PendingPaymentView order={currentOrder} onNavigate={handleNavigate} />;
+
       case 'wishlist':
         return (
           <WishlistView
@@ -508,6 +513,21 @@ export default function App() {
 
       case 'bulk':
         return <BulkView onNavigate={handleNavigate} onBack={handleBack} showToast={showToast} />;
+
+      case 'admin':
+        // Security gate: only the store owner email may see the admin page at all
+        if (!user || user.email?.toLowerCase() !== 'info@snehsarees.in') {
+          // Silently redirect — no login screen shown to any other user
+          setTimeout(() => handleNavigate('landing'), 0);
+          return <LandingView onNavigate={handleNavigate} user={user} />;
+        }
+        return (
+          <AdminDashboardView
+            onNavigate={handleNavigate}
+            onBack={handleBack}
+            showToast={showToast}
+          />
+        );
 
       default:
         return <LandingView onNavigate={handleNavigate} user={user} />;

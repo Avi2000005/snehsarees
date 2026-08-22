@@ -1,6 +1,6 @@
 {
   "name": "Snehsarees",
-  "description": "Authentic, handcrafted Indian sarees wove directly by artisans, including Banarasi, Kanjivaram, Chanderi, Sambalpuri, Paithani, and Patola weaves.",
+  "description": "Authentic, handcrafted Kota Doria (Kotadoria) sarees woven directly by master artisans in Kota, Rajasthan.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -8,7 +8,7 @@ export const ENV = {
   RAZORPAY_KEY_SECRET: (process.env.RAZORPAY_KEY_SECRET || '').trim(),
   ADMIN_SECRET: (process.env.ADMIN_SECRET || 'super_secret_admin_token').trim(),
   ADMIN_EMAIL: (process.env.ADMIN_EMAIL || 'info@snehsarees.in').trim(),
-  ADMIN_PASSWORD: (process.env.ADMIN_PASSWORD || 'admin123').trim(),
+  ADMIN_PASSWORD: (process.env.ADMIN_PASSWORD || 'Snehsarees@2026').trim(),
   JWT_SECRET: (process.env.JWT_SECRET || 'super_secret_jwt_sign_key_999').trim(),
   LOGIN_LIMIT_WINDOW_MS: parseInt(process.env.LOGIN_LIMIT_WINDOW_MS || '900000', 10), // Default: 15 minutes
   LOGIN_LIMIT_MAX: parseInt(process.env.LOGIN_LIMIT_MAX || '5', 10),                 // Default: 5 attempts

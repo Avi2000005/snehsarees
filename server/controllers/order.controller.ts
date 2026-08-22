@@ -68,6 +68,10 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       return res.status(400).json({ error: 'Invalid order payload. Delivery information and products are required.' });
     }
 
+    if (method === 'COD' || method === 'cod') {
+      return res.status(400).json({ error: 'Cash on Delivery (COD) is currently unavailable. Please pay via UPI QR code.' });
+    }
+
     // 1. Recalculate cart total securely from database
     let calculatedTotal = 0;
     const validatedItems: CartItem[] = [];
@@ -78,10 +82,10 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       if (!dbProduct) {
         return res.status(404).json({ error: `Product with ID ${item.id} not found.` });
       }
-      
+
       const itemPrice = dbProduct.discountPrice && dbProduct.discountPrice > 0 ? dbProduct.discountPrice : dbProduct.price;
       calculatedTotal += itemPrice * item.qty;
-      
+
       validatedItems.push({
         id: dbProduct.id,
         name: dbProduct.name,
@@ -119,7 +123,7 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       if (calculatedTotal < coupon.minOrderValue) {
         return res.status(400).json({ error: `Minimum order value of ₹${coupon.minOrderValue} required for this coupon.` });
       }
-      
+
       const usageCount = await db.getCouponUsageCount(coupon.id, userId);
       if (usageCount >= coupon.perUserLimit) {
         return res.status(400).json({ error: 'You have reached the usage limit for this coupon.' });
@@ -146,7 +150,8 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       appliedCouponCode = coupon.code;
     }
 
-    const finalTotal = calculatedTotal - discountAmount;
+    const deliveryFee = calculatedTotal >= 2000 ? 0 : 100;
+    const finalTotal = Math.max(0, calculatedTotal - discountAmount + deliveryFee);
 
     // Generate proper, professional brand order ID
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
@@ -181,22 +186,29 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       address,
       createdAt: new Date().toISOString(),
       couponCode: appliedCouponCode || undefined,
-      discountAmount: discountAmount || undefined
+      discountAmount: discountAmount || undefined,
+      deliveryFee: deliveryFee
     };
 
-    (newOrder as any).status = method === 'Razorpay' ? 'pending' : 'placed';
+    if (method === 'ManualUPI') {
+      (newOrder as any).status = 'pending_payment';
+    } else if (method === 'Razorpay') {
+      (newOrder as any).status = 'pending';
+    } else {
+      (newOrder as any).status = 'placed';
+    }
 
     await db.createOrder({ ...newOrder, userId });
 
-    // Deduct stock and record coupon usage immediately for COD orders
-    if (method !== 'Razorpay') {
+    // Deduct stock immediately only for non-pending orders (e.g. COD)
+    if (method !== 'Razorpay' && method !== 'ManualUPI') {
       for (const it of validatedItems) {
         await db.deductProductStock(it.id, it.qty);
       }
-      if (validCouponId) {
-        await db.recordCouponUsage(validCouponId, userId, newOrder.id);
-        await db.incrementCouponUsage(validCouponId);
-      }
+    }
+    if (validCouponId) {
+      await db.recordCouponUsage(validCouponId, userId, newOrder.id);
+      await db.incrementCouponUsage(validCouponId);
     }
 
     res.status(201).json({

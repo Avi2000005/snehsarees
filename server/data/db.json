@@ -3,55 +3,49 @@
   "categories": [
     {
       "id": 1,
-      "name": "Silk",
+      "name": "Kotadoria Silk",
       "slug": "silk",
-      "description": "Luxurious handloom silks characterized by rich zari borders, intricate brocades, and heavy drape lines, historically crafted for royalty.",
-      "history": "Silk weaving dates back over 1500 years in India, where weavers under Mughal patronage in Banaras and royal decree in Kanchipuram produced heritage brocades. These sarees were symbol of royalty, gifted during auspicious ceremonies and preserved as legacy heirlooms.",
-      "properties": "Intense luster, heavy thread count, pure mulberry silk threads, woven with gold-dipped silver zari yarns. Naturally thermal regulating and offers a structured, elegant drape.",
-      "care": "Dry clean only  ✦  store wrapped in pure cotton cloth  ✦  air out in shade periodically to protect metal zari threads from tarnishing."
+      "imageUrl": "",
+      "description": "Authentic Kota Doria sarees woven with fine mulberry silk and metallic zari yarns on signature Khat check grids.",
+      "history": "Kota Doria weaving in Rajasthan features the union of silk for luster and cotton for strength. The signature Khat grid creates a shimmering translucent drape cherished across royal Rajasthani celebrations.",
+      "properties": "Shimmering luster, lightweight Khat square grid, pure silk and zari blend, airy and regal.",
+      "care": "Dry clean recommended  ✦  store wrapped in soft cotton fabric  ✦  keep away from direct moisture."
     },
     {
       "id": 2,
-      "name": "Cotton",
+      "name": "Kotadoria Cotton",
       "slug": "cotton",
-      "description": "Lightweight, breathable handloom cottons woven with organic combed yarns, ideal for everyday luxury and warm climates.",
-      "history": "Rooted in India's handloom freedom movement, Khadi and fine cottons have been spun on spinning wheels for generations. Regions like Sambalpur and Chanderi became world-famous for their gossamer-thin cotton textures.",
-      "properties": "Highly breathable, sweat-absorbing, soft on sensitive skin, organic matte finish, and extremely lightweight drape.",
-      "care": "Gentle hand wash in cold water  ✦  use mild liquid detergent  ✦  starch lightly if crisp drape is desired  ✦  dry in shade."
+      "imageUrl": "",
+      "description": "Featherlight, breathable pure cotton Kota Doria sarees featuring traditional Khat check patterns.",
+      "history": "Crafted for centuries by master artisans in Kaithoon, Kota. Cotton Kota Doria is prized for its cooling properties and delicate geometric square weave.",
+      "properties": "Ultra-lightweight, highly breathable Khat checks, skin-friendly natural combed cotton.",
+      "care": "Gentle hand wash in cold water with mild detergent  ✦  dry in shade  ✦  light starch if desired."
     },
     {
       "id": 3,
-      "name": "Georgette",
-      "slug": "georgette",
-      "description": "Crinkled flowy sarees woven with highly twisted silk and synthetic yarns, offering a sleek, modern contour.",
-      "history": "Developed in early 20th century France and adopted by Indian weavers, georgette merged Western fluidity with traditional embroideries like Chikankari, Zardozi, and Bandhani.",
-      "properties": "Springy crinkled texture, highly resilient, semi-sheer drape that hugs curves beautifully.",
-      "care": "Dry clean or hand wash gently in cold water  ✦  do not wring or twist  ✦  flat dry to prevent stretching out of shape."
+      "name": "Kotadoria Zari",
+      "slug": "zari",
+      "imageUrl": "",
+      "description": "Kota Doria sarees framed with intricate temple and floral gold zari borders.",
+      "history": "Woven on multi-treadle pit looms in Kota, adding rich metallic borders to breezy translucent Khat bodies.",
+      "properties": "Pure metallic gold/silver zari border, geometric square weave body, royal festive elegance.",
+      "care": "Dry clean only  ✦  store wrapped in muslin cloth."
     },
     {
       "id": 4,
-      "name": "Linen",
-      "slug": "linen",
-      "description": "Crafted from natural flax fibers, linen sarees present a rustic, organic texture with contemporary aesthetic appeal.",
-      "history": "Linen is one of the oldest cultivated plant fibers in human history. Indian weavers integrated flax yarn with cotton and silk to create breathable contemporary sarees for modern workplaces.",
-      "properties": "Rustic slub texture, moisture-wicking, stiffer drape, eco-friendly organic fibers.",
-      "care": "Dry clean or gentle hand wash  ✦  iron on high heat while damp to remove natural flax creases."
-    },
-    {
-      "id": 8,
-      "name": "Kotadoria",
-      "slug": "kotadoria",
+      "name": "Kotadoria Handblock",
+      "slug": "handblock",
       "imageUrl": "",
-      "description": "Kota Doria (also known as Kota Dori) is a unique handloom fabric originating from the town of Kota in Rajasthan, India. Characterized by its weightless feel and square-check patterns called 'khats', it is crafted by weaving a delicate blend of fine cotton threads (for strength and breathability) and pure silk threads (for a subtle, luxurious luster).",
-      "history": "Originating in Mysore, the weavers were brought to Kota by Rao Kishore Singh in the late 17th century. The weave received royal patronage and became synonymous with lightweight Rajasthani summer attire.",
-      "properties": "Distinctive geometric check grid (khat pattern), airy gossamer translucency, extremely light weight, blend of strong cotton and shiny silk.",
-      "care": "Dry clean recommended for first washes  ✦  subsequent wash hand wash gently in cold water with mild detergent  ✦  dry in shade."
+      "description": "Traditional Rajasthani Bagru and Dabu wooden block printing on authentic Kota Doria grid fabric.",
+      "history": "A celebration of Rajasthani craftsmanship pairing Kaithoon's Khat weaving with artisanal natural vegetable block stamping.",
+      "properties": "Eco-friendly vegetable dyes, intricate artisan motifs, soft breathable handfeel.",
+      "care": "Gentle hand wash separately in cold water  ✦  dry in shade."
     }
   ],
   "products": [
     {
       "id": 1,
-      "name": "Banarasi Silk Saree",
+      "name": "Kotadoria Pure Silk Zari Saree",
       "price": 2499,
       "fabric": "Silk",
       "occasion": "Wedding",
@@ -65,14 +59,14 @@
       "rating": 4.9,
       "reviews": 234,
       "blouse": true,
-      "desc": "A masterpiece of Varanasi's 2000-year-old weaving tradition. Pure mulberry silk with authentic gold zari work featuring classic floral jaal patterns. Each piece takes 3-4 months to hand-weave.",
+      "desc": "Masterpiece of Kota Doria handloom weaving from Rajasthan. Fine silk and cotton yarns interlocked in the signature Khat square grid with pure gold zari borders.",
       "image": "",
       "stock": 10,
       "categoryId": 1
     },
     {
       "id": 2,
-      "name": "Kanjivaram Pure Silk",
+      "name": "Kotadoria Tissue Silk Saree",
       "price": 3799,
       "fabric": "Silk",
       "occasion": "Wedding",
@@ -84,14 +78,14 @@
       "rating": 4.8,
       "reviews": 156,
       "blouse": true,
-      "desc": "Authentic Kanchipuram silk with temple border design. The korvai technique creates a contrasting border that is woven separately and interlocked with the body for exceptional durability.",
+      "desc": "Lustrous Kotadoria tissue saree featuring authentic shimmering zari check patterns. Lightweight yet regal, handwoven by master artisans in Kota.",
       "image": "",
       "stock": 10,
       "categoryId": 1
     },
     {
       "id": 3,
-      "name": "Chanderi Cotton Saree",
+      "name": "Kotadoria Cotton Khat Saree",
       "price": 1299,
       "fabric": "Cotton",
       "occasion": "Daily Wear",
@@ -105,14 +99,14 @@
       "rating": 4.7,
       "reviews": 89,
       "blouse": false,
-      "desc": "Featherlight Chanderi fabric with delicate coin motifs and sheer texture. Perfect for summer and office wear. Handwoven by artisans in Chanderi, Madhya Pradesh.",
+      "desc": "Featherlight pure cotton Kota Doria with classic transparent square grids. Breathable and comfortable, ideal for summer, office, and daily wear.",
       "image": "",
       "stock": 10,
       "categoryId": 2
     },
     {
       "id": 4,
-      "name": "Paithani Silk Saree",
+      "name": "Kotadoria Gotta Patti Work Saree",
       "price": 4599,
       "fabric": "Silk",
       "occasion": "Festive",
@@ -126,14 +120,14 @@
       "rating": 5,
       "reviews": 67,
       "blouse": true,
-      "desc": "Maharashtra's pride — a Paithani saree with authentic peacock and lotus motifs woven in pure gold zari. The oblique square design in the body is a hallmark of genuine Paithani.",
+      "desc": "Heritage Rajasthani Gotta Patti hand-embroidery delicately tailored over fine translucent Kotadoria silk fabric. Features intricate floral motifs and gold borders.",
       "image": "",
       "stock": 10,
       "categoryId": 1
     },
     {
       "id": 5,
-      "name": "Sambalpuri Ikat Cotton",
+      "name": "Kotadoria Handblock Print Saree",
       "price": 1899,
       "fabric": "Cotton",
       "occasion": "Daily Wear",
@@ -146,17 +140,17 @@
       "rating": 4.6,
       "reviews": 112,
       "blouse": false,
-      "desc": "GI-tagged Sambalpuri saree with traditional bandha (ikat) technique. Features conch shell and wheel motifs tie-dyed before weaving, creating the characteristic soft-edged tribal patterns.",
+      "desc": "Authentic Bagru/Dabu wooden block printing hand-stamped onto breathable cotton Kota Doria grid fabric with natural eco-friendly dyes.",
       "image": "",
       "stock": 10,
-      "categoryId": 2
+      "categoryId": 4
     },
     {
       "id": 6,
-      "name": "Bandhani Georgette",
-      "price": 999,
-      "fabric": "Georgette",
-      "occasion": "Party",
+      "name": "Kotadoria Leheriya Festive Saree",
+      "price": 1999,
+      "fabric": "Silk",
+      "occasion": "Festive",
       "colour": "Purple",
       "tags": [
         "deals"
@@ -166,15 +160,15 @@
       "rating": 4.5,
       "reviews": 78,
       "blouse": false,
-      "desc": "Vibrant Rajasthani Bandhani with thousands of tiny resist-dyed dots creating traditional peacock and flower patterns. Lightweight georgette makes it perfect for dancing at celebrations.",
+      "desc": "Vibrant Rajasthani Leheriya wave tie-dye on delicate Kota Doria fabric. Lightweight, airy, and stunning for Teej, Raksha Bandhan, and festive events.",
       "image": "",
       "stock": 10,
-      "categoryId": 3
+      "categoryId": 1
     },
     {
       "id": 7,
-      "name": "Patola Double Ikat Silk",
-      "price": 8999,
+      "name": "Kotadoria Bridal Zari Saree",
+      "price": 5999,
       "fabric": "Silk",
       "occasion": "Wedding",
       "colour": "Maroon",
@@ -185,17 +179,17 @@
       "rating": 4.9,
       "reviews": 23,
       "blouse": true,
-      "desc": "A rare collector's piece from Patan, Gujarat. Double ikat means both warp and weft are resist-dyed separately and matched precisely while weaving. A single saree takes 4-6 months.",
+      "desc": "Grand Kotadoria bridal saree woven with heavy gold zari pallu and rich Rajasthani royal motifs on pure silk-cotton Khat grid.",
       "image": "",
       "stock": 10,
       "categoryId": 1
     },
     {
       "id": 8,
-      "name": "Kashmiri Kani Silk",
-      "price": 5499,
-      "fabric": "Silk",
-      "occasion": "Festive",
+      "name": "Kotadoria Pastel Floral Saree",
+      "price": 2199,
+      "fabric": "Cotton",
+      "occasion": "Daily Wear",
       "colour": "Emerald",
       "tags": [
         "trending",
@@ -206,92 +200,32 @@
       "rating": 4.8,
       "reviews": 45,
       "blouse": true,
-      "desc": "Handwoven in the valleys of Kashmir using the traditional Kani (needle) technique. The intricate paisley and chinar leaf motifs are woven without a loom, thread by thread — true art.",
-      "image": "",
-      "stock": 10,
-      "categoryId": 1
-    },
-    {
-      "id": 9,
-      "name": "Linen Silk Blend",
-      "price": 2199,
-      "fabric": "Linen",
-      "occasion": "Office",
-      "colour": "Teal",
-      "tags": [
-        "deals",
-        "trending"
-      ],
-      "isReel": false,
-      "rating": 4.6,
-      "reviews": 134,
-      "blouse": false,
-      "desc": "Contemporary linen-silk blend for the modern working woman. Breathable, elegant and wrinkle-resistant. Natural texture with minimalist woven border in contrast colour.",
-      "image": "",
-      "stock": 10,
-      "categoryId": 4
-    },
-    {
-      "id": 10,
-      "name": "Jamdani Muslin Saree",
-      "price": 3299,
-      "fabric": "Cotton",
-      "occasion": "Festive",
-      "colour": "Royal Blue",
-      "tags": [
-        "trending"
-      ],
-      "isReel": true,
-      "views": "11.2k",
-      "rating": 4.7,
-      "reviews": 56,
-      "blouse": false,
-      "desc": "UNESCO-recognised Jamdani from Bengal, woven on a cotton muslin base with supplementary weft patterns. The floating floral motifs appear to be embroidered but are entirely woven.",
-      "image": "",
-      "stock": 10,
-      "categoryId": 2
-    },
-    {
-      "id": 11,
-      "name": "Pochampally Ikat Silk",
-      "price": 2799,
-      "fabric": "Silk",
-      "occasion": "Daily Wear",
-      "colour": "Saffron",
-      "tags": [
-        "deals",
-        "best-seller"
-      ],
-      "isReel": true,
-      "views": "7.3k",
-      "rating": 4.7,
-      "reviews": 98,
-      "blouse": true,
-      "desc": "Telangana's iconic ikat silk with geometric diamond patterns. GI-tagged craft where single ikat technique creates the characteristic smudged-edge effect in warm, earthy tones.",
-      "image": "",
-      "stock": 10,
-      "categoryId": 1
-    },
-    {
-      "id": 12,
-      "name": "Chikankari Cotton Saree",
-      "price": 1599,
-      "fabric": "Cotton",
-      "occasion": "Daily Wear",
-      "colour": "Deep Pink",
-      "tags": [
-        "deals"
-      ],
-      "isReel": false,
-      "rating": 4.5,
-      "reviews": 167,
-      "blouse": false,
-      "desc": "Lucknowi Chikankari embroidery on fine cotton fabric. Delicate white-on-white shadow work and floral embroidery handstitched by artisans of Lucknow's old city.",
+      "desc": "Refreshing pastel botanical motifs hand-printed over lightweight Kota Doria cotton weave. Elegantly finished with a thin gold zari selvedge.",
       "image": "",
       "stock": 10,
       "categoryId": 2
     }
   ],
   "orders": [],
-  "inquiries": []
+  "inquiries": [],
+  "banners": [],
+  "coupons": [
+    {
+      "id": 1,
+      "code": "SNEH10",
+      "discountPercent": 10,
+      "minOrderAmount": 1000,
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "code": "FESTIVE20",
+      "discountPercent": 20,
+      "minOrderAmount": 2500,
+      "isActive": true
+    }
+  ],
+  "reviews": [],
+  "reels": [],
+  "returns": []
 }

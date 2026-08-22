@@ -122,16 +122,13 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
     // 2. Filter by Left Sidebar Category Group
     if (selectedCategoryGroup !== 'all') {
       const catObj = categories.find(c => c.slug === selectedCategoryGroup);
-      if (selectedCategoryGroup === 'Banarasi') {
-        result = result.filter((p) => p.name.toLowerCase().includes('banarasi'));
-      } else {
-        result = result.filter(
-          (p) =>
-            p.fabric === selectedCategoryGroup ||
-            p.occasion === selectedCategoryGroup ||
-            (catObj && p.categoryId === catObj.id)
-        );
-      }
+      result = result.filter(
+        (p) =>
+          p.fabric === selectedCategoryGroup ||
+          p.occasion === selectedCategoryGroup ||
+          (catObj && p.categoryId === catObj.id) ||
+          p.name.toLowerCase().includes(selectedCategoryGroup.toLowerCase())
+      );
     }
 
     // 3. Filter by Applied Dialog Filters (Occasions)

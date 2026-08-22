@@ -252,7 +252,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         </div>
       </div>
 
-      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-4 pb-[80px]">
+      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-4 pb-32">
         {/* State 1: Default/Empty prompt */}
         {!query && !isSearched && (
           <div id="search-default">
@@ -260,23 +260,26 @@ export const SearchView: React.FC<SearchViewProps> = ({
             <div className="search-section-label text-xs font-bold text-[#1A1A1A] p-4 px-0 uppercase tracking-wider">
               Recent Searches
             </div>
-            <div className="recent-chips flex flex-wrap gap-2 pb-4">
+            <div className="search-history flex flex-col gap-1">
               {recentSearches.length === 0 ? (
                 <span className="text-xs text-gray-400 font-serif">No recent search terms logged.</span>
               ) : (
                 recentSearches.map((term, index) => (
                   <div
-                    key={index}
-                    className="chip bg-white border border-[#E8E0D5] hover:bg-[#FAF6F0] rounded-full p-1.5 px-3 flex items-center gap-2 cursor-pointer transition-colors shadow-2xs"
+                    key={`${term}-${index}`}
+                    className="search-history-item flex items-center justify-between py-2.5 px-3 hover:bg-[#FAF6F0] rounded-xl cursor-pointer transition-colors"
                   >
                     <span
+                      className="text-xs font-semibold text-[#1A1A1A] flex-1"
                       onClick={() => executeSearch(term)}
-                      className="text-xs font-semibold text-[#1A1A1A]"
                     >
                       {term}
                     </span>
                     <button
-                      onClick={() => onRemoveRecentSearch(index)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveRecentSearch(index);
+                      }}
                       className="text-gray-400 hover:text-[#C4601A]"
                     >
                       <X className="w-3 h-3" />
@@ -288,10 +291,10 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
             {/* Popular tags search */}
             <div className="search-section-label text-xs font-bold text-[#1A1A1A] p-4 px-0 uppercase tracking-wider mt-2">
-              Popular Categories
+              Popular Kotadoria Categories
             </div>
             <div className="flex flex-wrap gap-2.5">
-              {['Banarasi', 'Silk', 'Cotton', 'Linen', 'Wedding', 'Daily Wear'].map((term) => (
+              {['Kotadoria Cotton', 'Kotadoria Silk', 'Zari Border', 'Gotta Patti', 'Handblock', 'Daily Wear'].map((term) => (
                 <button
                   key={term}
                   onClick={() => executeSearch(term)}

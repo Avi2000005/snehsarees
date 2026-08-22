@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS orders (
     delivered_at TIMESTAMP,
     coupon_code VARCHAR(50),
     discount_amount DECIMAL(10,2) DEFAULT 0,
+    delivery_fee DECIMAL(10,2) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

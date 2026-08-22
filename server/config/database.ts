@@ -6,9 +6,18 @@ const { Pool } = pg;
 export let pool: pg.Pool | null = null;
 
 if (ENV.DATABASE_URL) {
+  const isNeonOrRemote = ENV.DATABASE_URL.includes('neon.tech') || ENV.DATABASE_URL.includes('sslmode=require') || ENV.NODE_ENV === 'production';
+
   pool = new Pool({
     connectionString: ENV.DATABASE_URL,
-    ssl: ENV.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: isNeonOrRemote ? { rejectUnauthorized: false } : false,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
+
+  pool.on('error', (err) => {
+    console.warn('PostgreSQL pool idle connection warning:', err.message);
   });
 
   // Test the connection
@@ -41,8 +50,7 @@ if (ENV.DATABASE_URL) {
       }
     })
     .catch((err) => {
-      console.error('CRITICAL: Database PostgreSQL connection failed! Exiting.', err.message);
-      process.exit(1);
+      console.error('Database: PostgreSQL connection failed:', err.message);
     });
 } else {
   console.error('CRITICAL: No DATABASE_URL provided. Exiting.');

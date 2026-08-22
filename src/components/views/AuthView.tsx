@@ -240,13 +240,17 @@ export const AuthView: React.FC<AuthViewProps> = ({
       <div className="pt-[76px] md:pt-[84px] pb-[80px] px-4 max-w-[420px] mx-auto relative z-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-[#C4601A] to-[#E8920E] flex items-center justify-center shadow-lg">
+          <div className="w-20 h-20 mx-auto mb-3 rounded-2xl overflow-hidden shadow-lg border-2 border-[#E8E0D5]">
             {mode === 'forgot-email' || mode === 'forgot-otp' ? (
-              <KeyRound className="w-8 h-8 text-white" />
+              <div className="w-full h-full bg-gradient-to-br from-[#C4601A] to-[#E8920E] flex items-center justify-center">
+                <KeyRound className="w-9 h-9 text-white" />
+              </div>
             ) : mode === 'register-otp' ? (
-              <ShieldCheck className="w-8 h-8 text-white" />
+              <div className="w-full h-full bg-gradient-to-br from-[#C4601A] to-[#E8920E] flex items-center justify-center">
+                <ShieldCheck className="w-9 h-9 text-white" />
+              </div>
             ) : (
-              <span className="text-white font-serif font-bold text-xl">SS</span>
+              <img src="/logo.jpg" alt="Sneh Sarees" className="w-full h-full object-cover" />
             )}
           </div>
           <h2 className="font-serif text-3xl font-bold text-[#C4601A] tracking-wide mb-1">Sneh Sarees</h2>
@@ -279,22 +283,21 @@ export const AuthView: React.FC<AuthViewProps> = ({
         {mode === 'login' && (
           <div className="bg-white rounded-2xl p-6 border border-[#E8E0D5] shadow-xs">
             <form onSubmit={handleLogin} className="space-y-4">
-              {/* Email / Username / Phone */}
               <div>
                 <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  Email, Username, or Phone
+                  Email Address
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
+                  <Mail className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
                   <input
                     id="login-email"
-                    type="text"
+                    type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="Email, @username, or mobile number"
+                    placeholder="Enter your email address"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
                     required
-                    autoComplete="username"
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -372,7 +375,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="Enter your email address"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
                     required
                     autoComplete="email"
@@ -468,7 +471,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                     type="text"
                     value={username}
                     onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                    placeholder="e.g. avinash_chate"
+                    placeholder="Choose a username"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
                     required
                   />
@@ -570,7 +573,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="Enter your email address"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
                     required
                   />

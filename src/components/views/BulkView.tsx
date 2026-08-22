@@ -161,7 +161,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
         </button>
       </div>
 
-      <div className="pt-[76px] md:pt-[84px] pb-[80px] px-4 max-w-[600px] mx-auto relative z-10">
+      <div className="pt-[76px] md:pt-[84px] pb-32 px-4 max-w-[600px] mx-auto relative z-10">
         {/* Banner Card */}
         <div className="bg-gradient-to-br from-[#C4601A] via-[#7A2F08] to-[#7A5C00] rounded-2xl p-6 md:p-8 text-white shadow-lg mb-8 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.12] pointer-events-none select-none">
@@ -226,7 +226,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Priyanjali Sharma"
+                placeholder="Enter your full name"
                 className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#C4601A] text-[#111111]"
               />
             </div>
@@ -240,7 +240,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
                 type="text"
                 value={boutique}
                 onChange={(e) => setBoutique(e.target.value)}
-                placeholder="e.g. Sneh Bridal Silks"
+                placeholder="Enter boutique or institution name"
                 className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#C4601A] text-[#111111]"
               />
             </div>
@@ -255,7 +255,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
                 required
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="e.g. +91 98765 43210"
+                placeholder="Enter your WhatsApp number"
                 className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#C4601A] text-[#111111]"
               />
             </div>
@@ -272,7 +272,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => { if (searchQuery.trim()) setShowResults(true); }}
-                  placeholder="Type to search sarees by name, fabric, or color..."
+                  placeholder="Search sarees by name, fabric, or color"
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#C4601A]"
                 />
                 
@@ -363,7 +363,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
                 rows={3}
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                placeholder="Describe your design specifications, border expectations, custom color preferences, packaging needs..."
+                placeholder="Enter your design specifications, color preferences, and any special requirements"
                 className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#C4601A] resize-none"
               />
             </div>

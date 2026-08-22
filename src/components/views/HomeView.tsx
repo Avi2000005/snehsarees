@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, ShoppingBag, Eye, Play, Sparkles, ChevronLeft, ChevronRight, Star, Film, MessageSquare, X, User, BookOpen, MapPin, Layers, ShieldCheck, Compass, Feather, Scroll, Sun, HeartHandshake } from 'lucide-react';
+import { Menu, Search, ShoppingBag, Eye, Play, Sparkles, ChevronLeft, ChevronRight, Star, Film, MessageSquare, X, User, BookOpen, MapPin, Layers, ShieldCheck, Compass, Feather, Scroll, Sun, HeartHandshake, Shield, Truck, RotateCcw, Ban, HelpCircle, FileText } from 'lucide-react';
 import { ActivePage, Product, Category, OfferBanner, Reel, Review, UserProfile } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { API_URL } from '../../config';
 import logoUrl from '@/assets/logo.jpg';
 import saree3dBg from '../saree_heritage_3d_bg.png';
+import { PolicyModal, PolicyTab } from '../PolicyModal';
 
 interface HomeViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -38,6 +39,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   
   // Interactive UI state
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [policyModalTab, setPolicyModalTab] = useState<PolicyTab | null>(null);
   const [activeReel, setActiveReel] = useState<Reel | null>(null);
 
   useEffect(() => {
@@ -347,16 +349,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
               className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
             >
               <div
-                className={`cat-icon w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-sm border border-[#E8E0D5] transition-all ${activeHomeCategory === 'all'
+                className={`cat-icon w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-sm border border-[#E8E0D5] transition-all ${activeHomeCategory === 'all'
                   ? 'bg-[#C4601A] border-[#C4601A] scale-95'
                   : 'bg-white hover:bg-[#FAF6F0] active:scale-95'
                   }`}
               >
-                <svg className={`w-[22px] h-[22px] ${activeHomeCategory === 'all' ? 'stroke-white' : 'stroke-[#C4601A]'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+                <svg className={`w-[30px] h-[30px] ${activeHomeCategory === 'all' ? 'stroke-white' : 'stroke-[#C4601A]'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
                   <path d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </div>
-              <div className={`cat-label text-[9px] md:text-[10px] font-semibold text-center leading-tight ${activeHomeCategory === 'all' ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A]'}`}>
+              <div className={`cat-label text-[10px] md:text-xs font-semibold text-center leading-tight ${activeHomeCategory === 'all' ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A]'}`}>
                 All
               </div>
             </div>
@@ -371,7 +373,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
                 >
                   <div
-                    className={`cat-icon w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-sm border transition-all overflow-hidden ${active
+                    className={`cat-icon w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-sm border transition-all overflow-hidden ${active
                       ? hasImage
                         ? 'border-[#C4601A] ring-2 ring-[#C4601A]/30 scale-95'
                         : 'bg-[#C4601A] border-[#C4601A] scale-95'
@@ -382,7 +384,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   >
                     {renderCategoryIcon(c.slug, active, c.imageUrl)}
                   </div>
-                  <div className={`cat-label text-[9px] md:text-[10px] font-semibold text-center leading-tight ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
+                  <div className={`cat-label text-[10px] md:text-xs font-semibold text-center leading-tight ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
                     {c.name}
                   </div>
                 </div>
@@ -826,6 +828,88 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Store Footer */}
+      <footer className="bg-white border-t border-[#E8E0D5] mt-16 pt-12 px-6 md:px-12 text-[#4A4A4A]">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-[#E8E0D5]">
+          <div className="md:col-span-2 space-y-3">
+            <div className="font-serif text-2xl font-bold text-[#C4601A]">Sneh Sarees</div>
+            <p className="text-xs text-gray-600 leading-relaxed max-w-sm">
+              Discover authentic Kota Doria handloom artistry. We partner directly with master weavers in Kota, Rajasthan to bring you authentic, lightweight, and breathable Kotadoria sarees directly to your doorstep.
+            </p>
+            <div className="flex items-center gap-3 pt-2 text-xs font-bold text-[#1A1A1A]">
+              <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">100% Authentic Kota Doria</span>
+              <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">Free Delivery ≥ ₹2,000</span>
+            </div>
+          </div>
+
+          <div>
+            <h5 className="font-serif text-sm font-bold text-[#1A1A1A] mb-3 uppercase tracking-wider">Customer Care</h5>
+            <ul className="space-y-2 text-xs font-medium text-gray-600">
+              <li>
+                <button onClick={() => setPolicyModalTab('shipping')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  Shipping &amp; Delivery
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setPolicyModalTab('returns')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  7-Day Returns &amp; Refunds
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setPolicyModalTab('cancellation')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  Cancellation &amp; Payments
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setPolicyModalTab('faqs')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  Frequently Asked Questions
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="font-serif text-sm font-bold text-[#1A1A1A] mb-3 uppercase tracking-wider">Legal &amp; Policies</h5>
+            <ul className="space-y-2 text-xs font-medium text-gray-600">
+              <li>
+                <button onClick={() => setPolicyModalTab('privacy')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  Privacy Policy
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setPolicyModalTab('terms')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  Terms &amp; Conditions
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigate('bulk')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  Bulk &amp; Bridal Orders
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigate('profile')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  My Account
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">
+          <p>© {new Date().getFullYear()} Sneh Sarees. All rights reserved.</p>
+          <p>Handcrafted with pride in India · Direct Artisan Coordination</p>
+        </div>
+
+        {/* Guaranteed clearance buffer so bottom nav bar never covers text */}
+        <div className="w-full pointer-events-none" style={{ height: '110px' }} aria-hidden="true" />
+      </footer>
+
+      <PolicyModal
+        isOpen={!!policyModalTab}
+        initialTab={policyModalTab || 'privacy'}
+        onClose={() => setPolicyModalTab(null)}
+      />
     </div>
   );
 };

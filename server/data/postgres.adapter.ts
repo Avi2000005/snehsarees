@@ -147,9 +147,9 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getOrders(): Promise<Order[]> {
     const client = this.getPool();
     const query = `
-      SELECT o.id, o.user_id as "userId", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
+      SELECT o.id, o.user_id as "userId", u.email as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
              o.tracking_id as "trackingId", o.carrier_name as "carrierName", o.tracking_url as "trackingUrl",
-             o.coupon_code as "couponCode", o.discount_amount as "discountAmount",
+             o.coupon_code as "couponCode", o.discount_amount as "discountAmount", COALESCE(o.delivery_fee, 0) as "deliveryFee",
              o.processing_at as "processingAt", o.shipped_at as "shippedAt", o.delivered_at as "deliveredAt",
              o.cancelled_at as "cancelledAt", o.created_at as "createdAt",
              COALESCE(
@@ -165,8 +165,9 @@ export class PostgresDatabaseAdapter implements IDatabase {
                ) FILTER (WHERE oi.id IS NOT NULL), '[]'::json
              ) as items
       FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
-      GROUP BY o.id
+      GROUP BY o.id, u.email
       ORDER BY o.created_at DESC
     `;
     const result = await client.query(query);
@@ -176,9 +177,9 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getOrdersByUserId(userId: number): Promise<Order[]> {
     const client = this.getPool();
     const query = `
-      SELECT o.id, o.user_id as "userId", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
+      SELECT o.id, o.user_id as "userId", u.email as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
              o.tracking_id as "trackingId", o.carrier_name as "carrierName", o.tracking_url as "trackingUrl",
-             o.coupon_code as "couponCode", o.discount_amount as "discountAmount",
+             o.coupon_code as "couponCode", o.discount_amount as "discountAmount", COALESCE(o.delivery_fee, 0) as "deliveryFee",
              o.processing_at as "processingAt", o.shipped_at as "shippedAt", o.delivered_at as "deliveredAt",
              o.cancelled_at as "cancelledAt", o.created_at as "createdAt",
              COALESCE(
@@ -194,9 +195,10 @@ export class PostgresDatabaseAdapter implements IDatabase {
                ) FILTER (WHERE oi.id IS NOT NULL), '[]'::json
              ) as items
       FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.user_id = $1
-      GROUP BY o.id
+      GROUP BY o.id, u.email
       ORDER BY o.created_at DESC
     `;
     const result = await client.query(query, [userId]);
@@ -206,9 +208,9 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getOrderById(id: string): Promise<Order | null> {
     const client = this.getPool();
     const query = `
-      SELECT o.id, o.user_id as "userId", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
+      SELECT o.id, o.user_id as "userId", u.email as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
              o.tracking_id as "trackingId", o.carrier_name as "carrierName", o.tracking_url as "trackingUrl",
-             o.coupon_code as "couponCode", o.discount_amount as "discountAmount",
+             o.coupon_code as "couponCode", o.discount_amount as "discountAmount", COALESCE(o.delivery_fee, 0) as "deliveryFee",
              o.processing_at as "processingAt", o.shipped_at as "shippedAt", o.delivered_at as "deliveredAt",
              o.cancelled_at as "cancelledAt", o.created_at as "createdAt",
              COALESCE(
@@ -224,9 +226,10 @@ export class PostgresDatabaseAdapter implements IDatabase {
                ) FILTER (WHERE oi.id IS NOT NULL), '[]'::json
              ) as items
       FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.id = $1
-      GROUP BY o.id
+      GROUP BY o.id, u.email
     `;
     const result = await client.query(query, [id]);
     return result.rows[0] || null;
@@ -241,8 +244,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
       await dbClient.query('BEGIN');
 
       const orderQuery = `
-        INSERT INTO orders (id, user_id, customer_name, phone, address, total, method, status, coupon_code, discount_amount)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO orders (id, user_id, customer_name, phone, address, total, method, status, coupon_code, discount_amount, delivery_fee)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       `;
       const orderValues = [
         order.id,
@@ -254,7 +257,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
         order.method,
         (order as any).status || 'placed',
         order.couponCode || null,
-        order.discountAmount || 0
+        order.discountAmount || 0,
+        order.deliveryFee || 0
       ];
       await dbClient.query(orderQuery, orderValues);
 
@@ -834,6 +838,7 @@ export class PostgresDatabaseAdapter implements IDatabase {
       id: row.id,
       orderId: row.order_id,
       userId: row.user_id,
+      userEmail: row.user_email,
       customerName: row.customer_name,
       phone: row.phone,
       reason: row.reason,
@@ -859,11 +864,11 @@ export class PostgresDatabaseAdapter implements IDatabase {
 
   async getReturnsByUserId(userId: number): Promise<ReturnRequest[]> {
     const client = this.getPool();
-    // Join with orders to get customer info
     const result = await client.query(
-      `SELECT r.*, o.customer_name, o.phone
+      `SELECT r.*, o.customer_name, o.phone, u.email as user_email
        FROM returns r
        LEFT JOIN orders o ON o.id = r.order_id
+       LEFT JOIN users u ON r.user_id = u.id
        WHERE r.user_id = $1
        ORDER BY r.created_at DESC`,
       [userId]
@@ -873,7 +878,14 @@ export class PostgresDatabaseAdapter implements IDatabase {
 
   async getReturnByOrderId(orderId: string): Promise<ReturnRequest | null> {
     const client = this.getPool();
-    const result = await client.query('SELECT * FROM returns WHERE order_id = $1', [orderId]);
+    const result = await client.query(
+      `SELECT r.*, o.customer_name, o.phone, u.email as user_email
+       FROM returns r
+       LEFT JOIN orders o ON o.id = r.order_id
+       LEFT JOIN users u ON r.user_id = u.id
+       WHERE r.order_id = $1`,
+      [orderId]
+    );
     return result.rows[0] ? this.mapReturn(result.rows[0]) : null;
   }
 

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { SAREE_HISTORIES } from '../../data';
 import { ActivePage, UserProfile } from '../../types';
-import { Star, Landmark, Sun, Grid, Heart, Globe, Phone, Mail, MapPin, Instagram, Facebook, Youtube } from 'lucide-react';
+import { Star, Landmark, Sun, Grid, Heart, Globe, Phone, Mail, MapPin, Instagram, Facebook, Youtube, ShieldCheck } from 'lucide-react';
 import logoUrl from '@/assets/logo.jpg';
+import { PolicyModal, PolicyTab } from '../PolicyModal';
 
 interface LandingViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -16,6 +17,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
     message: ''
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [policyModalTab, setPolicyModalTab] = useState<PolicyTab | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -533,7 +535,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
                 id="enquiry-message"
                 required
                 rows={4}
-                placeholder="Describe what you are looking for (e.g. Saree fabric preference, custom designs, etc.)"
+                placeholder="Describe what you are looking for"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 className="w-full bg-white border border-[#E8E0D5] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-gray-400 focus:outline-none focus:border-[#C4601A] focus:ring-1 focus:ring-[#C4601A] transition-all resize-none"
@@ -551,12 +553,51 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       </section>
 
       {/* Footer */}
-      <footer className="brand-gradient p-10 text-center text-white border-t border-[#F5E4BC]/20">
-        <div className="font-serif text-3xl font-bold mb-2 tracking-wide">Sneh <span className="text-[#F5E4BC]">Sarees</span></div>
-        <p className="text-xs text-white/70 tracking-wider">
-          © {new Date().getFullYear()} Sneh Sarees. Handcrafted with love in India.
-        </p>
+      <footer className="brand-gradient pt-12 pb-8 px-6 md:px-12 text-center text-white border-t border-[#F5E4BC]/20">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-white/15">
+          <div className="text-center md:text-left">
+            <div className="font-serif text-3xl font-bold mb-1 tracking-wide">Sneh <span className="text-[#F5E4BC]">Sarees</span></div>
+            <p className="text-xs text-white/80 max-w-sm">
+              Curating authentic Kota Doria (Kotadoria) handloom heirlooms straight from traditional master weavers in Kota, Rajasthan.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs font-semibold text-white/90">
+            <button onClick={() => setPolicyModalTab('privacy')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+              Privacy Policy
+            </button>
+            <button onClick={() => setPolicyModalTab('terms')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+              Terms of Service
+            </button>
+            <button onClick={() => setPolicyModalTab('shipping')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+              Shipping &amp; Delivery
+            </button>
+            <button onClick={() => setPolicyModalTab('returns')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+              Return &amp; Refund
+            </button>
+            <button onClick={() => setPolicyModalTab('cancellation')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+              Cancellation &amp; Payment
+            </button>
+            <button onClick={() => setPolicyModalTab('faqs')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+              FAQs
+            </button>
+          </div>
+        </div>
+
+        <div className="max-w-5xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-white/70 gap-3">
+          <p className="tracking-wider">
+            © {new Date().getFullYear()} Sneh Sarees. Handcrafted with pride in India.
+          </p>
+          <p className="text-[11px] text-white/60">
+            Pan-India Express Delivery · 100% Authentic Kota Doria Guarantee
+          </p>
+        </div>
       </footer>
+
+      <PolicyModal
+        isOpen={!!policyModalTab}
+        initialTab={policyModalTab || 'privacy'}
+        onClose={() => setPolicyModalTab(null)}
+      />
     </div>
   );
 };

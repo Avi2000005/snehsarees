@@ -96,14 +96,22 @@ export const updateOrderStatus = async (req: Request, res: Response, next: NextF
       return res.status(400).json({ error: 'Status string is required.' });
     }
 
-    // Cancellation flow — restore stock
-    if (status === 'cancelled') {
-      const order = await db.getOrderById(id);
-      if (!order) {
-        return res.status(404).json({ error: 'Order not found.' });
-      }
+    const order = await db.getOrderById(id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
 
-      const currentStatus = (order as any).status || 'placed';
+    const currentStatus = (order as any).status || 'placed';
+
+    // Transitioning from pending_payment to confirmed -> deduct stock now
+    if (currentStatus === 'pending_payment' && (status === 'placed' || status === 'paid' || status === 'processing')) {
+      for (const item of order.items) {
+        await db.deductProductStock(item.id, item.qty);
+      }
+    }
+
+    // Cancellation flow — restore stock (only if stock was already deducted)
+    if (status === 'cancelled') {
       // Guard: only allow cancellation from pre-shipment statuses
       if (['shipped', 'delivered', 'cancelled'].includes(currentStatus)) {
         return res.status(400).json({
@@ -111,9 +119,11 @@ export const updateOrderStatus = async (req: Request, res: Response, next: NextF
         });
       }
 
-      // Restore stock for each item in the order
-      for (const item of order.items) {
-        await db.restoreProductStock(item.id, item.qty);
+      // Restore stock for each item in the order (only if not pending_payment)
+      if (currentStatus !== 'pending_payment') {
+        for (const item of order.items) {
+          await db.restoreProductStock(item.id, item.qty);
+        }
       }
     }
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ShoppingBag, Calendar, CheckCircle2, Truck, Package, ExternalLink, Copy, RotateCcw, ChevronDown, Home, XCircle, Star, Edit3, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Calendar, CheckCircle2, Truck, Package, ExternalLink, Copy, RotateCcw, ChevronDown, Home, XCircle, Star, Edit3, Trash2, RefreshCw, Clock, QrCode, MessageCircle } from 'lucide-react';
 import { Order, ActivePage, ReturnRequest, ReturnReason, ReturnResolution, Review, Product } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
-import { API_URL } from '../../config';
+import { API_URL, BUSINESS_WHATSAPP } from '../../config';
 
 interface OrdersViewProps {
   orders: Order[];
@@ -252,7 +252,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
         </div>
       </div>
 
-      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[820px] mx-auto pt-4 pb-[80px]">
+      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[820px] mx-auto pt-4 pb-32">
         {orders.length === 0 ? (
           <div className="text-center py-16 px-6 max-w-sm mx-auto">
             <div className="mb-4 flex justify-center text-primrose opacity-35">
@@ -303,14 +303,16 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                       ord.status === 'delivered' ? 'bg-emerald-50 text-emerald-700' :
                       ord.status === 'processing' ? 'bg-amber-50 text-amber-700' :
                       ord.status === 'cancelled' ? 'bg-red-50 text-red-600' :
+                      ord.status === 'pending_payment' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                       'bg-emerald-50 text-emerald-700'
                     }`}>
                       {ord.status === 'shipped' ? <Truck className="w-3.5 h-3.5" /> :
                        ord.status === 'delivered' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
                        ord.status === 'processing' ? <Package className="w-3.5 h-3.5" /> :
                        ord.status === 'cancelled' ? <XCircle className="w-3.5 h-3.5" /> :
+                       ord.status === 'pending_payment' ? <Clock className="w-3.5 h-3.5 text-amber-700 animate-pulse" /> :
                        <CheckCircle2 className="w-3.5 h-3.5" />}
-                      {ord.status || 'Placed'}
+                      {ord.status === 'pending_payment' ? 'Awaiting Payment' : (ord.status || 'Placed')}
                     </span>
                   </div>
 
@@ -372,6 +374,32 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                       );
                     })}
                   </div>
+                  )}
+
+                  {/* Pending Payment Alert Banner */}
+                  {ord.status === 'pending_payment' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
+                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                        <Clock className="w-4 h-4 text-amber-600 animate-pulse" />
+                        <span>Payment Verification Pending</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        Please pay <strong>₹{ord.total.toLocaleString('en-IN')}</strong> via UPI QR code and share your payment screenshot on WhatsApp to verify and dispatch your order.
+                      </p>
+                      <div className="flex gap-2 flex-wrap pt-1">
+                        <a
+                          href={`https://wa.me/${BUSINESS_WHATSAPP || '919414067123'}?text=${encodeURIComponent(
+                            `Namaste Sneh Sarees! 🙏\n\nI have placed an order and want to share payment proof:\n• Order ID: ${ord.id}\n• Amount: ₹${ord.total.toLocaleString('en-IN')}\n• Customer: ${ord.name}\n\nAttaching payment screenshot below. Please verify and confirm my order!`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 min-w-[180px] bg-[#25D366] hover:bg-[#20ba5a] text-white py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Share Screenshot on WhatsApp</span>
+                        </a>
+                      </div>
+                    </div>
                   )}
 
                   {/* Items */}
@@ -535,10 +563,23 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                             <span className="font-semibold">-₹{ord.discountAmount.toLocaleString('en-IN')}</span>
                           </div>
                         ) : null}
-                        <div className="flex justify-between">
-                          <span>Delivery Fee:</span>
-                          <span className="text-emerald-600 font-bold">FREE</span>
-                        </div>
+                        {(() => {
+                          const itemsSubtotal = ord.items.reduce((sum, it) => sum + it.price * it.qty, 0);
+                          const discount = ord.discountAmount || 0;
+                          const effectiveDeliveryFee = ord.deliveryFee !== undefined 
+                            ? ord.deliveryFee 
+                            : (ord.total > (itemsSubtotal - discount) ? ord.total - (itemsSubtotal - discount) : (itemsSubtotal >= 2000 ? 0 : 100));
+                          return (
+                            <div className="flex justify-between">
+                              <span>Delivery Fee:</span>
+                              {effectiveDeliveryFee === 0 ? (
+                                <span className="text-emerald-600 font-bold">FREE</span>
+                              ) : (
+                                <span className="font-semibold text-[#1A1A1A]">₹{effectiveDeliveryFee.toLocaleString('en-IN')}</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                         <div className="flex justify-between border-t border-[#E8E0D5]/60 pt-1.5 text-xs font-extrabold text-[#1A1A1A]">
                           <span>Total Charged:</span>
                           <span className="text-[#C4601A] font-sans">₹{ord.total.toLocaleString('en-IN')}</span>
@@ -584,187 +625,13 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                     </div>
                   )}
 
-                  {/* Return Section */}
-                  {ord.status === 'delivered' && (
-                    <div className="border-t border-[#E8E0D5] pt-3">
-                      {hasReturn ? (
-                        /* Show existing return status */
-                        <button
-                          onClick={() => loadReturnStatus(ord.id)}
-                          className="w-full flex items-center justify-between bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl px-3.5 py-2.5 cursor-pointer transition-colors hover:bg-[#F0E8DC]"
-                        >
-                          <div className="flex items-center gap-2">
-                            <RotateCcw className="w-3.5 h-3.5 text-[#C4601A]" />
-                            <span className="text-[11px] font-bold text-[#1A1A1A]">Return Request</span>
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                              ret?.status === 'refunded' ? 'bg-emerald-100 text-emerald-700' :
-                              ret?.status === 'rejected' ? 'bg-red-100 text-red-600' :
-                              ret?.status === 'approved' ? 'bg-blue-100 text-blue-700' :
-                              ret?.status === 'picked_up' ? 'bg-purple-100 text-purple-700' :
-                              'bg-amber-100 text-amber-700'
-                            }`}>
-                              {STATUS_LABELS[ret?.status || 'requested']}
-                            </span>
-                          </div>
-                          <ChevronDown className={`w-3.5 h-3.5 text-[#888888] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                        </button>
-                      ) : returnEligible ? (
-                        <div className="flex items-center justify-between">
-                          <div className="text-[10px] text-[#888888]">
-                            Return window: <span className="font-bold text-[#C4601A]">{daysLeft(ord)} day{daysLeft(ord) !== 1 ? 's' : ''} left</span>
-                          </div>
-                          <button
-                            onClick={() => openReturnModal(ord)}
-                            className="flex items-center gap-1.5 bg-[#FAF6F0] border border-[#C4601A] text-[#C4601A] text-[11px] font-bold px-3.5 py-1.5 rounded-full hover:bg-[#C4601A] hover:text-white transition-all cursor-pointer"
-                          >
-                            <RotateCcw className="w-3 h-3" /> Return
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-[#888888] text-center">Return window of {RETURN_WINDOW_DAYS} days has expired.</p>
-                      )}
-
-                      {/* Expanded return status tracker */}
-                      {isExpanded && ret && (
-                        <div className="mt-3 bg-white border border-[#E8E0D5] rounded-xl p-3.5 space-y-3">
-                          {ret.status === 'rejected' ? (
-                            <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-700">
-                              <p className="font-bold mb-1">❌ Return Rejected</p>
-                              <p>{ret.adminNote || 'Your return request could not be approved at this time.'}</p>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center justify-between">
-                                {STATUS_STEPS.map((step, idx, arr) => {
-                                  const stepIdx = STATUS_STEPS.indexOf(ret.status as any);
-                                  const isDone = STATUS_STEPS.indexOf(step) <= stepIdx;
-                                  return (
-                                    <React.Fragment key={step}>
-                                      <div className="flex flex-col items-center gap-1">
-                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${isDone ? 'bg-[#C4601A] text-white' : 'bg-[#E8E0D5] text-[#888888]'}`}>
-                                          {isDone ? '✓' : idx + 1}
-                                        </div>
-                                        <span className={`text-[8px] font-semibold text-center leading-tight max-w-[40px] ${isDone ? 'text-[#C4601A]' : 'text-[#888888]'}`}>
-                                          {STATUS_LABELS[step]}
-                                        </span>
-                                      </div>
-                                      {idx < arr.length - 1 && <div className={`flex-1 h-[2px] mx-1 rounded-full ${isDone && STATUS_STEPS.indexOf(STATUS_STEPS[idx + 1]) <= stepIdx ? 'bg-[#C4601A]' : 'bg-[#E8E0D5]'}`} />}
-                                    </React.Fragment>
-                                  );
-                                })}
-                              </div>
-                              <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                                <span className="text-[#888888]">Reason</span>
-                                <span className="font-semibold text-[#1A1A1A] capitalize">{ret.reason.replace(/_/g, ' ')}</span>
-                                <span className="text-[#888888]">Resolution</span>
-                                <span className="font-semibold text-[#1A1A1A] capitalize">{ret.resolution}</span>
-                                {ret.adminNote && <>
-                                  <span className="text-[#888888]">Admin Note</span>
-                                  <span className="font-semibold text-[#1A1A1A]">{ret.adminNote}</span>
-                                </>}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Return Section reserved for Version 2 */}
                 </div>
               );
             })}
           </div>
         )}
       </div>
-
-      {/* Return Request Modal */}
-      {returnModalOrder && (
-        <div className="fixed inset-0 z-[200] bg-black/50 flex items-end md:items-center justify-center" onClick={() => setReturnModalOrder(null)}>
-          <div className="bg-white w-full max-w-[430px] md:max-w-[500px] mx-auto rounded-t-3xl md:rounded-2xl p-5 pb-8 max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-[#E8E0D5] rounded-full mx-auto mb-4" />
-            <div className="flex items-center gap-2 mb-1">
-              <RotateCcw className="w-5 h-5 text-[#C4601A]" />
-              <h3 className="font-serif text-lg font-bold text-[#1A1A1A]">Request a Return</h3>
-            </div>
-            <p className="text-[11px] text-[#888888] mb-4">
-              Order #{returnModalOrder.id.slice(0, 16)}… · {returnModalOrder.items.length} item{returnModalOrder.items.length !== 1 ? 's' : ''}
-            </p>
-
-            {/* Reason */}
-            <div className="mb-4">
-              <label className="text-[10px] font-bold uppercase text-[#1A1A1A] tracking-wider block mb-2">Reason for Return</label>
-              <div className="grid grid-cols-2 gap-2">
-                {RETURN_REASONS.map(r => (
-                  <button
-                    key={r.value}
-                    onClick={() => setReturnReason(r.value)}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border text-left transition-all cursor-pointer ${
-                      returnReason === r.value
-                        ? 'bg-[#C4601A] text-white border-[#C4601A]'
-                        : 'bg-white text-[#4A4A4A] border-[#E8E0D5] hover:border-[#C4601A]'
-                    }`}
-                  >
-                    <span>{r.icon}</span> {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="mb-4">
-              <label className="text-[10px] font-bold uppercase text-[#1A1A1A] tracking-wider block mb-2">Additional Details (optional)</label>
-              <textarea
-                value={returnDescription}
-                onChange={e => setReturnDescription(e.target.value)}
-                placeholder="Describe the issue in more detail..."
-                rows={3}
-                className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-3 text-xs resize-none focus:outline-none focus:border-[#C4601A]"
-              />
-            </div>
-
-            {/* Resolution */}
-            <div className="mb-5">
-              <label className="text-[10px] font-bold uppercase text-[#1A1A1A] tracking-wider block mb-2">Preferred Resolution</label>
-              <div className="flex gap-2">
-                {(['refund', 'exchange'] as ReturnResolution[]).map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setReturnResolution(r)}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer capitalize ${
-                      returnResolution === r
-                        ? 'bg-[#C4601A] text-white border-[#C4601A]'
-                        : 'bg-white text-[#4A4A4A] border-[#E8E0D5] hover:border-[#C4601A]'
-                    }`}
-                  >
-                    {r === 'refund' ? '💰 Refund' : '🔄 Exchange'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Policy Note */}
-            <div className="bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-3 mb-5 text-[10px] text-[#888888] space-y-1">
-              <p className="font-bold text-[#1A1A1A]">Return Policy</p>
-              <p>• Returns accepted within <strong>7 days</strong> of delivery</p>
-              <p>• Items must be unused and in original packaging</p>
-              <p>• Refunds processed within 5–7 business days after pickup</p>
-              <p>• Our team will contact you on WhatsApp to arrange pickup</p>
-            </div>
-
-            <div className="flex gap-3">
-              <button onClick={() => setReturnModalOrder(null)} className="flex-1 border border-[#E8E0D5] py-3 rounded-xl text-xs font-bold text-[#4A4A4A] hover:bg-[#FAF6F0] transition-colors cursor-pointer">
-                Cancel
-              </button>
-              <button
-                onClick={submitReturn}
-                disabled={submitting}
-                className="flex-1 bg-[#C4601A] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#a84e14] transition-colors cursor-pointer disabled:opacity-60"
-              >
-                {submitting ? 'Submitting...' : 'Submit Return Request'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

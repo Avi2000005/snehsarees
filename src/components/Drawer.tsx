@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, X, Tag, Layers, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { LogOut, X, Tag, Layers, ArrowLeft, ShieldCheck, Shield } from 'lucide-react';
 import { ActivePage } from '../types';
 import { API_URL } from '../config';
+import { PolicyModal } from './PolicyModal';
 
 interface Category {
   id: number;
@@ -19,6 +20,7 @@ interface DrawerProps {
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, showToast }) => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [policyOpen, setPolicyOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -37,16 +39,14 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
 
   // Short store-related category labels mapping
   const categoryEmojis: Record<string, string> = {
-    silk: '🪡',
+    kotadoria: '🪡',
+    silk: '✨',
     cotton: '🌿',
-    georgette: '✨',
-    linen: '🍃',
-    banarasi: '🌸',
-    kanjivaram: '👑',
-    chanderi: '💎',
-    patola: '🎨',
-    tussar: '🌾',
-    chiffon: '☁️',
+    zari: '👑',
+    handblock: '🎨',
+    gottapatti: '🌸',
+    tissue: '💎',
+    leheriya: '🌊',
   };
 
   return (
@@ -137,16 +137,18 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
             <span className="text-[13px] font-semibold text-[#1A1A1A] group-hover:text-[#C4601A]">Back to Landing</span>
           </button>
 
-          {/* Admin Portal */}
-          <a
-            href="/admin.html"
+          {/* Store Policies */}
+          <button
+            onClick={() => {
+              setPolicyOpen(true);
+            }}
             className="drawer-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#FFF0E8] transition-all cursor-pointer group"
           >
             <div className="w-8.5 h-8.5 rounded-lg bg-[#FAF6F0] border border-[#E8E0D5] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-4 h-4 text-[#C4601A]" />
+              <Shield className="w-4 h-4 text-[#C4601A]" />
             </div>
-            <span className="text-[13px] font-semibold text-[#1A1A1A] group-hover:text-[#C4601A]">Admin Portal</span>
-          </a>
+            <span className="text-[13px] font-semibold text-[#1A1A1A] group-hover:text-[#C4601A]">Store Policies &amp; Legal</span>
+          </button>
 
           {/* Logout */}
           <button
@@ -159,9 +161,13 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
             <span className="text-[13px] font-semibold">Logout</span>
           </button>
         </div>
-
-
       </div>
+
+      <PolicyModal
+        isOpen={policyOpen}
+        initialTab="privacy"
+        onClose={() => setPolicyOpen(false)}
+      />
     </>
   );
 };

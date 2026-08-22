@@ -13,22 +13,33 @@ interface KnowledgeViewProps {
 export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack, activeSlug }) => {
   const renderStampContent = (title: string) => {
     switch (title) {
-      case 'Banarasi Silk':
+      case 'Classic Cotton Kota Doria':
         return (
-          <div className="w-full h-full bg-[#C4601A] flex items-center justify-center p-2 relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 pointer-events-none" />
+          <div className="w-full h-full bg-[#E6F3EA] flex items-center justify-center p-2 relative">
+            <div className="absolute inset-0 opacity-[0.35] pointer-events-none" style={{
+              backgroundImage: 'linear-gradient(90deg, #C4601A 1px, transparent 1px), linear-gradient(0deg, #C4601A 1px, transparent 1px)',
+              backgroundSize: '12px 12px'
+            }} />
+            <svg viewBox="0 0 100 120" className="w-full h-full opacity-90 stroke-[#C4601A] fill-none" strokeWidth="1.2">
+              <rect x="20" y="30" width="60" height="60" strokeDasharray="3 3" strokeWidth="1" />
+              <circle cx="50" cy="60" r="12" fill="#C4601A" opacity="0.3" />
+              <circle cx="50" cy="60" r="6" fill="#C4601A" />
+            </svg>
+          </div>
+        );
+      case 'Kotadoria Silk Tissue':
+        return (
+          <div className="w-full h-full bg-[#78281F] flex items-center justify-center p-2 relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/15 to-white/0 pointer-events-none" />
             <svg viewBox="0 0 100 120" className="w-full h-full opacity-90 stroke-[#F5E4BC] fill-none" strokeWidth="1.2">
               <path d="M10,110 Q40,80 30,50 T75,20" />
               <path d="M30,50 Q15,40 25,25" />
               <path d="M52,35 Q65,45 55,60" />
               <path d="M75,20 C70,10 85,5 80,20 C75,30 65,20 75,20" fill="#F5E4BC" />
-              <path d="M25,25 C20,15 35,10 30,25 C25,35 15,25 25,25" fill="#F5E4BC" strokeWidth="0.8" />
-              <path d="M22,80 C30,75 35,80 32,88 Z" fill="#F5E4BC" />
-              <path d="M40,65 C48,60 53,65 50,73 Z" fill="#F5E4BC" />
             </svg>
           </div>
         );
-      case 'Kanjivaram Pure Silk':
+      case 'Zari Border Kotadoria':
         return (
           <div className="w-full h-full bg-[#1e1b4b] flex items-center justify-center p-2 relative">
             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 pointer-events-none" />
@@ -36,57 +47,20 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
               <circle cx="20" cy="20" r="3" fill="#F5E4BC" />
               <circle cx="50" cy="20" r="3" fill="#F5E4BC" />
               <circle cx="80" cy="20" r="3" fill="#F5E4BC" />
-              <circle cx="35" cy="50" r="3" fill="#F5E4BC" />
-              <circle cx="65" cy="50" r="3" fill="#F5E4BC" />
               <path d="M10,120 L25,95 L40,120 M40,120 L55,95 L70,120 M70,120 L85,95 L100,120" strokeWidth="1.5" />
-              <path d="M25,95 L25,85 M55,95 L55,85 M85,95 L85,85" />
-              <path d="M50,40 C45,30 55,25 55,33 C55,38 45,45 50,40 Z" fill="#F5E4BC" />
             </svg>
           </div>
         );
-      case 'Chanderi Weave':
-        return (
-          <div className="w-full h-full bg-[#E6F3EA] flex items-center justify-center p-2 relative">
-            <div className="absolute inset-0 opacity-[0.25] pointer-events-none" style={{
-              backgroundImage: 'linear-gradient(90deg, #C4601A 1px, transparent 1px), linear-gradient(0deg, #C4601A 1px, transparent 1px)',
-              backgroundSize: '8px 8px'
-            }} />
-            <svg viewBox="0 0 100 120" className="w-full h-full opacity-90 stroke-[#F5E4BC] fill-none" strokeWidth="1">
-              <g transform="translate(25, 30)">
-                <circle cx="0" cy="0" r="6" fill="#F5E4BC" opacity="0.3" />
-                <circle cx="0" cy="0" r="4" strokeWidth="1" />
-                <line x1="-3" y1="-3" x2="3" y2="3" />
-                <line x1="3" y1="-3" x2="-3" y2="3" />
-              </g>
-              <g transform="translate(75, 45)">
-                <circle cx="0" cy="0" r="6" fill="#F5E4BC" opacity="0.3" />
-                <circle cx="0" cy="0" r="4" strokeWidth="1" />
-                <line x1="-3" y1="-3" x2="3" y2="3" />
-                <line x1="3" y1="-3" x2="-3" y2="3" />
-              </g>
-              <g transform="translate(45, 80)">
-                <circle cx="0" cy="0" r="6" fill="#F5E4BC" opacity="0.3" />
-                <circle cx="0" cy="0" r="4" strokeWidth="1" />
-                <line x1="-3" y1="-3" x2="3" y2="3" />
-                <line x1="3" y1="-3" x2="-3" y2="3" />
-              </g>
-            </svg>
-          </div>
-        );
-      case 'Patola Double Ikat':
+      case 'Handblock Printed Kotadoria':
         return (
           <div className="w-full h-full bg-[#B25329] flex items-center justify-center p-2 relative">
             <svg viewBox="0 0 100 120" className="w-full h-full opacity-90 stroke-white fill-none" strokeWidth="1">
               <path d="M10,60 L50,15 L90,60 L50,105 Z" strokeWidth="1.5" />
               <path d="M25,60 L50,32 L75,60 L50,88 Z" strokeDasharray="1.5 1.5" />
-              <g transform="translate(50, 60) scale(0.8)" fill="none" stroke="#FAF6F0">
-                <path d="M-10,0 C-10,-10 0,-15 10,-5 C15,0 10,15 -10,0 Z M10,-5 L15,-10 M-5,8 L-10,12" strokeWidth="1.2" />
-                <circle cx="2" cy="-5" r="1.5" fill="#FAF6F0" />
-              </g>
             </svg>
           </div>
         );
-      case 'Paithani Silk':
+      case 'Gotta Patti & Zari Kotadoria':
         return (
           <div className="w-full h-full bg-[#5B21B6] flex items-center justify-center p-2 relative">
             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 pointer-events-none" />
@@ -94,57 +68,30 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
               <line x1="5" y1="110" x2="95" y2="110" stroke="#F5E4BC" strokeWidth="3" />
               <line x1="5" y1="105" x2="95" y2="105" stroke="#F5E4BC" strokeWidth="1" />
               <g transform="translate(50, 55) scale(1.1)" stroke="#F5E4BC">
-                <path d="M0,10 Q-30,-20 -15,-35 Q0,-50 0,10" fill="#FAF6F0" opacity="0.2" />
-                <path d="M0,10 Q30,-20 15,-35 Q0,-50 0,10" fill="#FAF6F0" opacity="0.2" />
                 <path d="M-5,10 Q-15,-10 0,-20 Q10,-10 5,10 Z" fill="#F5E4BC" />
-                <path d="M0,-20 Q5,-35 12,-32 Q15,-30 8,-22" strokeWidth="1.5" />
                 <circle cx="14" cy="-35" r="1" fill="#F5E4BC" />
-                <circle cx="10" cy="-37" r="1" fill="#F5E4BC" />
               </g>
             </svg>
           </div>
         );
-      case 'Sambalpuri Bandha':
+      case 'Leheriya & Bandhani Kotadoria':
         return (
-          <div className="w-full h-full bg-[#111827] flex items-center justify-center p-2 relative">
-            <svg viewBox="0 0 100 120" className="w-full h-full opacity-90 stroke-[#DC2626] fill-none" strokeWidth="1.2">
-              <path d="M10,10 L90,10 M10,110 L90,110" strokeDasharray="3 2" />
-              <g transform="translate(50, 60) scale(1.2)" stroke="#FAF6F0">
-                <path d="M-15,0 C-15,-20 15,-20 15,0 C15,15 0,25 -5,25 C-10,25 -15,15 -15,0 Z" strokeWidth="1.5" />
-                <path d="M-15,0 Q0,5 15,0" />
-                <path d="M-10,5 Q0,10 10,5" />
-                <path d="M-5,10 Q0,15 5,10" />
-              </g>
-            </svg>
-          </div>
-        );
-      case 'Pichwai Print':
-        return (
-          <div className="w-full h-full bg-[#A5C3E5] flex items-center justify-center p-1.5 relative">
-            <svg viewBox="0 0 100 120" className="w-full h-full" fill="none">
-              <g transform="translate(50, 25) scale(0.6)" stroke="#C4601A" strokeWidth="1.2" fill="#F43F5E">
-                <path d="M0,0 C-15,-15 -25,0 0,20 C25,0 15,-15 0,0 Z" />
-                <path d="M-5,5 C-25,-5 -20,15 0,20" fill="none" />
-                <path d="M5,5 C25,-5 20,15 0,20" fill="none" />
-              </g>
-              <g transform="translate(50, 75) scale(0.95)">
-                <path d="M-25,10 Q-30,-15 0,-15 Q20,-15 25,5 L20,30 L-20,30 Z" fill="white" stroke="#C4601A" strokeWidth="1.2" />
-                <path d="M22,0 Q32,-5 32,8 Q28,15 20,12 Z" fill="white" stroke="#C4601A" strokeWidth="1.2" />
-                <path d="M22,-2 Q15,5 18,10" stroke="#C4601A" strokeWidth="1" fill="#FDA4AF" />
-                <path d="M25,-4 Q28,-12 33,-10" stroke="#C4601A" strokeWidth="1.2" fill="#F5E4BC" />
-                <circle cx="27" cy="4" r="1.2" fill="#C4601A" />
-                <circle cx="-12" cy="0" r="1.5" fill="#F5E4BC" />
-                <circle cx="-5" cy="5" r="1.5" fill="#F5E4BC" />
-                <circle cx="8" cy="2" r="1.5" fill="#F5E4BC" />
-                <circle cx="-2" cy="-5" r="1.5" fill="#F5E4BC" />
-              </g>
+          <div className="w-full h-full bg-[#C4601A] flex items-center justify-center p-1.5 relative">
+            <svg viewBox="0 0 100 120" className="w-full h-full opacity-90 stroke-[#F5E4BC] fill-none" strokeWidth="1.5">
+              <path d="M0,20 Q30,40 60,20 T120,20" />
+              <path d="M0,50 Q30,70 60,50 T120,50" />
+              <path d="M0,80 Q30,100 60,80 T120,80" />
             </svg>
           </div>
         );
       default:
         return (
-          <div className="w-full h-full bg-[#FAF6F0] flex items-center justify-center">
-            <Globe className="w-8 h-8 text-[#C4601A] opacity-35" />
+          <div className="w-full h-full bg-[#FAF6F0] flex items-center justify-center relative">
+            <div className="absolute inset-0 opacity-[0.25] pointer-events-none" style={{
+              backgroundImage: 'linear-gradient(90deg, #C4601A 1px, transparent 1px), linear-gradient(0deg, #C4601A 1px, transparent 1px)',
+              backgroundSize: '10px 10px'
+            }} />
+            <Globe className="w-8 h-8 text-[#C4601A] opacity-50" />
           </div>
         );
     }

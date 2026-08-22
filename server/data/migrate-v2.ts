@@ -18,11 +18,12 @@ async function migrate() {
     await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS reel_url TEXT`);
     console.log('✅ products.discount_price, products.reel_url');
 
-    // 2. Add coupon fields to orders
+    // 2. Add coupon & delivery fields to orders
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(50)`);
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10,2) DEFAULT 0`);
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(10,2) DEFAULT 0`);
     await pool.query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS description TEXT`);
-    console.log('✅ orders.coupon_code, orders.discount_amount, categories.description');
+    console.log('✅ orders.coupon_code, orders.discount_amount, orders.delivery_fee, categories.description');
 
     // 3. Create offer_banners table
     await pool.query(`

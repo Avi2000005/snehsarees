@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { sendRegistrationOtp, register, login, logout, getMe, forgotPassword, resetPassword, sendEmailUpdateOtp, updateProfile, deleteAccount } from '../controllers/auth.controller';
-import { loginRateLimiter } from '../middlewares/rateLimit.middleware';
 import { userMiddleware } from '../middlewares/user.middleware';
 
 const router = Router();
@@ -10,7 +9,7 @@ router.post('/send-otp', sendRegistrationOtp);
 router.post('/register', register);
 
 // Login
-router.post('/login', loginRateLimiter, login);
+router.post('/login', login);
 
 // Forgot / reset password
 router.post('/forgot-password', forgotPassword);

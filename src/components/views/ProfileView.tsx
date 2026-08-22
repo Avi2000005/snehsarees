@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, User, ShoppingBag, LogIn, LogOut, Lock, Shield, FileText, HelpCircle, X, Home, MapPin, Edit3, Trash2, KeyRound, CheckCircle, Mail, Phone, Plus, Check } from 'lucide-react';
+import { ArrowLeft, User, ShoppingBag, LogIn, LogOut, Lock, Shield, FileText, HelpCircle, X, Home, MapPin, Edit3, Trash2, KeyRound, CheckCircle, Mail, Phone, Plus, Check, Truck, RotateCcw, Ban } from 'lucide-react';
 import { ActivePage, UserProfile, UserAddress } from '../../types';
 import { API_URL } from '../../config';
+import { PolicyModal, PolicyTab } from '../PolicyModal';
 
 interface ProfileViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -24,7 +25,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onLogout,
   token,
 }) => {
-  const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | 'faqs' | null>(null);
+  const [activeModal, setActiveModal] = useState<PolicyTab | null>(null);
   const [subView, setSubView] = useState<SubView>('main');
 
   // Edit Profile Form State
@@ -287,7 +288,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </button>
       </div>
 
-      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[820px] mx-auto pt-6 pb-[80px]">
+      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[820px] mx-auto pt-6 pb-32">
         
         {/* ─── MAIN VIEW ─── */}
         {subView === 'main' && (
@@ -363,35 +364,73 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     </span>
                     <span className="text-[#888888] font-normal">→</span>
                   </button>
+
+                  {/* Admin Portal — visible ONLY to info@snehsarees.in */}
+                  {user?.email?.toLowerCase() === 'info@snehsarees.in' && (
+                    <button
+                      onClick={() => onNavigate('admin')}
+                      className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-amber-50 text-sm text-amber-700 font-semibold cursor-pointer border-t border-amber-100"
+                    >
+                      <span className="flex items-center gap-3">
+                        <Shield className="w-4.5 h-4.5 text-amber-600" /> Admin Portal
+                      </span>
+                      <span className="text-amber-400 font-normal">→</span>
+                    </button>
+                  )}
                 </div>
 
+
                 <div className="w-full bg-white rounded-xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs mb-8">
+                  <div className="px-5 py-2.5 bg-[#FAF6F0] text-[10px] font-bold text-[#888888] uppercase tracking-wider">
+                    Store Policies &amp; Legal Center
+                  </div>
                   <button
                     onClick={() => setActiveModal('privacy')}
-                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <Shield className="w-4.5 h-4.5 text-[#C4601A]" /> Privacy Policy
+                      <Shield className="w-4 h-4 text-[#C4601A]" /> Privacy Policy
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
 
                   <button
                     onClick={() => setActiveModal('terms')}
-                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <FileText className="w-4.5 h-4.5 text-[#C4601A]" /> Terms &amp; Conditions
+                      <FileText className="w-4 h-4 text-[#C4601A]" /> Terms of Service
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('shipping')}
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Truck className="w-4 h-4 text-[#C4601A]" /> Shipping &amp; Delivery Policy
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+
+                  <button
+                    onClick={() => setActiveModal('cancellation')}
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Ban className="w-4 h-4 text-[#C4601A]" /> Cancellation &amp; Payments
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
 
                   <button
                     onClick={() => setActiveModal('faqs')}
-                    className="w-full text-left p-4 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <HelpCircle className="w-4.5 h-4.5 text-[#C4601A]" /> FAQs
+                      <HelpCircle className="w-4 h-4 text-[#C4601A]" /> FAQs &amp; Help
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
@@ -415,10 +454,67 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
                 <button
                   onClick={() => onNavigate('auth')}
-                  className="bg-[#C4601A] text-white text-xs font-bold px-8 py-3.5 rounded-full hover:bg-[#FFF0E8] active:scale-95 transition-all text-center mb-8 shadow-xs cursor-pointer inline-flex items-center gap-2"
+                  className="bg-[#C4601A] text-white text-xs font-bold px-8 py-3.5 rounded-full hover:bg-[#a84e15] active:scale-95 transition-all text-center mb-8 shadow-xs cursor-pointer inline-flex items-center gap-2"
                 >
                   <LogIn className="w-4 h-4" /> Sign In / Register
                 </button>
+
+                {/* Guest policies menu */}
+                <div className="w-full bg-white rounded-xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs mb-8">
+                  <div className="px-5 py-2.5 bg-[#FAF6F0] text-[10px] font-bold text-[#888888] uppercase tracking-wider">
+                    Store Policies &amp; Legal Center
+                  </div>
+                  <button
+                    onClick={() => setActiveModal('privacy')}
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Shield className="w-4 h-4 text-[#C4601A]" /> Privacy Policy
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('terms')}
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <FileText className="w-4 h-4 text-[#C4601A]" /> Terms of Service
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('shipping')}
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Truck className="w-4 h-4 text-[#C4601A]" /> Shipping &amp; Delivery Policy
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+
+                  <button
+                    onClick={() => setActiveModal('cancellation')}
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Ban className="w-4 h-4 text-[#C4601A]" /> Cancellation &amp; Payments
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModal('faqs')}
+                    className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
+                  >
+                    <span className="flex items-center gap-3">
+                      <HelpCircle className="w-4 h-4 text-[#C4601A]" /> FAQs &amp; Help
+                    </span>
+                    <span className="text-[#888888]">→</span>
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -455,7 +551,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     type="text"
                     value={editUsername}
                     onChange={e => setEditUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                    placeholder="saree_lover_12"
+                    placeholder="Choose a username"
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-8 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
                   />
                 </div>
@@ -642,7 +738,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <Lock className="absolute left-3 top-3 w-4 h-4 text-[#888]" />
                   <input
                     type="password"
-                    placeholder="Min. 6 characters"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A] transition-colors"
@@ -805,7 +900,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Jaipur"
+                    placeholder="City"
                     value={addrCity}
                     onChange={e => setAddrCity(e.target.value)}
                     className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
@@ -834,7 +929,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Rajasthan"
+                  placeholder="State"
                   value={addrState}
                   onChange={e => setAddrState(e.target.value)}
                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
@@ -875,86 +970,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
-      {/* Modals for Privacy, Terms, FAQs */}
-      {activeModal && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-[500px] h-[480px] bg-white rounded-2xl border border-[#E8E0D5] shadow-2xl flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-[#E8E0D5] bg-[#FAF6F0] flex justify-between items-center shrink-0">
-              <h2 className="font-serif text-lg md:text-xl font-bold text-[#C4601A]">
-                {activeModal === 'privacy' && 'Privacy Policy'}
-                {activeModal === 'terms' && 'Terms & Conditions'}
-                {activeModal === 'faqs' && 'Frequently Asked Questions'}
-              </h2>
-              <button
-                onClick={() => setActiveModal(null)}
-                className="p-1 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-5 md:p-6 overflow-y-auto flex-1 font-sans text-xs md:text-sm text-[#4A4A4A] leading-relaxed space-y-4">
-              {activeModal === 'privacy' && (
-                <>
-                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">1. Information Collection</p>
-                  <p>We collect essential information to capture and fulfill handloom saree orders. This includes your name, shipping address, contact phone number, and preferred payment choice.</p>
-                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">2. Order Dispatch &amp; WhatsApp</p>
-                  <p>Because Sneh Sarees manages authentic weaver dispatches, your confirmed orders generate ready-to-send WhatsApp messages to coordinate artisanal delivery safely.</p>
-                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">3. No Commercial Sharing</p>
-                  <p>We value consumer privacy above all. Your delivery information or product preferences will never be sold, or shared with third-party digital networks or marketing systems.</p>
-                </>
-              )}
-
-              {activeModal === 'terms' && (
-                <>
-                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">1. Handcrafted Artisan Saree Standard</p>
-                  <p>Each saree displayed in our catalogue is curated or loomed manually by hand weavers. Any Minor irregularities in dye layers, block alignments, or weave nodes are normal features of Handcrafted Indian art and are highly prized.</p>
-                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">2. Secure Invoicing &amp; Quotes</p>
-                  <p>All listed retail prices are quoted in Indian Rupees (₹) inclusive of local weaving taxes. Sneh Sarees covers free domestic express shipping for all orders.</p>
-                  <p className="font-serif text-[#1A1A1A] font-bold text-sm">3. Order Fulfillments</p>
-                  <p>Placing an order creates a direct invoice track. Weaver partners inspect your saree package personally before courier handover.</p>
-                </>
-              )}
-
-              {activeModal === 'faqs' && (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: How do I verify authenticity?</h4>
-                    <p className="text-gray-600 pl-1">A: Our sarees carry Handloom Mark or Silk Mark endorsements where specified, indicating genuine yarn sourcing straight from local weaver clusters.</p>
-                  </div>
-                  <hr className="border-[#E8E0D5]" />
-                  <div>
-                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: Is a blouse piece included?</h4>
-                    <p className="text-gray-600 pl-1">A: Yes! Standard handloom pieces are supplied with 80cm of running unstitched blouse material matching the saree yardage.</p>
-                  </div>
-                  <hr className="border-[#E8E0D5]" />
-                  <div>
-                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: What are the typical transit periods?</h4>
-                    <p className="text-gray-600 pl-1">A: Sneh Sarees uses courier agencies for rapid shipping. Deliveries take 5–7 business days to most addresses in India.</p>
-                  </div>
-                  <hr className="border-[#E8E0D5]" />
-                  <div>
-                    <h4 className="font-serif font-bold text-[#1A1A1A] mb-1 text-sm">Q: What is the return guideline?</h4>
-                    <p className="text-gray-600 pl-1">A: As these are loomed yarn pieces, returns or exchanges are allowed within 7 days ONLY if damage is present on first opening.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-[#FAF6F0] p-4 border-t border-[#E8E0D5] text-right shrink-0">
-              <button
-                onClick={() => setActiveModal(null)}
-                className="bg-[#C4601A] font-semibold text-white px-5 py-2 rounded-lg text-xs hover:bg-[#FFF0E8] transition-colors cursor-pointer"
-              >
-                Understood
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Standard Store Policies Modal */}
+      <PolicyModal
+        isOpen={!!activeModal}
+        initialTab={activeModal || 'privacy'}
+        onClose={() => setActiveModal(null)}
+      />
     </div>
   );
 };

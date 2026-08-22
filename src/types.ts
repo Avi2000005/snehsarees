@@ -51,11 +51,14 @@ export interface Order {
   address: string;
   createdAt: string;
   status?: string;
+  userEmail?: string;
+  userId?: number;
   trackingId?: string;
   carrierName?: string;
   trackingUrl?: string;
   couponCode?: string;
   discountAmount?: number;
+  deliveryFee?: number;
   processingAt?: string;
   shippedAt?: string;
   deliveredAt?: string;
@@ -137,6 +140,7 @@ export type ActivePage =
   | 'cart'
   | 'checkout'
   | 'success'
+  | 'pending_payment'
   | 'wishlist'
   | 'orders'
   | 'profile'
@@ -158,6 +162,7 @@ export interface ReturnRequest {
   id: number;
   orderId: string;
   userId?: number;
+  userEmail?: string;
   customerName?: string;
   phone?: string;
   reason: ReturnReason;

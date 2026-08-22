@@ -39,6 +39,8 @@ export const CartView: React.FC<CartViewProps> = ({
 
   const totalCost = getCartTotal();
   const itemCount = getCartCount();
+  const deliveryFee = totalCost >= 2000 ? 0 : 100;
+  const grandTotal = totalCost + deliveryFee;
 
   return (
     <div id="page-cart" className="bg-[#FAF6F0] min-h-screen">
@@ -62,58 +64,57 @@ export const CartView: React.FC<CartViewProps> = ({
         </button>
       </div>
 
-      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-4 pb-[80px]">
+      <div className="max-w-[620px] mx-auto p-4 pt-2 pb-32">
         {cart.length === 0 ? (
-          /* State A: EMPTY CART SCREEN */
-          <div className="empty-cart text-center py-16 px-6 max-w-sm mx-auto">
-            <div className="empty-cart-icon mb-4 flex justify-center text-primrose opacity-35">
-              <ShoppingBag className="w-14 h-14" strokeWidth={1.2} />
+          /* Empty state */
+          <div className="cart-empty flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 rounded-full bg-[#FFF0E8] border border-[#F0C8A0] flex items-center justify-center mb-4 text-[#C4601A]">
+              <ShoppingBag className="w-10 h-10 stroke-1" />
             </div>
-            <h2 className="empty-cart-title font-serif text-2xl font-semibold mb-2">
-              Your cart is empty
-            </h2>
-            <p className="empty-cart-text text-xs text-[#888888] leading-relaxed mb-6">
-              Discover our beautiful collection of handcrafted sarees and start picking your favorites.
+            <h3 className="empty-title font-serif text-xl font-bold text-[#1A1A1A] mb-2">
+              Your Cart is Empty
+            </h3>
+            <p className="empty-desc text-xs text-[#888888] max-w-xs mb-6 leading-relaxed">
+              Explore our curated handloom collections and discover authentic weaver heirlooms.
             </p>
             <button
               onClick={() => onNavigate('home')}
-              className="empty-cart-btn bg-[#C4601A] text-white px-8 py-3.5 rounded-full text-sm font-semibold hover:bg-[#FFF0E8] active:scale-95 transition-all cursor-pointer inline-block"
+              className="empty-btn bg-[#C4601A] text-white text-xs font-bold px-7 py-3.5 rounded-xl hover:bg-[#a84e15] transition-colors cursor-pointer shadow-md"
             >
-              Browse Sarees
+              Explore Collection →
             </button>
           </div>
         ) : (
-          /* State B: FULL CART ENTRIES */
-          <div className="max-w-[700px] mx-auto flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
+          /* Populated state */
+          <div className="flex flex-col gap-4">
+            <div className="cart-items-list flex flex-col gap-3">
               {cart.map((item, i) => (
                 <div
                   key={`${item.id}-${item.colour}`}
-                  className="cart-item bg-white rounded-xl p-3.5 flex gap-3.5 border border-[#E8E0D5] shadow-xs"
+                  className="cart-item bg-white rounded-xl p-3.5 border border-[#E8E0D5] flex gap-3.5 items-center shadow-xs"
                 >
-                  <div className="cart-item-img w-20 h-25 md:w-24 md:h-29 rounded-lg overflow-hidden shrink-0 bg-[#F0E8DC]">
+                  <div className="cart-thumb w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-[#E8E0D5] bg-[#FAF6F0]">
                     <SareeSwatch id={item.id} imageUrl={item.image} />
                   </div>
-                  <div className="cart-item-info flex-1 flex flex-col">
-                    <h4 className="cart-item-name font-serif text-[15px] font-semibold text-[#1A1A1A] leading-snug mb-1">
+                  <div className="cart-info flex-1 min-w-0">
+                    <h4 className="cart-name font-serif text-sm font-semibold text-[#1A1A1A] truncate mb-0.5">
                       {item.name}
                     </h4>
-                    <span className="cart-item-colour text-xs text-[#888888] mb-2.5">
-                      Colour: {item.colour}
-                    </span>
-                    <div className="cart-item-price text-[#C4601A] font-bold text-base mb-3 font-sans">
-                      ₹{(item.price * item.qty).toLocaleString('en-IN')}
-                    </div>
-                    {/* Quantity controls dashboard */}
-                    <div className="cart-qty-row flex items-center justify-between mt-auto">
-                      <div className="qty-controls flex items-center bg-[#FAF6F0] rounded-lg border border-[#E8E0D5] p-0.5 select-none text-[#C4601A]">
+                    <p className="cart-meta text-[11px] text-[#888888] mb-2 flex items-center gap-1.5">
+                      <span className="font-semibold text-[#C4601A]">{item.fabric}</span> • <span>{item.colour}</span>
+                    </p>
+                    <div className="cart-bottom flex justify-between items-center">
+                      <span className="cart-price font-bold text-sm text-[#1A1A1A]">
+                        ₹{item.price.toLocaleString('en-IN')}
+                      </span>
+                      <div className="cart-qty-ctrl flex items-center bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg">
                         <button
                           onClick={() => onChangeQty(i, -1)}
                           className="qty-btn w-7.5 h-7.5 flex items-center justify-center font-bold text-base hover:bg-neutral-200/50 rounded-md transition-colors cursor-pointer"
                         >
-                          −
+                          -
                         </button>
-                        <span className="qty-num w-8 text-center text-xs font-bold text-[#1A1A1A]">
+                        <span className="qty-val px-2 text-xs font-bold text-[#1A1A1A]">
                           {item.qty}
                         </span>
                         <button
@@ -149,13 +150,26 @@ export const CartView: React.FC<CartViewProps> = ({
               </div>
               <div className="summary-row flex justify-between mb-3 text-sm">
                 <span className="summary-label text-[#888888]">Delivery Charges</span>
-                <span className="summary-value text-[#2E7D32] font-semibold">FREE ✓</span>
+                {deliveryFee === 0 ? (
+                  <span className="summary-value text-[#2E7D32] font-semibold">FREE ✓</span>
+                ) : (
+                  <span className="summary-value text-[#1A1A1A] font-semibold">₹{deliveryFee.toLocaleString('en-IN')}</span>
+                )}
               </div>
+              {deliveryFee === 0 ? (
+                <div className="bg-emerald-50 text-emerald-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg mb-3 flex items-center justify-between">
+                  <span>🎉 Free delivery applied on orders above ₹2,000</span>
+                </div>
+              ) : (
+                <div className="bg-amber-50 text-amber-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg mb-3 flex items-center justify-between">
+                  <span>📦 ₹100 delivery fee (Add ₹{(2000 - totalCost).toLocaleString('en-IN')} more for FREE delivery!)</span>
+                </div>
+              )}
               <hr className="summary-divider border-0 border-t border-[#E8E0D5] my-4" />
               <div className="summary-row flex justify-between items-center">
                 <span className="summary-label text-base font-bold text-[#1A1A1A]">Total</span>
                 <span className="summary-value text-lg font-extrabold text-[#C4601A]">
-                  ₹{totalCost.toLocaleString('en-IN')}
+                  ₹{grandTotal.toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
