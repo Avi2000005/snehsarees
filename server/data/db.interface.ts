@@ -7,6 +7,7 @@ export interface IDatabase {
   getProducts(): Promise<Product[]>;
   getProductById(id: number): Promise<Product | null>;
   createProduct(product: Omit<Product, 'id'> & { id?: number }): Promise<Product>;
+  createBulkProducts(products: Array<Omit<Product, 'id'> & { id?: number }>): Promise<Product[]>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product | null>;
   deleteProduct(id: number): Promise<boolean>;
   deductProductStock(id: number, qty: number): Promise<boolean>;

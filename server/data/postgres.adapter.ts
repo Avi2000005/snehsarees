@@ -22,10 +22,11 @@ function mapDbRowToProduct(row: any): Product {
     blouse: row.blouse || false,
     desc: row.description || '',
     image: row.image || '',
-    stock: row.stock !== undefined ? parseInt(row.stock, 10) : 10,
+    stock: row.stock !== undefined ? parseInt(row.stock, 10) : 0,
     categoryId: row.category_id !== null && row.category_id !== undefined ? parseInt(row.category_id, 10) : undefined,
     variants: row.variants ? (typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants) : [],
-    reelUrl: row.reel_url || undefined
+    reelUrl: row.reel_url || undefined,
+    code: row.code || (Array.isArray(row.tags) ? row.tags.find((t: string) => t && t.startsWith('code:'))?.replace('code:', '') : undefined)
   };
 }
 
@@ -59,28 +60,86 @@ export class PostgresDatabaseAdapter implements IDatabase {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `;
+    const tags = Array.isArray(product.tags) ? [...product.tags] : [];
+    if (product.code && !tags.some(t => t.startsWith('code:'))) {
+      tags.push('code:' + product.code);
+    }
     const values = [
-      product.name,
-      product.price,
-      product.fabric,
-      product.occasion,
-      product.colour,
-      product.tags || [],
+      product.name || 'Untitled Product',
+      product.price !== undefined && !isNaN(product.price) ? product.price : 0,
+      product.fabric || '',
+      product.occasion || '',
+      product.colour || '',
+      tags,
       product.isReel || false,
       product.views || '0',
       product.rating || 5.0,
       product.reviews || 0,
       product.blouse || false,
-      product.desc,
+      product.desc || '',
       product.image || '',
-      product.stock !== undefined ? product.stock : 10,
+      product.stock !== undefined && !isNaN(product.stock) ? product.stock : 0,
       product.categoryId !== undefined ? product.categoryId : null,
       JSON.stringify(product.variants || []),
-      product.discountPrice !== undefined ? product.discountPrice : null,
+      product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : null,
       product.reelUrl || null
     ];
     const result = await client.query(query, values);
     return mapDbRowToProduct(result.rows[0]);
+  }
+
+  async createBulkProducts(products: Array<Omit<Product, 'id'> & { id?: number }>): Promise<Product[]> {
+    if (!products || products.length === 0) return [];
+    const pool = this.getPool();
+    const client = await pool.connect();
+    const created: Product[] = [];
+    try {
+      await client.query('BEGIN');
+      const query = `
+        INSERT INTO products (
+          name, price, fabric, occasion, colour, tags, 
+          is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        RETURNING *
+      `;
+      for (const product of products) {
+        const tags = Array.isArray(product.tags) ? [...product.tags] : [];
+        if (product.code && !tags.some(t => t.startsWith('code:'))) {
+          tags.push('code:' + product.code);
+        }
+        const values = [
+          product.name || 'Untitled Product',
+          product.price !== undefined && !isNaN(product.price) ? product.price : 0,
+          product.fabric || '',
+          product.occasion || '',
+          product.colour || '',
+          tags,
+          product.isReel || false,
+          product.views || '0',
+          product.rating || 5.0,
+          product.reviews || 0,
+          product.blouse || false,
+          product.desc || '',
+          product.image || '',
+          product.stock !== undefined && !isNaN(product.stock) ? product.stock : 0,
+          product.categoryId !== undefined ? product.categoryId : null,
+          JSON.stringify(product.variants || []),
+          product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : null,
+          product.reelUrl || null
+        ];
+        const res = await client.query(query, values);
+        if (res.rows[0]) {
+          created.push(mapDbRowToProduct(res.rows[0]));
+        }
+      }
+      await client.query('COMMIT');
+      return created;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async updateProduct(id: number, product: Partial<Product>): Promise<Product | null> {
@@ -111,7 +170,17 @@ export class PostgresDatabaseAdapter implements IDatabase {
     };
 
     for (const [key, value] of Object.entries(product)) {
-      if (mapping[key] !== undefined && value !== undefined) {
+      if (key === 'code' && value !== undefined) {
+        // Tag with code:VALUE
+        const current = await this.getProductById(id);
+        if (current) {
+          const newTags = (current.tags || []).filter(t => !t.startsWith('code:'));
+          if (value) newTags.push('code:' + value);
+          fields.push(`tags = $${idx}`);
+          values.push(newTags);
+          idx++;
+        }
+      } else if (mapping[key] !== undefined && value !== undefined) {
         fields.push(`${mapping[key]} = $${idx}`);
         if (key === 'variants') {
           values.push(JSON.stringify(value || []));

@@ -18,6 +18,7 @@ export interface Product {
   categoryId?: number;
   variants?: { colour: string; image: string }[];
   reelUrl?: string;
+  code?: string;
 }
 
 export interface Category {

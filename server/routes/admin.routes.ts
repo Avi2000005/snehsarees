@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { adminMiddleware } from '../middlewares/admin.middleware';
 import {
   createProduct,
+  createBulkProducts,
   updateProduct,
   deleteProduct,
   updateOrderStatus,
@@ -9,6 +10,8 @@ import {
   updateOrderLocation,
   updateOrderTracking,
   uploadProductImage,
+  uploadBulkProductImages,
+  bulkAssignProductImages,
   getAllOrders,
 } from '../controllers/admin.controller';
 import { getInquiries } from '../controllers/inquiry.controller';
@@ -30,9 +33,12 @@ router.use(adminMiddleware);
 
 // Inventory Product CRUD
 router.post('/products', createProduct);
+router.post('/products/bulk', createBulkProducts);
 router.put('/products/:id', updateProduct);
 router.delete('/products/:id', deleteProduct);
 router.post('/products/upload', upload.single('image'), uploadProductImage);
+router.post('/products/upload-bulk', upload.array('images', 100), uploadBulkProductImages);
+router.post('/products/bulk-assign-images', bulkAssignProductImages);
 
 // Orders lists & status modifications
 router.get('/orders', getAllOrders);

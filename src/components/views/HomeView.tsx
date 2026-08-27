@@ -80,6 +80,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
       if (selectedCategoryObj && p.categoryId === selectedCategoryObj.id) {
         return true;
       }
+      if (selectedCategoryObj && (p.fabric || '').toLowerCase().includes(selectedCategoryObj.name.toLowerCase())) {
+        return true;
+      }
       return (p.fabric || '').toLowerCase() === activeHomeCategory.toLowerCase();
     });
   };
@@ -304,28 +307,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
         )}
 
         {/* Horizontal Category Tab strip with dynamic listings */}
-        {/* Outer: scroll container centered. Inner inline-flex: centered when fits, scrolls left when overflows */}
         <div
-          className="category-strip-outer w-full overflow-x-auto py-2 pb-3.5 flex justify-center"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="category-strip-outer -mx-4 md:-mx-7 lg:mx-0 px-4 md:px-7 lg:px-0 overflow-x-auto py-2 pb-3.5 flex scroll-smooth overscroll-x-contain"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
-          <div className="category-strip-inner inline-flex gap-2 md:gap-3 items-center">
+          <div className="category-strip-inner flex gap-2.5 sm:gap-3.5 items-start min-w-full justify-start md:justify-center">
 
+            {/* "All" Category Pill */}
             <div
               onClick={() => onSetCategory('all')}
-              className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+              className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group w-[72px] sm:w-20 md:w-24 select-none"
             >
               <div
-                className={`cat-icon w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-sm border border-[#E8E0D5] transition-all ${activeHomeCategory === 'all'
-                  ? 'bg-[#C4601A] border-[#C4601A] scale-95'
-                  : 'bg-white hover:bg-[#FAF6F0] active:scale-95'
-                  }`}
+                className={`cat-icon w-[68px] h-[68px] sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-xs border transition-all duration-200 ${
+                  activeHomeCategory === 'all'
+                    ? 'bg-[#C4601A] border-[#C4601A] text-white ring-2 ring-[#C4601A]/30 scale-95 shadow-sm'
+                    : 'bg-white border-[#E8E0D5] hover:border-[#C4601A]/50 hover:bg-[#FAF6F0] active:scale-95'
+                }`}
               >
-                <svg className={`w-[30px] h-[30px] ${activeHomeCategory === 'all' ? 'stroke-white' : 'stroke-[#C4601A]'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-                  <path d="M4 6h16M4 12h16M4 18h16" />
+                <svg className={`w-7 h-7 sm:w-8 sm:h-8 ${activeHomeCategory === 'all' ? 'stroke-white' : 'stroke-[#C4601A]'}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
+                  <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
                 </svg>
               </div>
-              <div className={`cat-label text-[10px] md:text-xs font-semibold text-center leading-tight ${activeHomeCategory === 'all' ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A]'}`}>
+              <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-full truncate ${activeHomeCategory === 'all' ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A]'}`}>
                 All
               </div>
             </div>
@@ -337,21 +341,22 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <div
                   key={c.id}
                   onClick={() => onSetCategory(c.slug)}
-                  className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
+                  className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group w-[72px] sm:w-20 md:w-24 select-none"
                 >
                   <div
-                    className={`cat-icon w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-sm border transition-all overflow-hidden ${active
-                      ? hasImage
-                        ? 'border-[#C4601A] ring-2 ring-[#C4601A]/30 scale-95'
-                        : 'bg-[#C4601A] border-[#C4601A] scale-95'
-                      : hasImage
-                        ? 'border-[#E8E0D5] hover:border-gray-400 active:scale-95'
-                        : 'bg-white border-[#E8E0D5] hover:bg-[#FAF6F0] active:scale-95'
-                      }`}
+                    className={`cat-icon w-[68px] h-[68px] sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-xs border transition-all duration-200 overflow-hidden ${
+                      active
+                        ? hasImage
+                          ? 'border-[#C4601A] ring-2 ring-[#C4601A]/40 scale-95 shadow-sm'
+                          : 'bg-[#C4601A] border-[#C4601A] text-white scale-95 shadow-sm'
+                        : hasImage
+                          ? 'border-[#E8E0D5] hover:border-[#C4601A]/50 active:scale-95'
+                          : 'bg-white border-[#E8E0D5] hover:border-[#C4601A]/50 hover:bg-[#FAF6F0] active:scale-95'
+                    }`}
                   >
                     {renderCategoryIcon(c.slug, active, c.imageUrl)}
                   </div>
-                  <div className={`cat-label text-[10px] md:text-xs font-semibold text-center leading-tight ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
+                  <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-[72px] sm:max-w-20 md:max-w-24 line-clamp-2 px-0.5 break-words ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
                     {c.name}
                   </div>
                 </div>

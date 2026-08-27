@@ -52,10 +52,67 @@ export class JsonDatabaseAdapter implements IDatabase {
   async createProduct(product: Omit<Product, 'id'> & { id?: number }): Promise<Product> {
     const db = await this.readDb();
     const nextId = product.id || (db.products.length > 0 ? Math.max(...db.products.map((p) => p.id)) + 1 : 1);
-    const newProduct: Product = { ...product, id: nextId } as Product;
+    const newProduct: Product = {
+      name: product.name || 'Untitled Product',
+      price: product.price !== undefined && !isNaN(product.price) ? product.price : 0,
+      discountPrice: product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : undefined,
+      fabric: product.fabric || '',
+      occasion: product.occasion || '',
+      colour: product.colour || '',
+      tags: product.tags || [],
+      isReel: product.isReel || false,
+      views: product.views || '0',
+      rating: product.rating || 5.0,
+      reviews: product.reviews || 0,
+      blouse: product.blouse || false,
+      desc: product.desc || '',
+      image: product.image || '',
+      stock: product.stock !== undefined && !isNaN(product.stock) ? product.stock : 0,
+      categoryId: product.categoryId !== undefined ? product.categoryId : undefined,
+      variants: product.variants || [],
+      reelUrl: product.reelUrl || undefined,
+      code: product.code || undefined,
+      id: nextId
+    };
     db.products.push(newProduct);
     await this.writeDb(db);
     return newProduct;
+  }
+
+  async createBulkProducts(products: Array<Omit<Product, 'id'> & { id?: number }>): Promise<Product[]> {
+    if (!products || products.length === 0) return [];
+    const db = await this.readDb();
+    let currentMaxId = db.products.length > 0 ? Math.max(...db.products.map((p) => p.id)) : 0;
+    const created: Product[] = [];
+    for (const product of products) {
+      currentMaxId += 1;
+      const newProduct: Product = {
+        name: product.name || 'Untitled Product',
+        price: product.price !== undefined && !isNaN(product.price) ? product.price : 0,
+        discountPrice: product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : undefined,
+        fabric: product.fabric || '',
+        occasion: product.occasion || '',
+        colour: product.colour || '',
+        tags: product.tags || [],
+        isReel: product.isReel || false,
+        views: product.views || '0',
+        rating: product.rating || 5.0,
+        reviews: product.reviews || 0,
+        blouse: product.blouse || false,
+        desc: product.desc || '',
+        image: product.image || '',
+        stock: product.stock !== undefined && !isNaN(product.stock) ? product.stock : 0,
+        categoryId: product.categoryId !== undefined ? product.categoryId : undefined,
+        variants: product.variants || [],
+        reelUrl: product.reelUrl || undefined,
+        code: product.code || undefined,
+        id: product.id || currentMaxId
+      };
+      db.products.push(newProduct);
+      created.push(newProduct);
+    }
+    await this.writeDb(db);
+    return created;
   }
 
   async updateProduct(id: number, product: Partial<Product>): Promise<Product | null> {

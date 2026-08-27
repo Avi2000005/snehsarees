@@ -17,6 +17,7 @@ class DynamicDatabaseAdapter implements IDatabase {
   getProducts() { return this.getActiveAdapter().getProducts(); }
   getProductById(id: number) { return this.getActiveAdapter().getProductById(id); }
   createProduct(product: any) { return this.getActiveAdapter().createProduct(product); }
+  createBulkProducts(products: any[]) { return this.getActiveAdapter().createBulkProducts(products); }
   updateProduct(id: number, product: any) { return this.getActiveAdapter().updateProduct(id, product); }
   deleteProduct(id: number) { return this.getActiveAdapter().deleteProduct(id); }
   deductProductStock(id: number, qty: number) { return this.getActiveAdapter().deductProductStock(id, qty); }

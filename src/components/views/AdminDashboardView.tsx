@@ -5,8 +5,10 @@ import { API_URL } from '../../config';
 import {
   ArrowLeft, LogIn, Lock, Mail, LayoutDashboard, ShoppingBag,
   Users, Layers, Trash2, Edit3, PlusCircle, CheckCircle, RefreshCw, X, MapPin,
-  Tag, MessageSquare, Film, RotateCcw
+  Tag, MessageSquare, Film, RotateCcw, FileSpreadsheet, Download, Upload, AlertCircle, FileText, CheckCircle2,
+  Image as ImageIcon, Camera, Sparkles, Check
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface AdminDashboardViewProps {
   onNavigate: (page: ActivePage) => void;
@@ -122,6 +124,26 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [shipCarrierName, setShipCarrierName] = useState('India Post');
   const [shipTrackingUrl, setShipTrackingUrl] = useState('');
   const [shipLoading, setShipLoading] = useState(false);
+
+  // Bulk Excel Upload state
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
+  const [bulkParsedProducts, setBulkParsedProducts] = useState<any[]>([]);
+  const [bulkParsing, setBulkParsing] = useState(false);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
+  // Bulk Photo Auto-Assigner state
+  const [showBulkPhotoModal, setShowBulkPhotoModal] = useState(false);
+  const [bulkPhotoItems, setBulkPhotoItems] = useState<{
+    id: string;
+    file: File;
+    previewUrl: string;
+    matchedProductId: number | null;
+    isVariant: boolean;
+    variantColour: string;
+    confidence: 'id' | 'name' | 'manual' | 'none';
+  }[]>([]);
+  const [bulkPhotoUploading, setBulkPhotoUploading] = useState(false);
 
   // Check sessionStorage for active token
   useEffect(() => {
@@ -582,6 +604,505 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setNewVariantColour('');
     setNewVariantImage('');
     setProdReelUrl('');
+  };
+
+  // Excel Template Generator
+  const downloadExcelTemplate = () => {
+    try {
+      const templateData = [
+        {
+          'Name': 'Royal Red Kota Doria Silk Saree',
+          'MRP': 2499,
+          'Selling Price': 1999,
+          'Category': 'Kota Doria',
+          'Fabric': 'Kota Doria Silk',
+          'Occasion': 'Wedding',
+          'Colour': 'Red',
+          'Stock': 15,
+          'Blouse': 'Yes',
+          'Description': 'Authentic handcrafted royal red kota doria saree with gold zari border.',
+          'Image URL': 'https://example.com/saree1.jpg',
+          'Tags': 'trending, bestseller, wedding',
+          'Reel URL': ''
+        },
+        {
+          'Name': 'Pastel Pink Chanderi Saree',
+          'MRP': 1850,
+          'Selling Price': 1499,
+          'Category': 'Chanderi',
+          'Fabric': 'Chanderi',
+          'Occasion': 'Festive',
+          'Colour': 'Pink',
+          'Stock': 8,
+          'Blouse': 'Yes',
+          'Description': 'Lightweight festive drape.',
+          'Image URL': '',
+          'Tags': 'new, festive',
+          'Reel URL': ''
+        },
+        {
+          'Name': 'Daily Wear Pure Cotton Saree',
+          'MRP': 999,
+          'Selling Price': '',
+          'Category': '',
+          'Fabric': '',
+          'Occasion': '',
+          'Colour': '',
+          'Stock': '',
+          'Blouse': '',
+          'Description': '',
+          'Image URL': '',
+          'Tags': '',
+          'Reel URL': ''
+        }
+      ];
+
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      ws['!cols'] = [
+        { wch: 32 }, // Name
+        { wch: 12 }, // MRP
+        { wch: 15 }, // Selling Price
+        { wch: 16 }, // Category
+        { wch: 18 }, // Fabric
+        { wch: 16 }, // Occasion
+        { wch: 14 }, // Colour
+        { wch: 10 }, // Stock
+        { wch: 10 }, // Blouse
+        { wch: 40 }, // Description
+        { wch: 30 }, // Image URL
+        { wch: 25 }, // Tags
+        { wch: 25 }, // Reel URL
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sarees_Catalog');
+      XLSX.writeFile(wb, 'Sneh_Sarees_Product_Upload_Template.xlsx');
+      showToast('Excel template downloaded successfully!');
+    } catch (err: any) {
+      showToast('Failed to generate template: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  // Excel / CSV File Parsing
+  const handleExcelFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBulkUploadFile(file);
+    setBulkParsing(true);
+
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: 'array' });
+      const firstSheetName = wb.SheetNames[0];
+      if (!firstSheetName) {
+        throw new Error('The uploaded file does not contain any valid worksheet.');
+      }
+      const ws = wb.Sheets[firstSheetName];
+
+      // Convert sheet to 2D array to find the exact row that contains headers
+      const sheetRows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      if (!sheetRows || sheetRows.length === 0) {
+        throw new Error('The worksheet is empty. Please add rows before uploading.');
+      }
+
+      // Find the row index that contains column headers
+      let headerRowIndex = 0;
+      for (let r = 0; r < Math.min(sheetRows.length, 10); r++) {
+        const rowStr = (sheetRows[r] || []).map(cell => String(cell).toLowerCase().replace(/[^a-z0-9]/g, ''));
+        if (rowStr.some(s => s.includes('name') || s.includes('saree') || s.includes('price') || s.includes('mrp') || s.includes('stock') || s.includes('qty'))) {
+          headerRowIndex = r;
+          break;
+        }
+      }
+
+      const rawRows: any[] = XLSX.utils.sheet_to_json(ws, { range: headerRowIndex, defval: '' });
+      if (!rawRows || rawRows.length === 0) {
+        throw new Error('No product rows detected beneath the header row.');
+      }
+
+      // Normalization dictionary for header aliases
+      const normalizeKey = (key: string): string => {
+        const cleaned = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // Reference Code / Product ID (e.g. "Product ID (ref only)", "Product ID", "Ref ID", "Code", "SKU")
+        if (
+          cleaned.includes('productid') ||
+          cleaned.includes('refonly') ||
+          cleaned.includes('refid') ||
+          cleaned.includes('refcode') ||
+          cleaned.includes('itemcode') ||
+          cleaned === 'id' ||
+          cleaned === 'sku' ||
+          cleaned === 'code'
+        ) return 'code';
+
+        if (cleaned.includes('productname') || cleaned === 'name' || cleaned === 'title' || cleaned === 'item' || cleaned === 'itemname' || cleaned === 'sareename') return 'name';
+        
+        // MRP / List Price / Original Benchmark Price
+        if (cleaned === 'mrp' || cleaned === 'originalprice' || cleaned === 'listprice' || cleaned === 'tagprice' || cleaned === 'regularprice' || cleaned === 'maxprice') return 'mrp';
+        
+        // Selling Price / Offer Price / Discount Price / Deal Price
+        if (cleaned === 'discountprice' || cleaned === 'discountedprice' || cleaned === 'sellingprice' || cleaned === 'offerprice' || cleaned === 'saleprice' || cleaned === 'ourprice' || cleaned === 'finalprice' || cleaned === 'netprice') return 'sellingPrice';
+        if (cleaned === 'price' || cleaned === 'rate' || cleaned === 'amount') return 'price';
+        
+        // Stock / Quantity / Units / Inventory
+        if (
+          cleaned === 'stock' ||
+          cleaned === 'stocklevel' ||
+          cleaned === 'stocklevels' ||
+          cleaned === 'stockqty' ||
+          cleaned === 'stockquantity' ||
+          cleaned === 'totalstock' ||
+          cleaned === 'availablestock' ||
+          cleaned === 'currentstock' ||
+          cleaned === 'openingstock' ||
+          cleaned === 'closingstock' ||
+          cleaned === 'qty' ||
+          cleaned === 'quantity' ||
+          cleaned === 'availableqty' ||
+          cleaned === 'totalqty' ||
+          cleaned === 'inventory' ||
+          cleaned === 'inventorycount' ||
+          cleaned === 'inventorylevel' ||
+          cleaned === 'pcs' ||
+          cleaned === 'pieces' ||
+          cleaned === 'units' ||
+          cleaned === 'nos' ||
+          cleaned === 'available' ||
+          cleaned === 'inhand' ||
+          cleaned === 'balance' ||
+          cleaned.includes('stock') ||
+          (cleaned.includes('qty') && !cleaned.includes('discount')) ||
+          (cleaned.includes('quant') && !cleaned.includes('discount'))
+        ) return 'stock';
+
+        if (cleaned.includes('category') || cleaned.includes('assigncategory') || cleaned === 'cat') return 'category';
+        if (cleaned.includes('fabric') || cleaned.includes('material')) return 'fabric';
+        if (cleaned.includes('occasion') || cleaned.includes('event')) return 'occasion';
+        if (cleaned === 'colour' || cleaned === 'color' || cleaned === 'shade') return 'colour';
+        if (cleaned.includes('blouse') || cleaned.includes('matching')) return 'blouse';
+        if (cleaned.includes('desc') || cleaned.includes('detail') || cleaned.includes('about')) return 'desc';
+        if (cleaned.includes('image') || cleaned.includes('photo') || cleaned.includes('pic') || cleaned.includes('img') || cleaned.includes('filename')) return 'image';
+        if (cleaned.includes('tag')) return 'tags';
+        if (cleaned.includes('reel') || cleaned.includes('video')) return 'reelUrl';
+        return key;
+      };
+
+      const parsed: any[] = [];
+      for (const row of rawRows) {
+        const normalizedRow: Record<string, any> = {};
+        for (const [origKey, val] of Object.entries(row)) {
+          const normKey = normalizeKey(origKey);
+          const strVal = val !== undefined && val !== null ? String(val).trim() : '';
+          // Only overwrite if non-empty, or if key not present yet
+          if (strVal !== '' || normalizedRow[normKey] === undefined) {
+            normalizedRow[normKey] = val;
+          }
+        }
+
+        // Check if row has any non-empty data
+        const values = Object.values(normalizedRow).map(v => String(v).trim()).filter(Boolean);
+        if (values.length === 0) continue; // Skip totally blank lines
+
+        // Resolve name (fallback to unlabelled column if needed)
+        let name = normalizedRow.name ? String(normalizedRow.name).trim() : '';
+        if (!name) {
+          const possibleName = (row as any).__EMPTY || (row as any).__EMPTY_1 || (row as any).__EMPTY_2;
+          if (possibleName && typeof possibleName === 'string' && possibleName.trim().length > 1) {
+            name = possibleName.trim();
+          }
+        }
+        if (!name) name = 'Untitled Saree';
+
+        const code = normalizedRow.code ? String(normalizedRow.code).trim() : undefined;
+
+        // Price & MRP Resolution:
+        // 'price' = MRP / Original Price (higher benchmark)
+        // 'discountPrice' = Selling / Offer Price (lower price customer pays)
+        const rawMrp = normalizedRow.mrp !== '' && !isNaN(parseFloat(normalizedRow.mrp)) ? parseFloat(normalizedRow.mrp) : undefined;
+        const rawSelling = normalizedRow.sellingPrice !== '' && !isNaN(parseFloat(normalizedRow.sellingPrice)) ? parseFloat(normalizedRow.sellingPrice) : undefined;
+        const rawPrice = normalizedRow.price !== '' && !isNaN(parseFloat(normalizedRow.price)) ? parseFloat(normalizedRow.price) : undefined;
+
+        let finalPrice = 0; // MRP
+        let finalDiscountPrice: number | undefined = undefined; // Selling Price
+
+        if (rawMrp !== undefined && (rawSelling !== undefined || rawPrice !== undefined)) {
+          const secondVal = rawSelling !== undefined ? rawSelling : rawPrice!;
+          if (rawMrp > secondVal && secondVal > 0) {
+            finalPrice = rawMrp;
+            finalDiscountPrice = secondVal;
+          } else if (secondVal > rawMrp && rawMrp > 0) {
+            finalPrice = secondVal;
+            finalDiscountPrice = rawMrp;
+          } else {
+            finalPrice = rawMrp || secondVal;
+          }
+        } else if (rawSelling !== undefined && rawPrice !== undefined) {
+          const maxVal = Math.max(rawSelling, rawPrice);
+          const minVal = Math.min(rawSelling, rawPrice);
+          if (maxVal > minVal && minVal > 0) {
+            finalPrice = maxVal;
+            finalDiscountPrice = minVal;
+          } else {
+            finalPrice = maxVal;
+          }
+        } else {
+          finalPrice = rawMrp ?? rawSelling ?? rawPrice ?? 0;
+        }
+
+        // Robust stock extraction
+        let parsedStock = 0;
+        if (normalizedRow.stock !== undefined && normalizedRow.stock !== null && String(normalizedRow.stock).trim() !== '') {
+          const cleanDigits = String(normalizedRow.stock).trim().replace(/[^0-9.]/g, '');
+          const parsedNum = parseFloat(cleanDigits);
+          if (!isNaN(parsedNum)) {
+            parsedStock = Math.floor(parsedNum);
+          }
+        }
+        const stock = parsedStock;
+        
+        let blouse = false;
+        if (typeof normalizedRow.blouse === 'boolean') {
+          blouse = normalizedRow.blouse;
+        } else if (typeof normalizedRow.blouse === 'string') {
+          const str = normalizedRow.blouse.trim().toLowerCase();
+          blouse = str === 'yes' || str === 'true' || str === '1' || str.includes('blouse') || str === 'with blouse';
+        }
+
+        parsed.push({
+          code,
+          name,
+          price: finalPrice,
+          discountPrice: finalDiscountPrice,
+          category: normalizedRow.category ? String(normalizedRow.category).trim() : '',
+          fabric: normalizedRow.fabric ? String(normalizedRow.fabric).trim() : '',
+          occasion: normalizedRow.occasion ? String(normalizedRow.occasion).trim() : '',
+          colour: normalizedRow.colour ? String(normalizedRow.colour).trim() : '',
+          stock,
+          blouse,
+          desc: normalizedRow.desc ? String(normalizedRow.desc).trim() : '',
+          image: normalizedRow.image ? String(normalizedRow.image).trim() : '',
+          tags: normalizedRow.tags ? String(normalizedRow.tags).trim() : '',
+          reelUrl: normalizedRow.reelUrl ? String(normalizedRow.reelUrl).trim() : ''
+        });
+      }
+
+      if (parsed.length === 0) {
+        throw new Error('No valid product rows could be detected in the sheet.');
+      }
+
+      setBulkParsedProducts(parsed);
+      setShowBulkUploadModal(true);
+      showToast(`Parsed ${parsed.length} sarees from ${file.name}. Review and confirm.`);
+    } catch (err: any) {
+      showToast('Error reading Excel file: ' + (err.message || 'Unknown error'));
+    } finally {
+      setBulkParsing(false);
+      e.target.value = '';
+    }
+  };
+
+  // Bulk Product Server Submission
+  const handleConfirmBulkUpload = async () => {
+    if (bulkParsedProducts.length === 0) return;
+    setBulkSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/products/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ products: bulkParsedProducts })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to bulk upload products.');
+
+      showToast(`Success! Added ${data.count || bulkParsedProducts.length} sarees to the catalog.`);
+      setShowBulkUploadModal(false);
+      setBulkUploadFile(null);
+      setBulkParsedProducts([]);
+      fetchDashboardData();
+    } catch (err: any) {
+      showToast('Bulk upload failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
+
+  // Bulk Photos Selection & Auto-Matching
+  const handleBulkPhotosSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newItems: {
+      id: string;
+      file: File;
+      previewUrl: string;
+      matchedProductId: number | null;
+      isVariant: boolean;
+      variantColour: string;
+      confidence: 'id' | 'name' | 'manual' | 'none';
+    }[] = [];
+
+    Array.from(files as FileList).forEach((file: File, index: number) => {
+      const rawName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const previewUrl = URL.createObjectURL(file);
+      // Direct Product ID matching (e.g. "1.webp", "39.webp", "101.webp" or "1_red.webp")
+      const trimmed = rawName.trim();
+      let matchedProductId: number | null = null;
+      let isVariant = false;
+      let variantColour = '';
+      let confidence: 'id' | 'name' | 'manual' | 'none' = 'none';
+      const cleanRaw = trimmed.toLowerCase().replace(/[^a-z0-9_ -]/g, '');
+
+      // 1. Match by Ref Code (e.g. "AD0101.webp", "VA0101.webp", "AD0101_red.webp")
+      const matchedByCode = products.find(p => {
+        if (!p.code) return false;
+        const cleanCode = p.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const baseWithoutVariant = cleanRaw.split(/[_-]/)[0];
+        return cleanRaw === cleanCode || baseWithoutVariant === cleanCode || cleanRaw.startsWith(cleanCode);
+      });
+
+      if (matchedByCode) {
+        matchedProductId = matchedByCode.id;
+        confidence = 'id';
+        const cleanCode = matchedByCode.code!.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const afterPart = cleanRaw.replace(cleanCode, '').replace(/^[_-]/, '');
+        if (afterPart) {
+          isVariant = true;
+          if (!isNaN(parseInt(afterPart, 10))) {
+            variantColour = `Angle ${afterPart}`;
+          } else {
+            variantColour = afterPart.charAt(0).toUpperCase() + afterPart.slice(1);
+          }
+        }
+      } else if (/^\d+$/.test(trimmed)) {
+        // 2. Purely numeric ID match e.g. "1.webp", "39.webp", "101.webp"
+        const idNum = parseInt(trimmed, 10);
+        if (products.some(p => p.id === idNum)) {
+          matchedProductId = idNum;
+          confidence = 'id';
+        }
+      } else {
+        // 3. Regex ID match (e.g. "1_red.webp", "product_1.webp")
+        const idPattern = /^(?:product|saree|item|pid|p|id)?[_ -]?(\d+)(?:[_ -]([a-zA-Z]+))?$/i;
+        const idMatch = trimmed.match(idPattern);
+        if (idMatch) {
+          const idNum = parseInt(idMatch[1], 10);
+          const colourStr = idMatch[2] ? idMatch[2].charAt(0).toUpperCase() + idMatch[2].slice(1).toLowerCase() : '';
+          if (products.some(p => p.id === idNum)) {
+            matchedProductId = idNum;
+            confidence = 'id';
+            if (colourStr) {
+              isVariant = true;
+              variantColour = colourStr;
+            }
+          }
+        }
+      }
+
+      newItems.push({
+        id: `${Date.now()}_${index}_${file.name}`,
+        file,
+        previewUrl,
+        matchedProductId,
+        isVariant,
+        variantColour,
+        confidence
+      });
+    });
+
+    setBulkPhotoItems(prev => [...prev, ...newItems]);
+    setShowBulkPhotoModal(true);
+    e.target.value = '';
+  };
+
+  const handleUpdateBulkPhotoItem = (id: string, updates: Partial<{ matchedProductId: number | null; isVariant: boolean; variantColour: string }>) => {
+    setBulkPhotoItems(prev => prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          ...updates,
+          confidence: 'manual'
+        };
+      }
+      return item;
+    }));
+  };
+
+  const handleRemoveBulkPhotoItem = (id: string) => {
+    setBulkPhotoItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Upload and Assign All Photos to Products
+  const handleExecuteBulkPhotoAssign = async () => {
+    if (bulkPhotoItems.length === 0) return;
+    setBulkPhotoUploading(true);
+
+    try {
+      // 1. Upload files to Cloudinary in bulk
+      const formData = new FormData();
+      bulkPhotoItems.forEach(item => {
+        formData.append('images', item.file);
+      });
+
+      const uploadRes = await fetch(`${API_URL}/api/admin/products/upload-bulk`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadData.error || 'Failed to upload images to media cloud.');
+
+      const uploadedFiles: Array<{ originalname: string; imageUrl: string }> = uploadData.uploaded || [];
+
+      // 2. Build assignments list
+      const assignments = bulkPhotoItems
+        .filter(item => item.matchedProductId !== null)
+        .map(item => {
+          const matchedUpload = uploadedFiles.find(u => u.originalname === item.file.name);
+          return {
+            productId: item.matchedProductId!,
+            imageUrl: matchedUpload?.imageUrl || '',
+            isVariant: item.isVariant,
+            variantColour: item.variantColour
+          };
+        })
+        .filter(a => Boolean(a.imageUrl));
+
+      if (assignments.length === 0) {
+        showToast('Photos uploaded, but no products were selected to assign.');
+        setShowBulkPhotoModal(false);
+        setBulkPhotoItems([]);
+        return;
+      }
+
+      // 3. Assign images in Database
+      const assignRes = await fetch(`${API_URL}/api/admin/products/bulk-assign-images`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ assignments })
+      });
+
+      const assignData = await assignRes.json();
+      if (!assignRes.ok) throw new Error(assignData.error || 'Failed to assign images to products in database.');
+
+      showToast(`Success! Assigned ${assignData.count || assignments.length} photos to your saree catalog.`);
+      setShowBulkPhotoModal(false);
+      setBulkPhotoItems([]);
+      fetchDashboardData();
+    } catch (err: any) {
+      showToast('Bulk photo assignment failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setBulkPhotoUploading(false);
+    }
   };
 
   // Order Actions (Status and Address)
@@ -1163,27 +1684,83 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {/* Products Panel */}
           {!dataLoading && activeTab === 'products' && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Catalog Management</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#888888]">Filter Category:</span>
-                  <select
-                    value={selectedAdminCategory}
-                    onChange={(e) => setSelectedAdminCategory(e.target.value)}
-                    className="bg-white border border-[#E8E0D5] rounded-xl p-2 text-xs font-semibold focus:outline-none focus:border-[#C4601A] text-[#1A1A1A]"
-                  >
-                    <option value="all">All Categories</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#E8E0D5] shadow-2xs">
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Catalog Management</h3>
+                  <p className="text-[11px] text-[#888888] mt-0.5">Manage sarees or upload products in bulk via Excel spreadsheet</p>
                 </div>
-                <button
-                  onClick={() => { resetProductForm(); setShowProductModal(true); }}
-                  className="bg-[#C4601A] text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center gap-1.5 hover:bg-[#FFF0E8] transition-colors cursor-pointer"
-                >
-                  <PlusCircle className="w-4 h-4" /> Add Saree
-                </button>
+                
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {/* Category Filter */}
+                  <div className="flex items-center gap-1.5 bg-[#FAF6F0] px-2.5 py-1.5 rounded-xl border border-[#E8E0D5]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#888888]">Filter:</span>
+                    <select
+                      value={selectedAdminCategory}
+                      onChange={(e) => setSelectedAdminCategory(e.target.value)}
+                      className="bg-transparent text-xs font-semibold focus:outline-none text-[#1A1A1A] cursor-pointer"
+                    >
+                      <option value="all">All Categories ({products.length})</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Download Template Button */}
+                  <button
+                    type="button"
+                    onClick={downloadExcelTemplate}
+                    className="bg-white border border-[#E8E0D5] hover:border-[#C4601A] text-[#4A4A4A] hover:text-[#C4601A] text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-3xs"
+                    title="Download ready-to-use sample Excel template with all columns"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#C4601A]" />
+                    <span>Template (.xlsx)</span>
+                  </button>
+
+                  {/* Bulk Upload Excel / CSV Button */}
+                  <label
+                    className={`border text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-3xs ${
+                      bulkParsing
+                        ? 'bg-amber-50 text-amber-700 border-amber-300 animate-pulse'
+                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                    }`}
+                    title="Upload .xlsx, .xls or .csv spreadsheet. Blank columns will be kept empty safely."
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{bulkParsing ? 'Reading Excel...' : 'Bulk Excel Upload'}</span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv"
+                      onChange={handleExcelFileSelect}
+                      className="hidden"
+                      disabled={bulkParsing}
+                    />
+                  </label>
+
+                  {/* Bulk Photos Auto-Assign Button */}
+                  <label
+                    className="bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-3xs"
+                    title="Upload multiple saree photos (e.g. 101.jpg, 102_red.jpg, saree_name.png) to auto-match and attach to products"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Bulk Photos</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleBulkPhotosSelect}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* Add Single Saree Button */}
+                  <button
+                    onClick={() => { resetProductForm(); setShowProductModal(true); }}
+                    className="bg-[#C4601A] text-white text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-1.5 hover:bg-[#A84F15] transition-colors cursor-pointer shadow-3xs"
+                  >
+                    <PlusCircle className="w-4 h-4" /> Add Saree
+                  </button>
+                </div>
               </div>
 
               <div className="bg-white rounded-2xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs">
@@ -1192,13 +1769,33 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   : products.filter(p => p.categoryId === parseInt(selectedAdminCategory, 10))
                 ).map((p) => (
                   <div key={p.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#FAF6F0]/20">
-                    <div className="space-y-1">
-                      <span className="font-bold text-[#1A1A1A]">{p.name}</span>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {p.code ? (
+                          <span className="font-mono text-[11px] font-extrabold bg-[#FFF0E8] text-[#C4601A] border border-[#C4601A]/30 px-2 py-0.5 rounded-md shadow-3xs" title="Reference ID for photo matching">
+                            REF: {p.code}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-[11px] font-bold bg-[#FAF6F0] text-[#888888] border border-[#E8E0D5] px-2 py-0.5 rounded-md shadow-3xs">
+                            ID: #{p.id}
+                          </span>
+                        )}
+                        <span className="font-bold text-[#1A1A1A] text-sm">{p.name}</span>
+                        {p.image ? (
+                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                            Photo Linked
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" title={`Upload photo named ${p.code || p.id}.webp in Bulk Photos`}>
+                            Needs Photo ({p.code ? `${p.code}.webp` : `${p.id}.webp`})
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-3 text-[#888888] text-[10px] flex-wrap">
-                        <span>Fabric: <strong>{p.fabric}</strong></span>
-                        <span>Occasion: <strong>{p.occasion}</strong></span>
+                        <span>Fabric: <strong>{p.fabric || '—'}</strong></span>
+                        <span>Occasion: <strong>{p.occasion || '—'}</strong></span>
                         <span>Category: <strong>{categories.find(c => c.id === p.categoryId)?.name || 'Unassigned'}</strong></span>
-                        <span>Stock: <strong className={p.stock === 0 ? "text-red-600 font-extrabold" : "text-gray-800"}>{p.stock !== undefined ? p.stock : 10} qty</strong></span>
+                        <span>Stock: <strong className={p.stock === 0 ? "text-red-600 font-extrabold" : "text-gray-800"}>{p.stock !== undefined ? p.stock : 0} qty</strong></span>
                         <span>Price: <strong className="text-[#C4601A]">₹{p.price}</strong></span>
                       </div>
                     </div>
@@ -2473,6 +3070,420 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 {editingProduct ? 'Save Saree Changes' : 'Publish Saree to Inventory'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Preview & Confirmation Modal */}
+      {showBulkUploadModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E8E0D5]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#E8E0D5]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">Bulk Excel Upload Preview</h3>
+                  <p className="text-xs text-[#888888]">
+                    File: <span className="font-semibold text-[#1A1A1A]">{bulkUploadFile?.name || 'Spreadsheet'}</span> · <strong>{bulkParsedProducts.length}</strong> items detected
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowBulkUploadModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-500 cursor-pointer transition-colors"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Notification / Info banner */}
+            <div className="my-4 p-3.5 bg-[#FAF6F0] rounded-2xl border border-[#E8E0D5] flex items-start gap-3 text-xs text-[#4A4A4A]">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="space-y-1 leading-relaxed">
+                <p className="font-bold text-[#1A1A1A]">Blank &amp; Omitted Columns Handled Safely</p>
+                <p className="text-[11px] text-[#666666]">
+                  Any column left blank in your Excel sheet (like fabric, occasion, color, description, or image) is safely preserved as empty. You can easily enrich and edit each saree directly from the Admin Catalog later.
+                </p>
+              </div>
+            </div>
+
+            {/* Stats Pills */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-[11px]">
+              <div className="bg-white border border-[#E8E0D5] p-2.5 rounded-xl text-center">
+                <span className="text-[10px] text-[#888888] uppercase font-bold block">Total Items</span>
+                <span className="text-sm font-bold text-[#C4601A]">{bulkParsedProducts.length}</span>
+              </div>
+              <div className="bg-white border border-[#E8E0D5] p-2.5 rounded-xl text-center">
+                <span className="text-[10px] text-[#888888] uppercase font-bold block">With Price</span>
+                <span className="text-sm font-bold text-[#1A1A1A]">{bulkParsedProducts.filter(p => p.price > 0).length}</span>
+              </div>
+              <div className="bg-white border border-[#E8E0D5] p-2.5 rounded-xl text-center">
+                <span className="text-[10px] text-[#888888] uppercase font-bold block">With Category</span>
+                <span className="text-sm font-bold text-[#1A1A1A]">{bulkParsedProducts.filter(p => Boolean(p.category)).length}</span>
+              </div>
+              <div className="bg-white border border-[#E8E0D5] p-2.5 rounded-xl text-center">
+                <span className="text-[10px] text-[#888888] uppercase font-bold block">With Image URL</span>
+                <span className="text-sm font-bold text-[#1A1A1A]">{bulkParsedProducts.filter(p => Boolean(p.image)).length}</span>
+              </div>
+            </div>
+
+            {/* Quick Set Stock Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 p-2 px-3 bg-[#FAF6F0] rounded-xl border border-[#E8E0D5] text-xs">
+              <span className="text-[11px] text-[#666666] font-medium">Stock levels can be edited below, or set in bulk:</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setBulkParsedProducts(prev => prev.map(p => ({ ...p, stock: 1 })))}
+                  className="px-2.5 py-1 bg-white border border-[#E8E0D5] hover:border-[#C4601A] rounded-lg text-[10px] font-bold text-gray-700 cursor-pointer shadow-3xs"
+                >
+                  Set 1 for All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkParsedProducts(prev => prev.map(p => ({ ...p, stock: 5 })))}
+                  className="px-2.5 py-1 bg-white border border-[#E8E0D5] hover:border-[#C4601A] rounded-lg text-[10px] font-bold text-gray-700 cursor-pointer shadow-3xs"
+                >
+                  Set 5 for All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkParsedProducts(prev => prev.map(p => ({ ...p, stock: 10 })))}
+                  className="px-2.5 py-1 bg-white border border-[#E8E0D5] hover:border-[#C4601A] rounded-lg text-[10px] font-bold text-gray-700 cursor-pointer shadow-3xs"
+                >
+                  Set 10 for All
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Preview Table */}
+            <div className="flex-1 overflow-y-auto border border-[#E8E0D5] rounded-2xl bg-white shadow-2xs mb-4">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#FAF6F0] sticky top-0 border-b border-[#E8E0D5] text-[10px] font-bold uppercase tracking-wider text-[#666666]">
+                  <tr>
+                    <th className="p-3">#</th>
+                    <th className="p-3">Ref ID</th>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Price</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Fabric</th>
+                    <th className="p-3">Occasion</th>
+                    <th className="p-3">Colour</th>
+                    <th className="p-3">Stock</th>
+                    <th className="p-3">Image</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E8E0D5] text-[11px]">
+                  {bulkParsedProducts.map((p, idx) => (
+                    <tr key={idx} className="hover:bg-[#FAF6F0]/40 transition-colors">
+                      <td className="p-3 text-[#888888] font-mono">{idx + 1}</td>
+                      <td className="p-3 font-mono font-bold">
+                        {p.code ? (
+                          <span className="bg-[#FFF0E8] text-[#C4601A] border border-[#E8E0D5] px-1.5 py-0.5 rounded text-[10px]">
+                            {p.code}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 italic text-[10px]">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 font-bold text-[#1A1A1A] max-w-[180px] truncate">{p.name || 'Untitled Saree'}</td>
+                      <td className="p-3">
+                        {p.discountPrice && p.discountPrice > 0 ? (
+                          <div>
+                            <div className="font-bold text-[#C4601A]">₹{p.discountPrice}</div>
+                            <div className="text-[9px] text-gray-500 line-through">MRP: ₹{p.price}</div>
+                          </div>
+                        ) : (
+                          <div className="font-bold text-[#1A1A1A]">₹{p.price}</div>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {p.category ? (
+                          <span className="bg-[#FFF0E8] text-[#C4601A] px-2 py-0.5 rounded font-semibold text-[10px]">{p.category}</span>
+                        ) : (
+                          <span className="text-gray-400 italic text-[10px]">— Blank —</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {p.fabric ? (
+                          <span className="text-[#1A1A1A] font-medium">{p.fabric}</span>
+                        ) : (
+                          <span className="text-gray-400 italic text-[10px]">— Blank —</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {p.occasion ? (
+                          <span className="text-[#1A1A1A] font-medium">{p.occasion}</span>
+                        ) : (
+                          <span className="text-gray-400 italic text-[10px]">— Blank —</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {p.colour ? (
+                          <span className="inline-block bg-gray-100 border border-gray-200 px-2 py-0.5 rounded text-[10px] font-semibold text-gray-800">
+                            {p.colour}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 italic text-[10px]">— Blank —</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          min="0"
+                          value={p.stock}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            const updated = [...bulkParsedProducts];
+                            updated[idx] = { ...updated[idx], stock: isNaN(val) ? 0 : val };
+                            setBulkParsedProducts(updated);
+                          }}
+                          className="w-16 bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-1 text-center text-xs font-bold text-[#1A1A1A] focus:outline-none focus:border-[#C4601A]"
+                        />
+                      </td>
+                      <td className="p-3">
+                        {p.image ? (
+                          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                            URL Attached
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                            Upload Later
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#E8E0D5]">
+              <button
+                type="button"
+                onClick={() => setShowBulkUploadModal(false)}
+                disabled={bulkSubmitting}
+                className="px-5 py-2.5 rounded-xl border border-[#E8E0D5] text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBulkUpload}
+                disabled={bulkSubmitting || bulkParsedProducts.length === 0}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+              >
+                {bulkSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Adding {bulkParsedProducts.length} Sarees...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Confirm &amp; Upload {bulkParsedProducts.length} Sarees</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Photo Auto-Assigner Modal */}
+      {showBulkPhotoModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E8E0D5]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#E8E0D5]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">Bulk Photo Auto-Assigner</h3>
+                  <p className="text-xs text-[#888888]">
+                    <strong>{bulkPhotoItems.length}</strong> photos selected · Auto-matched by Product ID or Saree Title
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowBulkPhotoModal(false); setBulkPhotoItems([]); }}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-500 cursor-pointer transition-colors"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Smart Hint Bar */}
+            <div className="my-3.5 p-3 bg-blue-50/70 rounded-2xl border border-blue-200/60 flex items-start gap-2.5 text-xs text-[#4A4A4A]">
+              <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div className="leading-relaxed text-[11px] text-blue-950">
+                <span className="font-bold">Automatic Product ID Matching (.webp):</span> Name your photos like <code>product_id.webp</code> (e.g. <code>1.webp</code>, <code>101.webp</code>, <code>product_101.webp</code>, or color variants like <code>101_red.webp</code>). The system matches them to your Admin Product IDs automatically.
+              </div>
+            </div>
+
+            {/* Stats Bar & Add More Photos */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
+                <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold text-[10px]">
+                  ✓ {bulkPhotoItems.filter(i => i.matchedProductId !== null).length} Matched
+                </span>
+                {bulkPhotoItems.filter(i => i.matchedProductId === null).length > 0 && (
+                  <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-bold text-[10px]">
+                    ⚠️ {bulkPhotoItems.filter(i => i.matchedProductId === null).length} Unassigned (Select Below)
+                  </span>
+                )}
+              </div>
+
+              {/* Add More Photos input */}
+              <label className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer inline-flex items-center gap-1 self-start sm:self-auto">
+                <Upload className="w-3.5 h-3.5" /> + Add More Photos
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleBulkPhotosSelect}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Photo Cards Grid */}
+            <div className="flex-1 overflow-y-auto border border-[#E8E0D5] rounded-2xl p-3 bg-[#FAF6F0]/40 shadow-2xs mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {bulkPhotoItems.map((item) => {
+                  return (
+                    <div
+                      key={item.id}
+                      className={`bg-white rounded-2xl p-3 border transition-all space-y-2.5 shadow-2xs ${
+                        item.matchedProductId !== null
+                          ? 'border-emerald-300 ring-1 ring-emerald-100'
+                          : 'border-amber-300 ring-1 ring-amber-100'
+                      }`}
+                    >
+                      {/* Photo Header */}
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-14 h-16 rounded-xl overflow-hidden bg-gray-100 border border-[#E8E0D5] shrink-0">
+                          <img src={item.previewUrl} alt={item.file.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-bold text-[#1A1A1A] truncate" title={item.file.name}>
+                            {item.file.name}
+                          </p>
+                          <div className="mt-1">
+                            {item.confidence === 'id' && (
+                              <span className="bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
+                                ID #{item.matchedProductId} Matched
+                              </span>
+                            )}
+                            {item.confidence === 'name' && (
+                              <span className="bg-blue-100 text-blue-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
+                                Name Matched
+                              </span>
+                            )}
+                            {item.confidence === 'manual' && (
+                              <span className="bg-purple-100 text-purple-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
+                                Manually Chosen
+                              </span>
+                            )}
+                            {item.confidence === 'none' && (
+                              <span className="bg-amber-100 text-amber-900 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
+                                Please Select Saree
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveBulkPhotoItem(item.id)}
+                          className="text-gray-400 hover:text-red-600 p-1 cursor-pointer transition-colors"
+                          title="Remove photo"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Match Dropdown */}
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-bold uppercase text-[#888888]">Assign To Saree:</label>
+                        <select
+                          value={item.matchedProductId ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                            handleUpdateBulkPhotoItem(item.id, { matchedProductId: val });
+                          }}
+                          className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-1.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A] text-[#1A1A1A]"
+                        >
+                          <option value="">-- Choose Saree from Catalog --</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              #{p.id} - {p.name} (₹{p.price})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Photo Type Toggle (Main vs Color Variant) */}
+                      <div className="pt-1 border-t border-[#E8E0D5]/50 flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-1 text-[10px] font-bold text-gray-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.isVariant}
+                            onChange={(e) => handleUpdateBulkPhotoItem(item.id, { isVariant: e.target.checked })}
+                            className="rounded text-[#C4601A] focus:ring-0"
+                          />
+                          <span>Color Variant</span>
+                        </label>
+                        {item.isVariant && (
+                          <input
+                            type="text"
+                            value={item.variantColour}
+                            onChange={(e) => handleUpdateBulkPhotoItem(item.id, { variantColour: e.target.value })}
+                            placeholder="e.g. Red, Blue"
+                            className="w-24 bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg px-2 py-0.5 text-[10px] font-semibold focus:outline-none focus:border-[#C4601A]"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#E8E0D5]">
+              <button
+                type="button"
+                onClick={() => { setShowBulkPhotoModal(false); setBulkPhotoItems([]); }}
+                disabled={bulkPhotoUploading}
+                className="px-5 py-2.5 rounded-xl border border-[#E8E0D5] text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteBulkPhotoAssign}
+                disabled={bulkPhotoUploading || bulkPhotoItems.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+              >
+                {bulkPhotoUploading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Uploading &amp; Assigning {bulkPhotoItems.length} Photos...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Upload &amp; Assign {bulkPhotoItems.length} Photos</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
