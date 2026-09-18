@@ -236,6 +236,7 @@ export class PostgresDatabaseAdapter implements IDatabase {
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
+      WHERE o.status NOT IN ('pending', 'pending_payment')
       GROUP BY o.id, u.email
       ORDER BY o.created_at DESC
     `;
@@ -266,7 +267,7 @@ export class PostgresDatabaseAdapter implements IDatabase {
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
-      WHERE o.user_id = $1
+      WHERE o.user_id = $1 AND o.status NOT IN ('pending', 'pending_payment')
       GROUP BY o.id, u.email
       ORDER BY o.created_at DESC
     `;

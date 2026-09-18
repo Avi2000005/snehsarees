@@ -55,15 +55,64 @@ export default function App() {
   const [pageParam, setPageParam] = useState<string | number | undefined>(undefined);
   const [historyStack, setHistoryStack] = useState<NavigationState[]>([{ page: 'landing' }]);
 
-  // Core app synchronized states
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [wishlist, setWishlist] = useState<number[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  // Core app synchronized states with localStorage persistence
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('sneh_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [wishlist, setWishlist] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('sneh_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('sneh_recent_searches');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [recentlyViewed, setRecentlyViewed] = useState<number[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
+
+  // Sync state changes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('sneh_cart', JSON.stringify(cart));
+    } catch (e) {
+      console.error('Error saving cart to localStorage:', e);
+    }
+  }, [cart]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sneh_wishlist', JSON.stringify(wishlist));
+    } catch (e) {
+      console.error('Error saving wishlist to localStorage:', e);
+    }
+  }, [wishlist]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sneh_recent_searches', JSON.stringify(recentSearches));
+    } catch (e) {
+      console.error('Error saving recent searches to localStorage:', e);
+    }
+  }, [recentSearches]);
 
   // Home Filters & UI Controllers
   const [activeHomeCategory, setActiveHomeCategory] = useState<string>('all');

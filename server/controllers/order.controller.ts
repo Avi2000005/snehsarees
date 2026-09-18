@@ -4,6 +4,7 @@ import { razorpayInstance } from '../config/razorpay';
 import { ENV } from '../config/env';
 import { Order, CartItem } from '../../src/types';
 import { UserRequest } from '../middlewares/user.middleware';
+import { createShipment, getShiprocketInvoiceUrl } from '../services/shiprocket.service';
 import crypto from 'crypto';
 
 export const getOrders = async (req: UserRequest, res: Response, next: NextFunction) => {
@@ -57,7 +58,7 @@ export const getOrders = async (req: UserRequest, res: Response, next: NextFunct
 
 export const createRazorpayOrder = async (req: UserRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, phone, address, items, method, couponCode } = req.body;
+    const { name, phone, address, city, pincode, state, items, method, couponCode } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -170,8 +171,17 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
         });
         razorpayOrderId = rpOrder.id;
       } catch (err: any) {
-        console.error('Razorpay SDK Order creation failed:', err.message);
-        return res.status(500).json({ error: 'Failed to contact payment processor. Please try again.' });
+        // Razorpay SDK errors are not plain Error objects.
+        // They can be: { statusCode, error: { code, description, reason } } or { message } or a string.
+        const rzpDesc =
+          err?.error?.description ||
+          err?.error?.reason ||
+          err?.message ||
+          (typeof err === 'string' ? err : null) ||
+          JSON.stringify(err);
+        console.error('Razorpay SDK Order creation failed. StatusCode:', err?.statusCode, '| Detail:', rzpDesc);
+        console.error('Razorpay raw error:', JSON.stringify(err, null, 2));
+        return res.status(500).json({ error: `Payment processor error: ${rzpDesc}` });
       }
     }
 
@@ -184,6 +194,9 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       name,
       phone,
       address,
+      city: city?.trim() || '',
+      pincode: pincode?.trim() || '',
+      state: state?.trim() || '',
       createdAt: new Date().toISOString(),
       couponCode: appliedCouponCode || undefined,
       discountAmount: discountAmount || undefined,
@@ -252,6 +265,23 @@ export const verifyRazorpayPayment = async (req: UserRequest, res: Response, nex
           await db.incrementCouponUsage(coupon.id);
         }
       }
+
+      // Auto-create shipment on Shiprocket after payment confirmed
+      try {
+        const shipment = await createShipment(order as any);
+        if (shipment.trackingId) {
+          await db.updateOrderTracking(
+            targetOrderId,
+            shipment.trackingId,
+            shipment.carrierName,
+            shipment.trackingUrl
+          );
+          console.log(`[Order] Shiprocket shipment created for ${targetOrderId} — AWB: ${shipment.trackingId}`);
+        }
+      } catch (shipErr: any) {
+        // Non-fatal — order is still paid, admin can dispatch manually
+        console.error(`[Order] Shiprocket auto-dispatch failed for ${targetOrderId}:`, shipErr.message);
+      }
     };
 
     if (!ENV.RAZORPAY_KEY_SECRET) {
@@ -274,6 +304,41 @@ export const verifyRazorpayPayment = async (req: UserRequest, res: Response, nex
       console.warn(`Payment: Verification signature mismatch for Order ${targetOrderId}`);
       res.status(400).json({ success: false, error: 'Cryptographic signature verification failed.' });
     }
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/orders/:id/invoice
+ * Returns the Shiprocket invoice PDF URL for an order.
+ * The frontend opens this URL in a new tab so the customer can download/print the invoice.
+ */
+export const getOrderInvoice = async (req: UserRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Sign in required.' });
+    }
+
+    const order = await db.getOrderById(id);
+    if (!order || (order as any).userId !== userId) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    if (!order.trackingId) {
+      return res.status(404).json({ error: 'Invoice not yet available. Shipment has not been dispatched yet.' });
+    }
+
+    const invoiceUrl = await getShiprocketInvoiceUrl(order.trackingId);
+
+    if (!invoiceUrl) {
+      return res.status(404).json({ error: 'Invoice not available yet. Please try again after the order is shipped.' });
+    }
+
+    res.json({ invoiceUrl });
   } catch (err) {
     next(err);
   }

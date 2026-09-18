@@ -13,7 +13,7 @@ if (ENV.DATABASE_URL) {
     ssl: isNeonOrRemote ? { rejectUnauthorized: false } : false,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 30000,  // 30s — Neon free-tier cold-start can take ~10–20s
   });
 
   pool.on('error', (err) => {

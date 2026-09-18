@@ -50,6 +50,9 @@ export interface Order {
   name: string;
   phone: string;
   address: string;
+  city?: string;
+  pincode?: string;
+  state?: string;
   createdAt: string;
   status?: string;
   userEmail?: string;

@@ -136,22 +136,26 @@ export class JsonDatabaseAdapter implements IDatabase {
   // Orders
   async getOrders(): Promise<Order[]> {
     const db = await this.readDb();
-    return db.orders.map((o: any) => {
-      const user = db.users?.find((u: any) => u.id === o.userId);
-      return {
-        ...o,
-        userEmail: o.userEmail || user?.email || undefined
-      };
-    });
+    return (db.orders || [])
+      .filter((o: any) => o.status !== 'pending' && o.status !== 'pending_payment')
+      .map((o: any) => {
+        const user = db.users?.find((u: any) => u.id === o.userId);
+        return {
+          ...o,
+          userEmail: o.userEmail || user?.email || undefined
+        };
+      });
   }
 
   async getOrdersByUserId(userId: number): Promise<Order[]> {
     const db = await this.readDb();
     const user = db.users?.find((u: any) => u.id === userId);
-    return db.orders.filter((o: any) => o.userId === userId).map((o: any) => ({
-      ...o,
-      userEmail: o.userEmail || user?.email || undefined
-    }));
+    return (db.orders || [])
+      .filter((o: any) => o.userId === userId && o.status !== 'pending' && o.status !== 'pending_payment')
+      .map((o: any) => ({
+        ...o,
+        userEmail: o.userEmail || user?.email || undefined
+      }));
   }
 
   async getOrderById(id: string): Promise<Order | null> {

@@ -4,11 +4,14 @@ import { ENV } from '../config/env';
 import cloudinary from '../config/cloudinary';
 import { createShipment } from '../services/shiprocket.service';
 
-// Admin: Get ALL orders (no user filter)
+// Admin: Get ALL confirmed orders (exclude unpaid / pending orders)
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orders = await db.getOrders();
-    res.json(orders);
+    const confirmedOrders = (orders || []).filter(
+      (o: any) => o.status !== 'pending' && o.status !== 'pending_payment'
+    );
+    res.json(confirmedOrders);
   } catch (err) {
     next(err);
   }
@@ -237,6 +240,17 @@ export const updateOrderStatus = async (req: Request, res: Response, next: NextF
     if (currentStatus === 'pending_payment' && (status === 'placed' || status === 'paid' || status === 'processing')) {
       for (const item of order.items) {
         await db.deductProductStock(item.id, item.qty);
+      }
+
+      // Auto-dispatch to Shiprocket when admin confirms a ManualUPI order
+      try {
+        const shipment = await createShipment(order as any);
+        if (shipment.trackingId) {
+          await db.updateOrderTracking(id, shipment.trackingId, shipment.carrierName, shipment.trackingUrl);
+          console.log(`[Admin] Shiprocket shipment auto-created for ${id} — AWB: ${shipment.trackingId}`);
+        }
+      } catch (shipErr: any) {
+        console.error(`[Admin] Shiprocket auto-dispatch failed for ${id}:`, shipErr.message);
       }
     }
 

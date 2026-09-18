@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Banknote, Home, Check, MapPin, Plus, X, QrCode, MessageCircle, Clock, ShieldCheck, Truck, RotateCcw, Lock } from 'lucide-react';
+import { ArrowLeft, Banknote, Home, Plus, X, ShieldCheck, Lock, Check } from 'lucide-react';
 import { CartItem, ActivePage, Order, UserProfile, UserAddress } from '../../types';
 import { API_URL } from '../../config';
 import { PolicyModal, PolicyTab } from '../PolicyModal';
@@ -140,10 +140,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     }
   };
 
-  // Payment states
-  // 'qr' = QR Code / ManualUPI (active), 'upi'|'card'|'netbanking'|'wallet' = coming soon, 'cod' = cash on delivery
-  const [paymentMethod, setPaymentMethod] = useState<'qr' | 'upi' | 'card' | 'netbanking' | 'wallet' | 'cod'>('qr');
-  const [qrStep, setQrStep] = useState<'select' | 'show_qr' | 'paid_waiting'>('select');
+  // Payment state — Razorpay is the only accepted payment method
+  const [paymentMethod] = useState<'razorpay'>('razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Coupon states
@@ -169,11 +167,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     return Math.max(0, sub - discount + delivery);
   };
 
-  // Coming soon handler for Razorpay-linked methods
-  const handleComingSoon = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    showToast('🚧 Payment feature coming soon...');
-  };
+
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -282,35 +276,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setStep(2);
   };
 
-  // Place QR order in DB and navigate to pending payment page
-  const processManualUPIOrder = async () => {
-    setIsProcessing(true);
-    try {
-      const addressString = `${addr1.trim()}${addr2.trim() ? ', ' + addr2.trim() : ''}, ${city.trim()} - ${pincode.trim()}, ${state.trim()}`;
-      const res = await fetch(`${API_URL}/api/orders/razorpay-create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name: name.trim(),
-          phone: phone.trim(),
-          email: email.trim() || user?.email || undefined,
-          address: addressString,
-          items: cart.map(it => ({ id: it.id, qty: it.qty })),
-          method: 'ManualUPI',
-          couponCode: appliedCoupon ? appliedCoupon.code : undefined
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to place order.');
-      onOrderConfirm(data.order);
-      showToast('Order placed! Please complete payment.');
-      onNavigate('pending_payment');
-    } catch (err: any) {
-      showToast(err.message || 'Error placing order.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+
 
   // Place COD order
   const processCODOrder = async () => {
@@ -338,6 +304,105 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     } catch (err: any) {
       showToast(err.message || 'Error placing order.');
     } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Place Razorpay Standard Checkout order
+  const processRazorpayOrder = async () => {
+    if (!window.Razorpay) {
+      showToast('Payment gateway is not loaded. Please refresh the page.');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const addressString = `${addr1.trim()}${addr2.trim() ? ', ' + addr2.trim() : ''}, ${city.trim()} - ${pincode.trim()}, ${state.trim()}`;
+
+      // Step 1: Create Razorpay order on backend
+      const res = await fetch(`${API_URL}/api/orders/razorpay-create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim() || user?.email || undefined,
+          address: addressString,
+          items: cart.map(it => ({ id: it.id, qty: it.qty })),
+          method: 'Razorpay',
+          couponCode: appliedCoupon ? appliedCoupon.code : undefined
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to initiate payment.');
+
+      const { order, razorpayOrderId, razorpayKeyId } = data;
+
+      if (!razorpayOrderId) {
+        throw new Error('Payment gateway did not return an order ID. Please try again.');
+      }
+
+      setIsProcessing(false);
+
+      // Step 2: Open Razorpay modal
+      const rzp = new window.Razorpay({
+        key: razorpayKeyId || import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: Math.round(order.total * 100),
+        currency: 'INR',
+        name: 'Sneh Sarees',
+        description: `Order ${order.id}`,
+        image: '/logo.jpg',
+        order_id: razorpayOrderId,
+        prefill: {
+          name: name.trim(),
+          email: email.trim() || user?.email || '',
+          contact: phone.trim(),
+        },
+        notes: {
+          order_id: order.id,
+          address: addressString,
+        },
+        theme: { color: '#C4601A' },
+        modal: {
+          ondismiss: () => {
+            showToast('Payment cancelled. Your order is not confirmed.');
+          },
+        },
+        handler: async (response) => {
+          // Step 3: Verify payment signature on backend
+          try {
+            const verifyRes = await fetch(`${API_URL}/api/orders/razorpay-verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                order_id: order.id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok || !verifyData.success) {
+              throw new Error(verifyData.error || 'Payment verification failed.');
+            }
+            onOrderConfirm(order);
+            showToast('Payment successful! Order confirmed ✨');
+            onNavigate('success');
+          } catch (verifyErr: any) {
+            showToast(verifyErr.message || 'Payment verification error. Please contact support.');
+          }
+        },
+      });
+
+      // Listen for payment failure events
+      rzp.on('payment.failed', (response: any) => {
+        showToast(`Payment failed: ${response.error?.description || 'Unknown error'}. Please try again.`);
+      });
+
+      rzp.open();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to initiate payment. Please try again.');
       setIsProcessing(false);
     }
   };
@@ -694,162 +759,57 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             <div className="payment-section px-3.5 pb-6">
               <h3 className="font-serif text-lg font-bold text-[#1A1A1A] mb-3">Select Payment Method</h3>
 
-              {/* ── METHOD 1: QR Code (ManualUPI) — ACTIVE ── */}
+              {/* ── RAZORPAY — ONLY PAYMENT METHOD ── */}
               <div
-                id="pm-qr"
-                className={`bg-white rounded-xl mb-3 border-2 overflow-hidden transition-all ${
-                  paymentMethod === 'qr' ? 'border-[#C4601A]' : 'border-[#E8E0D5]'
-                }`}
+                id="pm-razorpay"
+                className="bg-white rounded-xl mb-3 border-2 border-[#C4601A] overflow-hidden"
               >
-                {/* Header row */}
-                <div
-                  className="flex items-center gap-3 p-4 cursor-pointer"
-                  onClick={() => { setPaymentMethod('qr'); setQrStep('select'); }}
-                >
-                  <div className="w-[18px] h-[18px] rounded-full border-2 border-gray-400 shrink-0 flex items-center justify-center">
-                    {paymentMethod === 'qr' && <span className="w-2.5 h-2.5 rounded-full bg-[#C4601A]" />}
+                <div className="flex items-center gap-3 p-4">
+                  <div className="w-[18px] h-[18px] rounded-full border-2 border-[#C4601A] shrink-0 flex items-center justify-center">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#C4601A]" />
                   </div>
                   <div className="w-9 h-9 rounded-xl bg-[#FFF0E8] flex items-center justify-center shrink-0">
-                    <QrCode className="w-5 h-5 text-[#C4601A]" />
+                    <span className="text-base font-extrabold text-[#C4601A]">₹</span>
                   </div>
                   <div className="flex-1">
-                    <h5 className="font-bold text-sm text-[#1A1A1A]">Pay via QR Code (UPI)</h5>
-                    <p className="text-xs text-[#888888]">GPay, PhonePe, Paytm, BHIM · Instant &amp; Free</p>
+                    <h5 className="font-bold text-sm text-[#1A1A1A]">Pay via Razorpay</h5>
+                    <p className="text-xs text-[#888888]">UPI, Cards, Net Banking, Wallets · Instant & Secure</p>
                   </div>
                   <span className="text-[9px] font-extrabold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Active</span>
                 </div>
 
-                {/* QR expanded body */}
-                {paymentMethod === 'qr' && (
-                  <div className="border-t border-[#FAF6F0] px-4 pb-5 pt-4">
-
-                    {/* Step: select → show Pay Now button */}
-                    {qrStep === 'select' && (
-                      <div className="text-center">
-                        <p className="text-xs text-[#555] font-semibold mb-4 leading-relaxed">
-                          Scan our UPI QR code with any UPI app to pay <strong className="text-[#C4601A]">₹{getFinalTotal().toLocaleString('en-IN')}</strong>
-                        </p>
-                        <button
-                          id="btn-show-qr"
-                          onClick={() => setQrStep('show_qr')}
-                          className="w-full bg-[#C4601A] text-white py-3.5 rounded-xl text-sm font-bold hover:bg-[#a84e15] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
-                        >
-                          <QrCode className="w-5 h-5" />
-                          Show QR Code to Pay
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Step: show_qr → QR image + I Have Paid */}
-                    {qrStep === 'show_qr' && (
-                      <div className="flex flex-col items-center">
-                        {/* Amount */}
-                        <div className="w-full bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-center">
-                          <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-0.5">Pay This Amount</p>
-                          <p className="text-2xl font-extrabold text-amber-800">₹{getFinalTotal().toLocaleString('en-IN')}</p>
-                        </div>
-
-                        {/* QR Image */}
-                        <img
-                          src="/payment-qr.jpg"
-                          alt="Sneh Sarees UPI QR Code"
-                          className="w-[220px] h-[220px] object-contain rounded-xl border border-[#E8E0D5] shadow-sm mb-3"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
-                        />
-                        <p className="text-[11px] text-[#888] font-semibold text-center mb-5">
-                          Open any UPI app &#8594; Scan this QR &#8594; Pay &#8594; Take a screenshot
-                        </p>
-
-                        {/* I Have Paid button */}
-                        <button
-                          id="btn-i-have-paid"
-                          onClick={() => setQrStep('paid_waiting')}
-                          className="w-full bg-emerald-600 text-white py-3.5 rounded-xl text-sm font-bold hover:bg-emerald-700 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 mb-2"
-                        >
-                          <Check className="w-5 h-5" />
-                          I Have Paid
-                        </button>
-                        <button
-                          onClick={() => setQrStep('select')}
-                          className="text-xs text-[#888] underline cursor-pointer hover:text-[#C4601A] transition-colors"
-                        >
-                          Go back
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Step: paid_waiting → place order + WhatsApp CTA */}
-                    {qrStep === 'paid_waiting' && (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center">
-                          <Clock className="w-7 h-7 text-amber-600" />
-                        </div>
-                        <h4 className="font-serif font-bold text-[#1A1A1A] text-base text-center">Almost done!</h4>
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 w-full text-center">
-                          <p className="text-xs font-semibold text-amber-800 leading-relaxed">
-                            Please <strong>send your payment screenshot</strong> to our WhatsApp below.<br />
-                            Once we verify your payment, we will confirm and ship your order.
-                          </p>
-                        </div>
-
-                        {/* Place Order + WhatsApp button */}
-                        <button
-                          id="btn-place-qr-order"
-                          disabled={isProcessing}
-                          onClick={processManualUPIOrder}
-                          className="w-full bg-[#C4601A] text-white py-4 rounded-xl text-sm font-bold hover:bg-[#a84e15] active:scale-[0.99] transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
-                        >
-                          {isProcessing ? (
-                            <><Clock className="w-4 h-4 animate-spin" /> Placing Order...</>
-                          ) : (
-                            <><Check className="w-4 h-4" /> Confirm Order &amp; Send Screenshot</>
-                          )}
-                        </button>
-                        <p className="text-[10px] text-[#888] font-semibold text-center">
-                          Clicking above places your order and opens WhatsApp to send your payment proof
-                        </p>
-                        <button
-                          onClick={() => setQrStep('show_qr')}
-                          className="text-xs text-[#888] underline cursor-pointer hover:text-[#C4601A] transition-colors"
-                        >
-                          Go back to QR
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* ── COMING SOON STUBS ── */}
-              {[
-                { id: 'pm-upi', icon: '📱', label: 'UPI Apps', sub: 'GPay, PhonePe, Paytm, BHIM' },
-                { id: 'pm-card', icon: '💳', label: 'Credit / Debit Card', sub: 'Visa, Mastercard, RuPay & more' },
-                { id: 'pm-netbanking', icon: '🏦', label: 'Net Banking', sub: 'SBI, HDFC, ICICI, Axis & more' },
-                { id: 'pm-wallet', icon: '👜', label: 'Wallets', sub: 'Freecharge, Mobikwik, Paytm' },
-              ].map((m) => (
-                <div
-                  key={m.id}
-                  id={m.id}
-                  className="bg-white rounded-xl mb-2.5 border border-[#E8E0D5] overflow-hidden opacity-70 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={handleComingSoon}
-                >
-                  <div className="flex items-center gap-3 p-3.5">
-                    <div className="w-[18px] h-[18px] rounded-full border border-gray-300 shrink-0" />
-                    <div className="w-8 h-8 rounded-lg bg-[#FAF6F0] flex items-center justify-center shrink-0 text-base">{m.icon}</div>
-                    <div className="flex-1">
-                      <h5 className="font-bold text-sm text-[#1A1A1A]">{m.label}</h5>
-                      <p className="text-xs text-[#888888]">{m.sub}</p>
+                <div className="border-t border-[#FAF6F0] px-4 pb-5 pt-4">
+                  <div className="text-center">
+                    <p className="text-xs text-[#555] font-semibold mb-4 leading-relaxed">
+                      Pay <strong className="text-[#C4601A]">₹{getFinalTotal().toLocaleString('en-IN')}</strong> securely via UPI, Credit/Debit Card, Net Banking or Wallets.
+                    </p>
+                    <div className="flex justify-center gap-3 mb-4 flex-wrap">
+                      {['GPay', 'PhonePe', 'VISA', 'MC', 'RuPay'].map(m => (
+                        <span key={m} className="bg-[#FAF6F0] border border-[#E8E0D5] text-[10px] font-bold text-[#4A4A4A] px-2.5 py-1 rounded-lg">{m}</span>
+                      ))}
                     </div>
-                    <span className="text-[9px] font-extrabold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase">Coming Soon</span>
+                    <button
+                      id="btn-razorpay-pay"
+                      onClick={processRazorpayOrder}
+                      disabled={isProcessing}
+                      className="w-full bg-[#C4601A] text-white py-3.5 rounded-xl text-sm font-bold hover:bg-[#a84e15] active:scale-[0.99] transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {isProcessing ? (
+                        <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</>
+                      ) : (
+                        <>🔒 Pay ₹{getFinalTotal().toLocaleString('en-IN')} Securely</>
+                      )}
+                    </button>
+                    <p className="text-[10px] text-[#888] font-semibold mt-2">Powered by Razorpay · 256-bit SSL encrypted</p>
                   </div>
                 </div>
-              ))}
+              </div>
 
               {/* ── METHOD: Cash on Delivery (Temporarily Disabled) ── */}
               <div
                 id="pm-cod"
                 className="bg-white rounded-xl mb-3 border border-[#E8E0D5] overflow-hidden opacity-60 cursor-not-allowed"
-                onClick={() => showToast('Cash on Delivery is currently unavailable. Please pay via UPI QR code.')}
+                onClick={() => showToast('Cash on Delivery is currently unavailable. Please pay online via Razorpay.')}
               >
                 <div className="flex items-center gap-3 p-4">
                   <div className="w-[18px] h-[18px] rounded-full border border-gray-300 shrink-0" />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ShoppingBag, Calendar, CheckCircle2, Truck, Package, ExternalLink, Copy, RotateCcw, ChevronDown, Home, XCircle, Star, Edit3, Trash2, RefreshCw, Clock, QrCode, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Calendar, CheckCircle2, Truck, Package, ExternalLink, Copy, RotateCcw, ChevronDown, Home, XCircle, Star, Edit3, Trash2, RefreshCw, Clock, QrCode, MessageCircle, FileDown } from 'lucide-react';
 import { Order, ActivePage, ReturnRequest, ReturnReason, ReturnResolution, Review, Product } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { API_URL, BUSINESS_WHATSAPP } from '../../config';
@@ -61,6 +61,25 @@ const STATUS_LABELS: Record<string, string> = {
 
 export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBack, userToken, showToast, onRefreshOrders, productsList }) => {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
+
+  const handleDownloadInvoice = async (orderId: string) => {
+    if (!userToken) { showToast('Please sign in to download invoices.'); return; }
+    setDownloadingInvoice(orderId);
+    try {
+      const res = await fetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/invoice`);
+      const data = await res.json();
+      if (res.ok && data.invoiceUrl) {
+        window.open(data.invoiceUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        showToast(data.error || 'Invoice not available yet. Please try after shipment is dispatched.');
+      }
+    } catch {
+      showToast('Failed to fetch invoice. Please try again.');
+    } finally {
+      setDownloadingInvoice(null);
+    }
+  };
 
   const handleManualSync = async () => {
     if (onRefreshOrders) {
@@ -587,8 +606,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                       </div>
                     </div>
 
-                    {/* WhatsApp Help / Support */}
-                    <div className="flex justify-end pt-1">
+                    {/* WhatsApp Help / Support + Download Invoice */}
+                    <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
                       <a
                         href={`https://wa.me/919414067123?text=${encodeURIComponent(`Namaste Sneh Sarees! I need assistance with my Order: #${ord.id}`)}`}
                         target="_blank"
@@ -597,6 +616,19 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                       >
                         💬 Need Help? Contact WhatsApp Support
                       </a>
+
+                      {/* Download Invoice — only for dispatched orders */}
+                      {ord.trackingId && ['paid', 'processing', 'shipped', 'delivered'].includes(ord.status || '') && (
+                        <button
+                          onClick={() => handleDownloadInvoice(ord.id)}
+                          disabled={downloadingInvoice === ord.id}
+                          className="flex items-center gap-1.5 text-[10px] font-bold text-white bg-[#C4601A] hover:bg-[#A0450F] px-3 py-1.5 rounded-lg transition-all disabled:opacity-60 cursor-pointer shadow-xs"
+                          title="Download Shiprocket Invoice as PDF"
+                        >
+                          <FileDown className="w-3.5 h-3.5" />
+                          {downloadingInvoice === ord.id ? 'Fetching...' : 'Download Invoice'}
+                        </button>
+                      )}
                     </div>
                   </div>
 
