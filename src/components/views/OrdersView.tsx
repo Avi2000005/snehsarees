@@ -356,18 +356,21 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                       const stepLabels: Record<string, string> = {
                         placed: 'Placed', processing: 'Packing', shipped: 'Shipped', delivered: 'Delivered'
                       };
+                      // 'paid' is between placed and processing — treat it at the 'placed' level
                       const statusOrder = ['placed', 'paid', 'processing', 'shipped', 'delivered'];
                       const currentIdx = statusOrder.indexOf(ord.status || 'placed');
                       const stepIdx = statusOrder.indexOf(step);
                       const isDone = currentIdx >= stepIdx;
 
+                      // Only show the timestamp if this step is actually completed
                       const stepTimes: Record<string, string | undefined> = {
                         placed: ord.createdAt,
                         processing: ord.processingAt,
                         shipped: ord.shippedAt,
                         delivered: ord.deliveredAt
                       };
-                      const timeStr = formatStepTime(stepTimes[step]);
+                      // IMPORTANT: only show time when the step is truly done
+                      const timeStr = isDone ? formatStepTime(stepTimes[step]) : null;
 
                       return (
                         <React.Fragment key={step}>

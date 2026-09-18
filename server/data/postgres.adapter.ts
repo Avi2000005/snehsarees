@@ -387,11 +387,22 @@ export class PostgresDatabaseAdapter implements IDatabase {
 
   async updateOrderTracking(id: string, trackingId: string, carrierName: string, trackingUrl: string): Promise<boolean> {
     const client = this.getPool();
-    const result = await client.query(
-      'UPDATE orders SET tracking_id = $1, carrier_name = $2, tracking_url = $3, status = $4, shipped_at = NOW() WHERE id = $5',
-      [trackingId, carrierName, trackingUrl, 'shipped', id]
-    );
-    return (result.rowCount ?? 0) > 0;
+    // Only mark as 'shipped' with a timestamp if we have a real AWB tracking number.
+    // An empty trackingId means the order was just registered on Shiprocket (no courier assigned yet).
+    if (trackingId && trackingId.trim().length > 0) {
+      const result = await client.query(
+        'UPDATE orders SET tracking_id = $1, carrier_name = $2, tracking_url = $3, status = $4, shipped_at = NOW() WHERE id = $5',
+        [trackingId, carrierName, trackingUrl, 'shipped', id]
+      );
+      return (result.rowCount ?? 0) > 0;
+    } else {
+      // No real AWB yet — just update carrier info, don't change status or shipped_at
+      const result = await client.query(
+        'UPDATE orders SET carrier_name = COALESCE($1, carrier_name), tracking_url = COALESCE($2, tracking_url) WHERE id = $3',
+        [carrierName || null, trackingUrl || null, id]
+      );
+      return (result.rowCount ?? 0) > 0;
+    }
   }
 
   // Inquiries
