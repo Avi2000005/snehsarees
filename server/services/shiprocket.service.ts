@@ -22,12 +22,15 @@ async function getShiprocketToken(): Promise<string> {
     return cachedToken;
   }
 
+  const cleanEmail = (ENV.SHIPROCKET_EMAIL || '').replace(/^["']|["']$/g, '').trim();
+  const cleanPassword = (ENV.SHIPROCKET_PASSWORD || '').replace(/^["']|["']$/g, '').trim();
+
   const res = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: ENV.SHIPROCKET_EMAIL,
-      password: ENV.SHIPROCKET_PASSWORD,
+      email: cleanEmail,
+      password: cleanPassword,
     }),
   });
 
