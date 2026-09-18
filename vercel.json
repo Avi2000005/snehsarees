@@ -8,7 +8,7 @@
     },
     {
       "source": "/api/(.*)",
-      "destination": "https://laxmi-store-api.fly.dev/api/$1"
+      "destination": "https://p01--snehsarees-api--yrw84d9nkxgs.code.run/api/$1"
     },
     {
       "source": "/(.*)",
