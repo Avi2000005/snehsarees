@@ -290,6 +290,9 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           phone: phone.trim(),
           email: email.trim() || user?.email || undefined,
           address: addressString,
+          city: city.trim(),
+          pincode: pincode.trim(),
+          state: state.trim(),
           items: cart.map(it => ({ id: it.id, qty: it.qty })),
           method: 'COD',
           couponCode: appliedCoupon ? appliedCoupon.code : undefined
@@ -327,6 +330,9 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           phone: phone.trim(),
           email: email.trim() || user?.email || undefined,
           address: addressString,
+          city: city.trim(),
+          pincode: pincode.trim(),
+          state: state.trim(),
           items: cart.map(it => ({ id: it.id, qty: it.qty })),
           method: 'Razorpay',
           couponCode: appliedCoupon ? appliedCoupon.code : undefined

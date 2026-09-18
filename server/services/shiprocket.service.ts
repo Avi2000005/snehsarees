@@ -44,14 +44,43 @@ async function getShiprocketToken(): Promise<string> {
 
 /**
  * Parses city, pincode, and state from order fields.
- * Prefers dedicated fields (city, pincode, state) if present on the order object.
- * Falls back to safe defaults so Shiprocket never rejects the payload.
+ * Extracts 6-digit pincode, city, and state directly from full address string if dedicated fields are not set.
  */
 function parseAddressFields(order: Order & { city?: string; pincode?: string; state?: string }) {
+  let city = order.city?.trim() || '';
+  let pincode = order.pincode?.trim() || '';
+  let state = order.state?.trim() || '';
+
+  const fullAddress = (order.address || '').trim();
+
+  // 1. Extract 6-digit Indian pincode (\b[1-9][0-9]{5}\b) from full address if missing
+  if (!pincode || pincode === '000000') {
+    const pinMatch = fullAddress.match(/\b([1-9][0-9]{5})\b/);
+    if (pinMatch) {
+      pincode = pinMatch[1];
+    }
+  }
+
+  // 2. Extract city and state from comma/hyphen separated address parts
+  if (!city || !state) {
+    const parts = fullAddress.split(',').map((s: string) => s.trim()).filter(Boolean);
+    if (!state && parts.length > 0) {
+      const lastPart = parts[parts.length - 1];
+      state = lastPart.replace(/[-0-9]/g, '').trim();
+    }
+
+    if (!city && parts.length > 1) {
+      const secondLast = parts[parts.length - 2];
+      city = secondLast.replace(/-\s*[0-9]{6}/, '').replace(/[0-9]/g, '').trim();
+    } else if (!city && parts.length === 1) {
+      city = parts[0].replace(/[0-9]/g, '').trim();
+    }
+  }
+
   return {
-    city: order.city?.trim() || 'India',
-    pincode: order.pincode?.trim() || '000000',
-    state: order.state?.trim() || 'Rajasthan',
+    city: city || 'India',
+    pincode: pincode || '',
+    state: state || 'India',
   };
 }
 
@@ -80,6 +109,10 @@ export async function createShipment(
   try {
     const token = await getShiprocketToken();
     const { city, pincode, state } = parseAddressFields(order);
+
+    if (!pincode || !/^\d{6}$/.test(pincode)) {
+      throw new Error(`Customer delivery address is missing a valid 6-digit postal pincode. Address: "${order.address}"`);
+    }
 
     // Build Shiprocket order payload
     // Docs: https://apiv2.shiprocket.in/v1/external/orders/create/adhoc
