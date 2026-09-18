@@ -9,6 +9,8 @@ import {
   updateInquiryStatus,
   updateOrderLocation,
   updateOrderTracking,
+  syncOrderWithShiprocket,
+  syncAllOrdersWithShiprocket,
   uploadProductImage,
   uploadBulkProductImages,
   bulkAssignProductImages,
@@ -42,6 +44,8 @@ router.post('/products/bulk-assign-images', bulkAssignProductImages);
 
 // Orders lists & status modifications
 router.get('/orders', getAllOrders);
+router.post('/orders/sync-shiprocket', syncAllOrdersWithShiprocket);
+router.post('/orders/:id/sync-shiprocket', syncOrderWithShiprocket);
 router.put('/orders/:id/status', updateOrderStatus);
 router.put('/orders/:id/location', updateOrderLocation);
 router.put('/orders/:id/tracking', updateOrderTracking);

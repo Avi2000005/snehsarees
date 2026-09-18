@@ -811,7 +811,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </p>
             <div className="flex items-center gap-3 pt-2 text-xs font-bold text-[#1A1A1A]">
               <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">100% Authentic Kota Doria</span>
-              <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">Free Delivery ≥ ₹2,000</span>
+              <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">Free Delivery on All Orders</span>
             </div>
           </div>
 

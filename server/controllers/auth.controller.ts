@@ -149,7 +149,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     if (email && email.toLowerCase() === ENV.ADMIN_EMAIL.toLowerCase()) {
       if (password === ENV.ADMIN_PASSWORD) {
         const token = jwt.sign(
-          { role: 'admin' },
+          { role: 'admin', email: ENV.ADMIN_EMAIL },
           ENV.JWT_SECRET,
           { expiresIn: '1d' }
         );
@@ -157,6 +157,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         return res.json({
           token,
           user: {
+            id: 0,
             email: ENV.ADMIN_EMAIL,
             name: 'Administrator',
             role: 'admin',
@@ -340,6 +341,15 @@ export const getMe = async (req: Request, res: Response, next: NextFunction) => 
     const userReq = req as any;
     if (!userReq.user) {
       return res.status(401).json({ error: 'Not authenticated.' });
+    }
+    if (userReq.user.role === 'admin' || userReq.user.id === 0) {
+      return res.json({
+        id: 0,
+        email: ENV.ADMIN_EMAIL,
+        name: 'Administrator',
+        role: 'admin',
+        addresses: []
+      });
     }
     const user = await db.getUserById(userReq.user.id);
     if (!user) {

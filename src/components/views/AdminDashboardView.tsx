@@ -14,14 +14,16 @@ interface AdminDashboardViewProps {
   onNavigate: (page: ActivePage) => void;
   onBack: () => void;
   showToast: (msg: string) => void;
+  adminToken?: string | null;
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigate,
   onBack,
   showToast,
+  adminToken,
 }) => {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(adminToken || null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -124,6 +126,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [shipCarrierName, setShipCarrierName] = useState('India Post');
   const [shipTrackingUrl, setShipTrackingUrl] = useState('');
   const [shipLoading, setShipLoading] = useState(false);
+  const [syncingShiprocket, setSyncingShiprocket] = useState(false);
+  const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
 
   // Bulk Excel Upload state
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
@@ -145,8 +149,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   }[]>([]);
   const [bulkPhotoUploading, setBulkPhotoUploading] = useState(false);
 
-  // Check sessionStorage for active token
+  // Check token from prop, sessionStorage, or logged-in info@snehsarees.in session
   useEffect(() => {
+    if (adminToken) {
+      setToken(adminToken);
+      return;
+    }
     const savedToken = sessionStorage.getItem('laxmi_admin_token');
     const savedExpiry = sessionStorage.getItem('laxmi_admin_expiry');
     if (savedToken && savedExpiry) {
@@ -154,16 +162,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       if (Date.now() < expiryMs) {
         setToken(savedToken);
         setSessionExpiresAt(expiryMs);
+        return;
       } else {
-        // Already expired — clear silently
         sessionStorage.removeItem('laxmi_admin_token');
         sessionStorage.removeItem('laxmi_admin_expiry');
-        showToast('Admin session expired. Please log in again.');
       }
     } else if (savedToken) {
       setToken(savedToken);
+      return;
     }
-  }, []);
+
+    // Auto-authenticate if already logged into the store as info@snehsarees.in
+    const userToken = localStorage.getItem('sneh_user_token') || localStorage.getItem('laxmi_user_token');
+    if (userToken) {
+      try {
+        const payload = JSON.parse(atob(userToken.split('.')[1]));
+        if (payload.role === 'admin' || payload.email?.toLowerCase() === 'info@snehsarees.in') {
+          setToken(userToken);
+          return;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [adminToken]);
 
   // Session expiry countdown tick
   useEffect(() => {
@@ -273,6 +295,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setEmail('');
     setPassword('');
     showToast('Logged out of Admin Portal.');
+    if (onBack) {
+      onBack();
+    } else {
+      window.location.href = '/';
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1105,7 +1132,68 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     }
   };
 
-  // Order Actions (Status and Address)
+  // Order Actions (Status, Address, and Shiprocket Sync)
+  const handleSyncAllShiprocket = async () => {
+    if (syncingShiprocket || !token) return;
+    setSyncingShiprocket(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/orders/sync-shiprocket`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const updatedCount = (data.results || []).filter((r: any) => r.updated).length;
+        if (updatedCount > 0) {
+          showToast(`Synced with Shiprocket: ${updatedCount} order(s) updated!`);
+        } else {
+          showToast('Shiprocket sync complete. All orders are up to date.');
+        }
+        if (data.orders) {
+          setOrders(data.orders);
+        } else {
+          fetchDashboardData();
+        }
+      } else {
+        showToast(data.error || 'Failed to sync with Shiprocket.');
+      }
+    } catch {
+      showToast('Shiprocket sync network error.');
+    } finally {
+      setSyncingShiprocket(false);
+    }
+  };
+
+  const handleSyncSingleOrder = async (orderId: string) => {
+    if (syncingOrderId === orderId || !token) return;
+    setSyncingOrderId(orderId);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/orders/${encodeURIComponent(orderId)}/sync-shiprocket`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.result?.updated) {
+          showToast(`Order ${orderId} updated: ${data.result.message}`);
+        } else {
+          showToast(`Order ${orderId}: ${data.result?.message || 'Status is up to date.'}`);
+        }
+        if (data.order) {
+          setOrders(prev => prev.map(o => o.id === orderId ? data.order : o));
+        } else {
+          fetchDashboardData();
+        }
+      } else {
+        showToast(data.error || 'Failed to sync order with Shiprocket.');
+      }
+    } catch {
+      showToast('Shiprocket sync network error.');
+    } finally {
+      setSyncingOrderId(null);
+    }
+  };
+
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/orders/${orderId}/status`, {
@@ -1467,66 +1555,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   const pendingPaymentCount = orders.filter((o) => (o as any).status === 'pending_payment').length;
 
-  // Authentication Gate View
+  // Authentication Gate View — shown only if not authenticated as info@snehsarees.in
   if (!token) {
     return (
       <div className="bg-[#FAF6F0] min-h-screen flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl border border-[#E8E0D5] p-8 max-w-[380px] w-full shadow-lg">
-          <button onClick={onBack} className="flex items-center gap-1 text-xs text-[#888888] hover:text-[#C4601A] mb-6">
-            <ArrowLeft className="w-4 h-4" /> Return to Store
-          </button>
-
-          <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-[#C4601A]/10 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Lock className="w-6 h-6 text-[#C4601A]" />
-            </div>
-            <h2 className="font-serif text-2xl font-bold text-[#1A1A1A]">Admin Control</h2>
-            <p className="text-xs text-[#888888]">Authorization credentials required</p>
+        <div className="bg-white rounded-2xl border border-[#E8E0D5] p-8 max-w-[380px] w-full shadow-lg text-center">
+          <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Lock className="w-6 h-6 text-[#C4601A]" />
           </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                Admin Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter admin email"
-                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                Admin Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-[#888888]" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="w-full bg-[#C4601A] text-white py-3.5 rounded-xl text-xs font-bold hover:bg-[#FFF0E8] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <LogIn className="w-4 h-4" /> {authLoading ? 'Verifying...' : 'Authorize Login'}
-            </button>
-          </form>
+          <h2 className="font-serif text-xl font-bold text-[#1A1A1A] mb-2">Access Restricted</h2>
+          <p className="text-xs text-[#888888] mb-6 leading-relaxed">
+            The Admin Portal is private. Please sign in with <strong>info@snehsarees.in</strong> on the store to access.
+          </p>
+          <button
+            onClick={() => {
+              if (onBack) {
+                onBack();
+              } else {
+                window.location.href = '/';
+              }
+            }}
+            className="w-full bg-[#C4601A] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#a84e15] transition-all cursor-pointer shadow-xs"
+          >
+            Return to Store
+          </button>
         </div>
       </div>
     );
@@ -1824,7 +1876,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {/* Orders Panel */}
           {!dataLoading && activeTab === 'orders' && (
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Orders Pipeline</h3>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Orders Pipeline</h3>
+                  <p className="text-xs text-[#888888]">Track live orders, auto-sync statuses with Shiprocket, and handle shipments.</p>
+                </div>
+                <button
+                  onClick={handleSyncAllShiprocket}
+                  disabled={syncingShiprocket}
+                  className="bg-[#1A1A1A] hover:bg-[#333333] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+                  title="Sync all open orders with Shiprocket tracking API"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncingShiprocket ? 'animate-spin' : ''}`} />
+                  <span>{syncingShiprocket ? 'Syncing Shiprocket...' : '🔄 Sync with Shiprocket'}</span>
+                </button>
+              </div>
 
               {/* Pending Payment Alert Banner */}
               {pendingPaymentCount > 0 && (
@@ -1925,6 +1991,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                           🚚 Ship & Track
                         </button>
                         <button
+                          onClick={() => handleSyncSingleOrder(o.id)}
+                          disabled={syncingOrderId === o.id}
+                          className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer flex items-center gap-1"
+                          title="Fetch latest status from Shiprocket"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${syncingOrderId === o.id ? 'animate-spin' : ''}`} />
+                          <span>{syncingOrderId === o.id ? 'Syncing...' : 'Sync SR'}</span>
+                        </button>
+                        <button
                           onClick={() => handleUpdateOrderStatus(o.id, 'delivered')}
                           className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer"
                         >
@@ -1945,8 +2020,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
                     {/* Cancelled notice */}
                     {(o as any).status === 'cancelled' && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-[10px] text-red-700 font-semibold flex items-center gap-1.5 mt-1">
-                        <X className="w-3.5 h-3.5" /> Order cancelled{o.cancelledAt ? ` on ${new Date(o.cancelledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}. Stock restored.
+                      <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-[10px] text-red-700 font-semibold flex items-center justify-between gap-1.5 mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <X className="w-3.5 h-3.5" /> Order cancelled{o.cancelledAt ? ` on ${new Date(o.cancelledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}. Stock restored.
+                        </div>
+                        <button
+                          onClick={() => handleSyncSingleOrder(o.id)}
+                          disabled={syncingOrderId === o.id}
+                          className="text-red-700 hover:text-red-900 text-[9px] underline font-semibold flex items-center gap-1 cursor-pointer"
+                          title="Re-check status on Shiprocket"
+                        >
+                          <RefreshCw className={`w-2.5 h-2.5 ${syncingOrderId === o.id ? 'animate-spin' : ''}`} /> Re-check Shiprocket
+                        </button>
                       </div>
                     )}
                   </div>

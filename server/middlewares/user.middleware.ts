@@ -6,6 +6,7 @@ export interface UserRequest extends Request {
   user?: {
     id: number;
     phone: string;
+    role?: string;
   };
 }
 
@@ -37,10 +38,11 @@ export const userMiddleware = (req: UserRequest, res: Response, next: NextFuncti
 
   try {
     const decoded = jwt.verify(token, ENV.JWT_SECRET) as any;
-    if (decoded && decoded.userId) {
+    if (decoded && (decoded.userId || decoded.role === 'admin')) {
       req.user = {
-        id: decoded.userId,
-        phone: decoded.phone,
+        id: decoded.userId || 0,
+        phone: decoded.phone || '',
+        role: decoded.role || 'user',
       };
       return next();
     }

@@ -19,6 +19,7 @@ export const ENV = {
   FRONTEND_URL: (process.env.FRONTEND_URL || 'https://www.snehsarees.in').trim(),
   SHIPROCKET_EMAIL: (process.env.SHIPROCKET_EMAIL || '').trim(),
   SHIPROCKET_PASSWORD: (process.env.SHIPROCKET_PASSWORD || '').trim(),
+  SHIPROCKET_PICKUP_LOCATION: (process.env.SHIPROCKET_PICKUP_LOCATION || 'work').trim(),
   // Brevo email service for OTP
   BREVO_API_KEY: (process.env.BREVO_API_KEY || '').trim(),
   BREVO_SENDER_EMAIL: (process.env.BREVO_SENDER_EMAIL || 'info@snehsarees.in').trim(),

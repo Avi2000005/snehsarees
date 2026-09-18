@@ -166,7 +166,7 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
     replies: ['WhatsApp Us', 'Back to Menu']
   },
   delivery: {
-    msg: 'We deliver across India in 5–7 business days. Free delivery on orders above ₹2,000; ₹100 delivery fee applies for orders below ₹2,000. Online payment via UPI QR code is supported. Cash on Delivery is currently unavailable.',
+    msg: 'We deliver across India in 5–7 business days with Free Delivery on all orders. Secure online payment via Razorpay is supported.',
     replies: ['Back to Menu']
   },
   returns: {

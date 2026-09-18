@@ -39,7 +39,7 @@ export const CartView: React.FC<CartViewProps> = ({
 
   const totalCost = getCartTotal();
   const itemCount = getCartCount();
-  const deliveryFee = totalCost >= 2000 ? 0 : 100;
+  const deliveryFee: number = 0; // Free delivery for now
   const grandTotal = totalCost + deliveryFee;
 
   return (
@@ -156,15 +156,9 @@ export const CartView: React.FC<CartViewProps> = ({
                   <span className="summary-value text-[#1A1A1A] font-semibold">₹{deliveryFee.toLocaleString('en-IN')}</span>
                 )}
               </div>
-              {deliveryFee === 0 ? (
-                <div className="bg-emerald-50 text-emerald-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg mb-3 flex items-center justify-between">
-                  <span>🎉 Free delivery applied on orders above ₹2,000</span>
-                </div>
-              ) : (
-                <div className="bg-amber-50 text-amber-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg mb-3 flex items-center justify-between">
-                  <span>📦 ₹100 delivery fee (Add ₹{(2000 - totalCost).toLocaleString('en-IN')} more for FREE delivery!)</span>
-                </div>
-              )}
+              <div className="bg-emerald-50 text-emerald-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg mb-3 flex items-center justify-between">
+                <span>🎉 Free delivery on all orders!</span>
+              </div>
               <hr className="summary-divider border-0 border-t border-[#E8E0D5] my-4" />
               <div className="summary-row flex justify-between items-center">
                 <span className="summary-label text-base font-bold text-[#1A1A1A]">Total</span>

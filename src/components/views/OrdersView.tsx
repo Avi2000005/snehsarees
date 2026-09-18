@@ -86,7 +86,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
       setIsSyncing(true);
       await onRefreshOrders();
       setIsSyncing(false);
-      showToast('Synced latest order status from server.');
+      showToast('Synced latest order status & Shiprocket tracking.');
     }
   };
   const [returnModalOrder, setReturnModalOrder] = useState<Order | null>(null);
@@ -587,7 +587,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                           const discount = ord.discountAmount || 0;
                           const effectiveDeliveryFee = ord.deliveryFee !== undefined 
                             ? ord.deliveryFee 
-                            : (ord.total > (itemsSubtotal - discount) ? ord.total - (itemsSubtotal - discount) : (itemsSubtotal >= 2000 ? 0 : 100));
+                            : (ord.total > (itemsSubtotal - discount) ? ord.total - (itemsSubtotal - discount) : 0);
                           return (
                             <div className="flex justify-between">
                               <span>Delivery Fee:</span>

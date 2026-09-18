@@ -7,6 +7,10 @@
       "destination": "/admin.html"
     },
     {
+      "source": "/api/(.*)",
+      "destination": "https://laxmi-store-api.fly.dev/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -599,6 +599,7 @@ export default function App() {
             onNavigate={handleNavigate}
             onBack={handleBack}
             showToast={showToast}
+            adminToken={token}
           />
         );
 

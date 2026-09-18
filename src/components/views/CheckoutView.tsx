@@ -156,8 +156,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   };
 
   const getDeliveryFee = () => {
-    const sub = getSubtotal();
-    return sub >= 2000 ? 0 : 100;
+    return 0; // Free delivery for now
   };
 
   const getFinalTotal = () => {

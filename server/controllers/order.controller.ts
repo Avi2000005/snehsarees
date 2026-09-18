@@ -4,7 +4,7 @@ import { razorpayInstance } from '../config/razorpay';
 import { ENV } from '../config/env';
 import { Order, CartItem } from '../../src/types';
 import { UserRequest } from '../middlewares/user.middleware';
-import { createShipment, getShiprocketInvoiceUrl } from '../services/shiprocket.service';
+import { createShipment, getShiprocketInvoiceUrl, syncShiprocketOrderStatus } from '../services/shiprocket.service';
 import crypto from 'crypto';
 
 export const getOrders = async (req: UserRequest, res: Response, next: NextFunction) => {
@@ -36,6 +36,24 @@ export const getOrders = async (req: UserRequest, res: Response, next: NextFunct
       }
     }
 
+    // Sync status from Shiprocket for any active/in-flight orders
+    const activeOrders = list.filter(o =>
+      ['paid', 'placed', 'processing', 'shipped'].includes((o as any).status || '')
+    );
+    if (activeOrders.length > 0) {
+      await Promise.allSettled(
+        activeOrders.map(async o => {
+          const syncRes = await syncShiprocketOrderStatus(o.id);
+          if (syncRes.updated) {
+            const fresh = await db.getOrderById(o.id);
+            if (fresh) {
+              Object.assign(o, fresh);
+            }
+          }
+        })
+      );
+    }
+
     // Populate missing item images from products database
     for (const ord of list) {
       if (ord.items && Array.isArray(ord.items)) {
@@ -51,6 +69,37 @@ export const getOrders = async (req: UserRequest, res: Response, next: NextFunct
     }
 
     res.json(list);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /api/orders/:id/sync-tracking
+ * Allows on-demand sync of an order's status and tracking details from Shiprocket.
+ */
+export const syncCustomerOrderTracking = async (req: UserRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const order = await db.getOrderById(id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    if (userId && (order as any).userId && (order as any).userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized to sync this order.' });
+    }
+
+    const syncRes = await syncShiprocketOrderStatus(id, true);
+    const updatedOrder = await db.getOrderById(id);
+
+    res.json({
+      success: true,
+      result: syncRes,
+      order: updatedOrder
+    });
   } catch (err) {
     next(err);
   }
@@ -151,7 +200,7 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       appliedCouponCode = coupon.code;
     }
 
-    const deliveryFee = calculatedTotal >= 2000 ? 0 : 100;
+    const deliveryFee = 0; // Free delivery for now
     const finalTotal = Math.max(0, calculatedTotal - discountAmount + deliveryFee);
 
     // Generate proper, professional brand order ID

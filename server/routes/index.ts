@@ -10,6 +10,7 @@ import couponRoutes from './coupon.routes';
 import reviewRoutes from './review.routes';
 import reelRoutes from './reel.routes';
 import returnRoutes from './return.routes';
+import webhookRoutes from './webhook.routes';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/coupons', couponRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/reels', reelRoutes);
 router.use('/returns', returnRoutes);
+router.use('/webhooks', webhookRoutes);
 
 export default router;

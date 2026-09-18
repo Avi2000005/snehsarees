@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { db } from '../data/db';
 import { ENV } from '../config/env';
 import cloudinary from '../config/cloudinary';
-import { createShipment } from '../services/shiprocket.service';
+import { createShipment, syncShiprocketOrderStatus, syncActiveOrdersWithShiprocket } from '../services/shiprocket.service';
 
 // Admin: Get ALL confirmed orders (exclude unpaid / pending orders)
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
@@ -328,6 +328,40 @@ export const updateOrderTracking = async (req: Request, res: Response, next: Nex
       trackingId: finalTrackingId,
       carrierName: finalCarrierName,
       trackingUrl: finalTrackingUrl,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Admin: Synchronize a single order with Shiprocket
+export const syncOrderWithShiprocket = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await syncShiprocketOrderStatus(id, true);
+    const updatedOrder = await db.getOrderById(id);
+    res.json({
+      success: true,
+      result,
+      order: updatedOrder
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Admin: Synchronize all active orders with Shiprocket
+export const syncAllOrdersWithShiprocket = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const results = await syncActiveOrdersWithShiprocket();
+    const updatedOrders = await db.getOrders();
+    const confirmedOrders = (updatedOrders || []).filter(
+      (o: any) => o.status !== 'pending' && o.status !== 'pending_payment'
+    );
+    res.json({
+      success: true,
+      results,
+      orders: confirmedOrders
     });
   } catch (err) {
     next(err);
