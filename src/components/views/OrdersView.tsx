@@ -67,7 +67,9 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
     if (!userToken) { showToast('Please sign in to download invoices.'); return; }
     setDownloadingInvoice(orderId);
     try {
-      const res = await fetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/invoice`);
+      const res = await fetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/invoice`, {
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
       const data = await res.json();
       if (res.ok && data.invoiceUrl) {
         window.open(data.invoiceUrl, '_blank', 'noopener,noreferrer');
@@ -609,7 +611,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                     {/* WhatsApp Help / Support + Download Invoice */}
                     <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
                       <a
-                        href={`https://wa.me/919414067123?text=${encodeURIComponent(`Namaste Sneh Sarees! I need assistance with my Order: #${ord.id}`)}`}
+                        href={`https://wa.me/${BUSINESS_WHATSAPP || '919414067123'}?text=${encodeURIComponent(`Namaste Sneh Sarees! I need assistance with my Order: #${ord.id}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#C4601A] hover:underline font-bold text-[10px] flex items-center gap-1.5"

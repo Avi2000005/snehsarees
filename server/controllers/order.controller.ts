@@ -377,14 +377,17 @@ export const getOrderInvoice = async (req: UserRequest, res: Response, next: Nex
       return res.status(404).json({ error: 'Order not found.' });
     }
 
-    if (!order.trackingId) {
-      return res.status(404).json({ error: 'Invoice not yet available. Shipment has not been dispatched yet.' });
+    // Invoice is available for any confirmed order registered on Shiprocket
+    const confirmedStatuses = ['paid', 'processing', 'shipped', 'delivered'];
+    if (!confirmedStatuses.includes((order as any).status || '')) {
+      return res.status(404).json({ error: 'Invoice not yet available. Order must be confirmed and registered with the courier.' });
     }
 
-    const invoiceUrl = await getShiprocketInvoiceUrl(order.trackingId);
+    // Use the order ID to look up the Shiprocket shipment and fetch the invoice
+    const invoiceUrl = await getShiprocketInvoiceUrl(id);
 
     if (!invoiceUrl) {
-      return res.status(404).json({ error: 'Invoice not available yet. Please try again after the order is shipped.' });
+      return res.status(404).json({ error: 'Invoice not available yet. It may take a few minutes after order confirmation. Please try again shortly.' });
     }
 
     res.json({ invoiceUrl });

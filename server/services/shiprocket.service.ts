@@ -167,14 +167,23 @@ export async function createShipment(
       throw new Error(`Shiprocket order creation failed: ${JSON.stringify(orderData)}`);
     }
 
-    // Shiprocket returns shipment_id (internal) and awb_code (courier tracking)
-    const awb = orderData.awb_code || orderData.shipment_id?.toString() || `SR-${order.id}`;
-    const trackingUrl = `https://shiprocket.co/tracking/${awb}`;
+    // Shiprocket returns shipment_id (internal Shiprocket ID) and awb_code (actual courier AWB).
+    // IMPORTANT: Only store the awb_code — this is the real courier tracking number.
+    // shipment_id is an internal ID, NOT a courier tracking number.
+    // If awb_code is empty, the order was registered on Shiprocket but not yet shipped by courier.
+    // Admin needs to click "Ship Now" on Shiprocket to get a real AWB assigned.
+    const shipmentId = orderData.shipment_id?.toString() || '';
+    const awb = orderData.awb_code || ''; // Only real AWB — empty if not yet shipped
+    const trackingUrl = awb ? `https://shiprocket.co/tracking/${awb}` : '';
 
-    console.log(`[Shiprocket] ✅ Order ${order.id} dispatched — AWB: ${awb}`);
+    if (awb) {
+      console.log(`[Shiprocket] ✅ Order ${order.id} dispatched — AWB: ${awb} (Shipment ID: ${shipmentId})`);
+    } else {
+      console.log(`[Shiprocket] ✅ Order ${order.id} registered on Shiprocket (Shipment ID: ${shipmentId}) — awaiting courier assignment (Ship Now).`);
+    }
 
     return {
-      trackingId: awb,
+      trackingId: awb, // Empty until admin clicks "Ship Now" on Shiprocket
       carrierName: orderData.courier_name || 'Shiprocket',
       trackingUrl,
     };
@@ -190,19 +199,50 @@ export async function createShipment(
 }
 
 /**
- * Fetches the Shiprocket-generated invoice PDF URL for a shipped order.
- * Pass the order's trackingId (AWB) or Shiprocket shipment ID.
+ * Fetches the Shiprocket-generated invoice PDF URL for an order.
+ * Accepts our store order ID and looks up the Shiprocket shipment_id dynamically.
  * Returns null if invoice is not yet available or credentials are missing.
  */
-export async function getShiprocketInvoiceUrl(shipmentId: string): Promise<string | null> {
-  if (!ENV.SHIPROCKET_EMAIL || !ENV.SHIPROCKET_PASSWORD || !shipmentId) {
+export async function getShiprocketInvoiceUrl(orderId: string): Promise<string | null> {
+  if (!ENV.SHIPROCKET_EMAIL || !ENV.SHIPROCKET_PASSWORD || !orderId) {
     return null;
   }
 
   try {
     const token = await getShiprocketToken();
 
-    // Shiprocket invoice endpoint — accepts shipment IDs as comma-separated list
+    // Step 1: Find the Shiprocket order by our channel_order_id to get shipment_id
+    const searchRes = await fetch(
+      `https://apiv2.shiprocket.in/v1/external/orders?search=${encodeURIComponent(orderId)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+
+    if (!searchRes.ok) {
+      console.warn(`[Shiprocket] Invoice: Order search failed (${searchRes.status})`);
+      return null;
+    }
+
+    const searchData = await searchRes.json();
+    if (!Array.isArray(searchData.data) || searchData.data.length === 0) {
+      console.warn(`[Shiprocket] Invoice: No Shiprocket order found for ${orderId}`);
+      return null;
+    }
+
+    const srOrder = searchData.data.find(
+      (o: any) =>
+        o.channel_order_id === orderId ||
+        o.channel_order_id?.toLowerCase() === orderId.toLowerCase()
+    ) || searchData.data[0];
+
+    const shipmentId = srOrder?.shipments?.[0]?.id?.toString() || srOrder?.id?.toString();
+    if (!shipmentId) {
+      console.warn(`[Shiprocket] Invoice: No shipment_id found for order ${orderId}`);
+      return null;
+    }
+
+    // Step 2: Fetch the invoice PDF using the Shiprocket shipment_id
     const res = await fetch(
       `https://apiv2.shiprocket.in/v1/external/orders/print/invoice?ids=${encodeURIComponent(shipmentId)}`,
       {
@@ -338,14 +378,18 @@ export async function syncShiprocketOrderStatus(
         srStatus === 'IN TRANSIT' ||
         srStatus === 'OUT FOR DELIVERY' ||
         srStatus === 'PICKED UP' ||
-        [6, 17, 18, 19, 42].includes(shipmentStatus || 0) ||
-        (awb && awb.length > 3)
+        srStatus === 'DISPATCHED' ||
+        [6, 17, 18, 19, 42].includes(shipmentStatus || 0)
+        // NOTE: We do NOT use `awb && awb.length > 3` here.
+        // An AWB is assigned at order creation, not at shipment dispatch.
+        // Only explicit shipped/in-transit status codes should change status to 'shipped'.
       ) {
         detectedStatus = 'shipped';
       } else if (
         srStatus === 'READY TO SHIP' ||
         srStatus === 'PROCESSING' ||
-        srStatus === 'NEW'
+        srStatus === 'NEW' ||
+        srStatus === 'PENDING'
       ) {
         detectedStatus = 'processing';
       }
