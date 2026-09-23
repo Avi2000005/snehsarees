@@ -30,7 +30,7 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
       `• Phone: ${order.phone}\n\n` +
       `I am attaching my payment screenshot below. Please confirm my order and share live tracking once dispatched! Thank you! ✨`;
 
-    const phoneNum = BUSINESS_WHATSAPP || '919414067123';
+    const phoneNum = BUSINESS_WHATSAPP || '919461037123';
     window.open(`https://wa.me/${phoneNum}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
@@ -55,9 +55,9 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
   }
 
   return (
-    <div id="page-pending-payment" className="bg-[#FAF6F0] min-h-screen pb-16">
+    <div id="page-pending-payment" className="min-h-screen pb-16 bg-[#FAF6F0]/80 backdrop-blur-xs">
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
           onClick={() => onNavigate('orders')}
           className="text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"

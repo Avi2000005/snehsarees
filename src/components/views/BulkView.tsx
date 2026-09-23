@@ -81,11 +81,11 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
     const encodedMsg = encodeURIComponent(msg);
 
     try {
-      window.open(`https://wa.me/919414067123?text=${encodedMsg}`, '_blank');
+      window.open(`https://wa.me/919461037123?text=${encodedMsg}`, '_blank');
       showToast('Launching WhatsApp...');
     } catch (err) {
       console.error(err);
-      showToast('Failed to redirect to WhatsApp. Please open wa.me/919414067123 directly.');
+      showToast('Failed to redirect to WhatsApp. Please open wa.me/919461037123 directly.');
     }
   };
 
@@ -140,9 +140,9 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
   };
 
   return (
-    <div className="bg-[#FAF6F0] min-h-screen">
+    <div className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
       {/* Top sticky navigation bar */}
-      <div className="fixed top-0 left-0 right-0 h-[56px] md:h-[64px] bg-white border-b border-[#E8E0D5] flex items-center px-4 z-50 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+      <div className="fixed top-0 left-0 right-0 h-[56px] md:h-[64px] bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] flex items-center px-4 z-50 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
           onClick={onBack}
           className="w-10 h-10 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors cursor-pointer animate-scale-100 shrink-0"

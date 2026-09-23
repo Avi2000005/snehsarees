@@ -137,7 +137,7 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
           <ArrowLeft className="w-5 h-5 text-[#1A1A1A]" />
         </button>
         <div className="flex items-center gap-2 ml-2 flex-1 truncate">
-          <div className="w-8 h-8 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 md:w-11 md:h-11 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
             <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
           <span className="font-serif text-lg md:text-xl font-bold text-[#C4601A] truncate">

@@ -143,20 +143,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   const renderProductScrollCard = (p: Product, showTrendingBadge: boolean = false) => {
     const favorited = wishlist.includes(p.id);
+    const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
     const isOutOfStock = p.stock === 0;
-    const isLowStock = p.stock !== undefined && p.stock > 0 && p.stock <= 3;
+    const isLowStock = effectivePrice >= 2000 && p.stock !== undefined && p.stock > 0 && p.stock <= 3;
 
     return (
       <div
         key={p.id}
         onClick={() => !isOutOfStock && onNavigate('product', String(p.id))}
-        className={`product-card shrink-0 w-[148px] md:w-[188px] lg:w-[210px] bg-white rounded-xl overflow-hidden shadow-xs border border-[#E8E0D5] relative transition-all duration-200 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-md hover:-translate-y-0.5'
+        className={`product-card w-full bg-white rounded-2xl overflow-hidden shadow-xs border border-[#E8E0D5] relative transition-all duration-200 ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg hover:-translate-y-1'
           }`}
       >
-        <div className="product-card-img relative h-[180px] md:h-[228px] lg:h-[254px] bg-[#F0E8DC]">
+        <div className="product-card-img relative w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#F0E8DC]">
           <SareeSwatch id={p.id} imageUrl={p.image} />
           {showTrendingBadge && (
-            <div className="absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase shadow-xs">
+            <div className="absolute top-2.5 left-2.5 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase shadow-xs">
               TRENDING
             </div>
           )}
@@ -168,7 +169,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
           )}
           {isLowStock && !isOutOfStock && (
-            <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-md animate-pulse z-10">
+            <div className="absolute bottom-2.5 left-2.5 bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-md animate-pulse z-10">
               Only {p.stock} Left!
             </div>
           )}
@@ -177,33 +178,33 @@ export const HomeView: React.FC<HomeViewProps> = ({
               e.stopPropagation();
               onToggleWishlist(p.id);
             }}
-            className="wishlist-btn absolute top-2 right-2 w-7.5 h-7.5 bg-white/90 rounded-full flex items-center justify-center text-sm z-10 active:scale-120 transition-transform cursor-pointer shadow-xs"
+            className="wishlist-btn absolute top-2.5 right-2.5 w-8 h-8 bg-white/90 backdrop-blur-xs rounded-full flex items-center justify-center text-sm z-10 active:scale-120 transition-transform cursor-pointer shadow-xs"
           >
             {favorited ? '♥' : '♡'}
           </button>
         </div>
-        <div className="product-card-info p-2.5 md:p-3.5">
-          <div className="product-name font-sans text-[14px] lg:text-[15px] font-bold text-[#111111] leading-tight mb-1 line-clamp-2 min-h-[38px]">
+        <div className="product-card-info p-3 sm:p-4">
+          <div className="product-name font-sans text-[14px] sm:text-[15px] lg:text-[16px] font-bold text-[#111111] leading-snug mb-1 line-clamp-2 min-h-[40px]">
             {p.name}
           </div>
-          <div className="product-fabric text-[10px] md:text-xs font-semibold text-[#222222] mb-1.5 line-clamp-1">
+          <div className="product-fabric text-[11px] sm:text-xs font-semibold text-[#555555] mb-2 line-clamp-1">
             {p.fabric} · {p.occasion}
           </div>
-          <div className="product-price flex items-center gap-1.5 mb-2 font-sans flex-wrap">
+          <div className="product-price flex items-center gap-2 mb-3 font-sans flex-wrap">
             {p.discountPrice && p.discountPrice > 0 ? (
               <>
-                <span className="text-[14px] lg:text-[15px] font-extrabold text-[#C4601A]">
+                <span className="text-[15px] sm:text-[16px] lg:text-[17px] font-extrabold text-[#C4601A]">
                   ₹{p.discountPrice.toLocaleString('en-IN')}
                 </span>
-                <span className="text-[10px] text-gray-600 font-medium line-through">
+                <span className="text-xs text-gray-500 font-medium line-through">
                   ₹{p.price.toLocaleString('en-IN')}
                 </span>
-                <span className="text-[9px] font-bold text-emerald-700">
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
                   {Math.round(((p.price - p.discountPrice) / p.price) * 100)}% OFF
                 </span>
               </>
             ) : (
-              <span className="text-[14px] lg:text-[15px] font-extrabold text-[#C4601A]">
+              <span className="text-[15px] sm:text-[16px] lg:text-[17px] font-extrabold text-[#C4601A]">
                 ₹{p.price.toLocaleString('en-IN')}
               </span>
             )}
@@ -214,7 +215,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               e.stopPropagation();
               onAddToCart(p.id);
             }}
-            className={`card-buy-btn w-full text-white text-[10px] lg:text-xs font-bold py-1.5 md:py-2 rounded-lg tracking-wider transition-colors cursor-pointer shadow-2xs ${isOutOfStock ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#C4601A] hover:bg-[#FFF0E8]'
+            className={`card-buy-btn w-full text-white text-[11px] sm:text-xs font-bold py-2 sm:py-2.5 rounded-xl tracking-wider transition-colors cursor-pointer shadow-xs ${isOutOfStock ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#C4601A] hover:bg-[#a84e15]'
               }`}
           >
             {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
@@ -227,16 +228,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
   return (
     <div id="page-home">
       {/* Top Header Navigation */}
-      <div className="top-nav fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-full h-[56px] md:h-[60px] lg:h-[68px] bg-white border-b border-[#E8E0D5] flex items-center justify-between px-3.5 md:px-7 lg:px-12 z-20 shadow-sm gap-1 md:gap-4">
+      <div className="top-nav fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-full h-[60px] md:h-[66px] lg:h-[72px] bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] flex items-center justify-between px-3.5 md:px-7 lg:px-12 z-20 shadow-sm gap-1 md:gap-4">
         <button
           onClick={onOpenDrawer}
-          className="nav-btn w-[34px] h-[34px] md:w-10 lg:w-11 lg:h-11 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors shrink-0 cursor-pointer"
+          className="nav-btn w-[36px] h-[36px] md:w-10 lg:w-11 lg:h-11 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors shrink-0 cursor-pointer"
         >
           <Menu className="w-5 h-5 md:w-6 lg:w-6 text-[#1A1A1A]" />
         </button>
 
-        <div className="nav-brand font-serif text-[19px] md:text-[22px] lg:text-[26.4px] font-bold text-[#C4601A] tracking-wider text-center flex-1 truncate flex items-center justify-center gap-2">
-          <div className="w-8 h-8 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0">
+        <div className="nav-brand font-serif text-[19px] md:text-[22px] lg:text-[26.4px] font-bold text-[#C4601A] tracking-wider text-center flex-1 truncate flex items-center justify-center gap-2.5">
+          <div className="w-[42px] h-[42px] md:w-[48px] md:h-[48px] lg:w-[54px] lg:h-[54px] rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
             <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
           <span><span className="text-[#C4601A]">Sneh</span> <span className="text-[#E8920E]">Sarees</span></span>
@@ -272,12 +273,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       </div>
 
-      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-[64px] md:pt-[70px] lg:pt-[80px] pb-[80px] md:pb-[96px]">
+      <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-[68px] md:pt-[76px] lg:pt-[82px] pb-[80px] md:pb-[96px]">
         {/* Clickable Search Placeholder */}
         <div className="search-bar-wrap py-2.5 md:py-3 cursor-pointer">
           <div
             onClick={() => onNavigate('search')}
-            className="search-bar w-full bg-[#F0E8DC] border border-[#E8E0D5] rounded-full p-2.5 px-4 flex items-center gap-2.5 focus-within:border-[#C4601A] transition-colors md:p-3"
+            className="search-bar w-full bg-white/90 backdrop-blur-xs border border-[#E8E0D5] rounded-full p-2.5 px-4 flex items-center gap-2.5 focus-within:border-[#C4601A] transition-colors md:p-3 shadow-3xs"
           >
             <Search className="w-[18px] h-[18px] text-[#888888] shrink-0" />
             <input
@@ -512,7 +513,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </div>
 
                 {filtered.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-6">
                     {filtered.map((p) => renderProductScrollCard(p))}
                   </div>
                 ) : (
@@ -663,7 +664,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       </div>
                       <span className="text-xs text-[#333333] font-bold">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-6">
                       {filtered.map((p) => renderProductScrollCard(p))}
                     </div>
                   </div>

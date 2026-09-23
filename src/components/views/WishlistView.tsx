@@ -9,6 +9,7 @@ interface WishlistViewProps {
   onBack: () => void;
   onToggleWishlist: (id: number) => void;
   onAddToCart: (id: number, colour?: string) => void;
+  onBuyNow: (id: number, colour?: string, directProduct?: Product) => void;
   productsList: Product[];
 }
 
@@ -18,6 +19,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
   onBack,
   onToggleWishlist,
   onAddToCart,
+  onBuyNow,
   productsList
 }) => {
   const wishlistItems = productsList.filter((p) => wishlist.includes(p.id));
@@ -29,9 +31,9 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
       <div
         key={p.id}
         onClick={() => onNavigate('product', String(p.id))}
-        className="grid-product-card bg-white rounded-xl overflow-hidden shadow-xs border border-[#E8E0D5] cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all"
+        className="grid-product-card bg-white rounded-2xl overflow-hidden shadow-xs border border-[#E8E0D5] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all"
       >
-        <div className="grid-card-img relative h-[190px] md:h-[228px] lg:h-[250px] bg-[#F0E8DC]">
+        <div className="grid-card-img relative w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#F0E8DC]">
           <SareeSwatch id={p.id} imageUrl={p.image} />
           {isTrending && (
             <div className="trending-badge absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase">
@@ -75,8 +77,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAddToCart(p.id);
-                onNavigate('checkout');
+                onBuyNow(p.id, undefined, p);
               }}
               className="grid-buy-btn w-full bg-[#C4601A] text-white text-[11px] font-semibold py-1.5 rounded-lg hover:bg-[#FFF0E8] active:scale-98 transition-transform cursor-pointer"
             >

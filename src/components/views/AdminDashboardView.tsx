@@ -6,7 +6,7 @@ import {
   ArrowLeft, LogIn, Lock, Mail, LayoutDashboard, ShoppingBag,
   Users, Layers, Trash2, Edit3, PlusCircle, CheckCircle, RefreshCw, X, MapPin,
   Tag, MessageSquare, Film, RotateCcw, FileSpreadsheet, Download, Upload, AlertCircle, FileText, CheckCircle2,
-  Image as ImageIcon, Camera, Sparkles, Check
+  Image as ImageIcon, Camera, Sparkles, Check, Archive, Globe
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -61,6 +61,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [prodCategoryId, setProdCategoryId] = useState('');
   const [prodStock, setProdStock] = useState('10');
   const [prodReelUrl, setProdReelUrl] = useState('');
+  const [prodIsArchived, setProdIsArchived] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Banner state
@@ -109,6 +110,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   // Custom Color and Variants states
   const [selectedAdminCategory, setSelectedAdminCategory] = useState('all');
+  const [catalogStatusFilter, setCatalogStatusFilter] = useState<'all' | 'live' | 'archived' | 'no-image'>('all');
   const [prodColourInputMode, setProdColourInputMode] = useState<'preset' | 'custom'>('preset');
   const [customColourVal, setCustomColourVal] = useState('');
   const [prodVariants, setProdVariants] = useState<{ colour: string; image: string }[]>([]);
@@ -222,7 +224,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       const headers = { Authorization: `Bearer ${token}` };
 
       const [resProd, resOrders, resInq, resCats, resBanners, resCoupons, resReviews, resReels, resReturns] = await Promise.all([
-        fetch(`${API_URL}/api/products`),
+        fetch(`${API_URL}/api/products?all=true`),
         fetch(`${API_URL}/api/admin/orders`, { headers }),
         fetch(`${API_URL}/api/admin/inquiries`, { headers }),
         fetch(`${API_URL}/api/categories`),
@@ -518,6 +520,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       return;
     }
 
+    // Image check: sarees cannot be published without an image
+    if (!prodIsArchived && (!prodImage || prodImage.trim() === '')) {
+      showToast('Cannot publish saree without an image. Please attach an image or put in archive.');
+      return;
+    }
+
     const payload = {
       name: prodName,
       price: parseFloat(prodPrice),
@@ -532,7 +540,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       categoryId: prodCategoryId ? parseInt(prodCategoryId, 10) : undefined,
       variants: prodVariants,
       tags: editingProduct ? editingProduct.tags : ['new'],
-      reelUrl: prodReelUrl.trim() || null
+      reelUrl: prodReelUrl.trim() || null,
+      isArchived: prodIsArchived
     };
 
     try {
@@ -589,7 +598,38 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setProdCategoryId(p.categoryId ? p.categoryId.toString() : '');
     setProdVariants(p.variants || []);
     setProdReelUrl(p.reelUrl || '');
+    setProdIsArchived(p.isArchived === true);
     setShowProductModal(true);
+  };
+
+  const handleToggleArchive = async (product: Product) => {
+    const newArchived = !product.isArchived;
+
+    // Saree cannot be published to live site without an image
+    if (!newArchived && (!product.image || product.image.trim() === '')) {
+      showToast('Cannot publish saree without an image. Please link an image first.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/admin/products/${product.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ isArchived: newArchived })
+      });
+
+      if (res.ok) {
+        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, isArchived: newArchived } : p));
+        showToast(newArchived ? `"${product.name}" moved to Archive (hidden from live website).` : `"${product.name}" published (now live on website).`);
+      } else {
+        showToast('Failed to update saree status.');
+      }
+    } catch (err) {
+      showToast('Network error updating archive status.');
+    }
   };
 
   const handleDeleteProduct = async (id: number) => {
@@ -631,6 +671,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setNewVariantColour('');
     setNewVariantImage('');
     setProdReelUrl('');
+    setProdIsArchived(false);
   };
 
   // Excel Template Generator
@@ -1758,6 +1799,46 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     </select>
                   </div>
 
+                  {/* Status Filter Tabs */}
+                  <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#E8E0D5] flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStatusFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        catalogStatusFilter === 'all' ? 'bg-white text-[#C4601A] shadow-3xs' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      All ({products.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStatusFilter('live')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        catalogStatusFilter === 'live' ? 'bg-white text-emerald-700 shadow-3xs' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      ● Live ({products.filter(p => !p.isArchived && Boolean(p.image && p.image.trim() !== '')).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStatusFilter('archived')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        catalogStatusFilter === 'archived' ? 'bg-white text-amber-800 shadow-3xs' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      📦 Archived ({products.filter(p => p.isArchived === true).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStatusFilter('no-image')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        catalogStatusFilter === 'no-image' ? 'bg-white text-red-700 shadow-3xs' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      ⚠️ Needs Photo ({products.filter(p => !p.image || p.image.trim() === '').length})
+                    </button>
+                  </div>
+
                   {/* Download Template Button */}
                   <button
                     type="button"
@@ -1816,59 +1897,112 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
 
               <div className="bg-white rounded-2xl border border-[#E8E0D5] overflow-hidden divide-y divide-[#E8E0D5] shadow-2xs">
-                {(selectedAdminCategory === 'all'
-                  ? products
-                  : products.filter(p => p.categoryId === parseInt(selectedAdminCategory, 10))
-                ).map((p) => (
-                  <div key={p.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#FAF6F0]/20">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {p.code ? (
-                          <span className="font-mono text-[11px] font-extrabold bg-[#FFF0E8] text-[#C4601A] border border-[#C4601A]/30 px-2 py-0.5 rounded-md shadow-3xs" title="Reference ID for photo matching">
-                            REF: {p.code}
-                          </span>
-                        ) : (
-                          <span className="font-mono text-[11px] font-bold bg-[#FAF6F0] text-[#888888] border border-[#E8E0D5] px-2 py-0.5 rounded-md shadow-3xs">
-                            ID: #{p.id}
-                          </span>
-                        )}
-                        <span className="font-bold text-[#1A1A1A] text-sm">{p.name}</span>
-                        {p.image ? (
-                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                            Photo Linked
-                          </span>
-                        ) : (
-                          <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" title={`Upload photo named ${p.code || p.id}.webp in Bulk Photos`}>
-                            Needs Photo ({p.code ? `${p.code}.webp` : `${p.id}.webp`})
-                          </span>
-                        )}
+                {products
+                  .filter(p => selectedAdminCategory === 'all' || p.categoryId === parseInt(selectedAdminCategory, 10))
+                  .filter(p => {
+                    if (catalogStatusFilter === 'live') return !p.isArchived && Boolean(p.image && p.image.trim() !== '');
+                    if (catalogStatusFilter === 'archived') return p.isArchived === true;
+                    if (catalogStatusFilter === 'no-image') return !p.image || p.image.trim() === '';
+                    return true;
+                  })
+                  .map((p) => {
+                    const hasImage = Boolean(p.image && p.image.trim() !== '');
+                    const isArchived = p.isArchived === true;
+                    const isLive = hasImage && !isArchived;
+
+                    return (
+                      <div key={p.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#FAF6F0]/20 gap-3">
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {p.code ? (
+                              <span className="font-mono text-[11px] font-extrabold bg-[#FFF0E8] text-[#C4601A] border border-[#C4601A]/30 px-2 py-0.5 rounded-md shadow-3xs" title="Reference ID for photo matching">
+                                REF: {p.code}
+                              </span>
+                            ) : (
+                              <span className="font-mono text-[11px] font-bold bg-[#FAF6F0] text-[#888888] border border-[#E8E0D5] px-2 py-0.5 rounded-md shadow-3xs">
+                                ID: #{p.id}
+                              </span>
+                            )}
+                            <span className="font-bold text-[#1A1A1A] text-sm">{p.name}</span>
+
+                            {/* Status Badges */}
+                            {isLive ? (
+                              <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title="Visible on live customer website">
+                                ● Live on Website
+                              </span>
+                            ) : isArchived ? (
+                              <span className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title="Archived: hidden from live website">
+                                📦 Archived (Hidden)
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title={`Upload photo named ${p.code || p.id}.webp in Bulk Photos`}>
+                                ⚠️ Needs Photo (Draft)
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-3 text-[#888888] text-[10px] flex-wrap">
+                            <span>Fabric: <strong>{p.fabric || '—'}</strong></span>
+                            <span>Occasion: <strong>{p.occasion || '—'}</strong></span>
+                            <span>Category: <strong>{categories.find(c => c.id === p.categoryId)?.name || 'Unassigned'}</strong></span>
+                            <span>Stock: <strong className={p.stock === 0 ? "text-red-600 font-extrabold" : "text-gray-800"}>{p.stock !== undefined ? p.stock : 0} qty</strong></span>
+                            <span>Price: <strong className="text-[#C4601A]">₹{p.price}</strong></span>
+                            {p.discountPrice && p.discountPrice > 0 ? (
+                              <span>Discount: <strong className="text-emerald-700">₹{p.discountPrice}</strong></span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* Archive / Publish Toggle Button */}
+                          {isArchived ? (
+                            <button
+                              onClick={() => handleToggleArchive(p)}
+                              className="px-2.5 py-1 text-xs font-bold rounded-lg border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors flex items-center gap-1.5 cursor-pointer shadow-3xs"
+                              title="Make this saree live on public website"
+                            >
+                              <Globe className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Publish</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleArchive(p)}
+                              className="px-2.5 py-1 text-xs font-bold rounded-lg border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-3xs"
+                              title="Put saree into archive (hide from live website)"
+                            >
+                              <Archive className="w-3.5 h-3.5 text-gray-600" />
+                              <span>Archive</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleEditProductClick(p)}
+                            className="p-1.5 hover:bg-gray-100 rounded-lg text-blue-600 transition-colors cursor-pointer border border-transparent hover:border-gray-200"
+                            title="Edit details/price"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id)}
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-red-600 transition-colors cursor-pointer border border-transparent hover:border-red-200"
+                            title="Delete product"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-3 text-[#888888] text-[10px] flex-wrap">
-                        <span>Fabric: <strong>{p.fabric || '—'}</strong></span>
-                        <span>Occasion: <strong>{p.occasion || '—'}</strong></span>
-                        <span>Category: <strong>{categories.find(c => c.id === p.categoryId)?.name || 'Unassigned'}</strong></span>
-                        <span>Stock: <strong className={p.stock === 0 ? "text-red-600 font-extrabold" : "text-gray-800"}>{p.stock !== undefined ? p.stock : 0} qty</strong></span>
-                        <span>Price: <strong className="text-[#C4601A]">₹{p.price}</strong></span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEditProductClick(p)}
-                        className="p-2 hover:bg-gray-100 rounded-full text-blue-600 transition-colors cursor-pointer"
-                        title="Edit details/price"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProduct(p.id)}
-                        className="p-2 hover:bg-red-50 rounded-full text-red-600 transition-colors cursor-pointer"
-                        title="Delete product"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    );
+                  })}
+                {products
+                  .filter(p => selectedAdminCategory === 'all' || p.categoryId === parseInt(selectedAdminCategory, 10))
+                  .filter(p => {
+                    if (catalogStatusFilter === 'live') return !p.isArchived && Boolean(p.image && p.image.trim() !== '');
+                    if (catalogStatusFilter === 'archived') return p.isArchived === true;
+                    if (catalogStatusFilter === 'no-image') return !p.image || p.image.trim() === '';
+                    return true;
+                  }).length === 0 && (
+                  <div className="p-8 text-center text-xs text-gray-500 bg-white">
+                    No sarees found matching the selected filter.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -3071,10 +3205,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 </label>
               </div>
 
-              {/* Color Variants Builder */}
+              {/* More Photos / Angles Builder */}
               <div className="bg-gray-50 border border-dashed border-[#E8E0D5] rounded-xl p-3 space-y-3">
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-[#C4601A]">
-                  Saree Color Variants (Photos)
+                  More Photos / Angles (Gallery)
                 </span>
 
                 {/* List of existing variants */}
@@ -3104,7 +3238,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         type="text"
                         value={newVariantColour}
                         onChange={(e) => setNewVariantColour(e.target.value)}
-                        placeholder="Variant color"
+                        placeholder="Photo / Angle label (e.g. Angle 1, Angle 2)"
                         className="w-full bg-white border border-[#E8E0D5] rounded-lg p-2 text-[10px] font-semibold focus:outline-none focus:border-[#C4601A]"
                       />
                     </div>
@@ -3133,7 +3267,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     onClick={handleAddVariant}
                     className="w-full bg-white hover:bg-gray-100 text-[#C4601A] border border-[#C4601A]/20 font-bold py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer"
                   >
-                    + Add Color Variant
+                    + Add Photo / Angle
                   </button>
                 </div>
               </div>
@@ -3148,11 +3282,26 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 />
               </div>
 
+              <div className="flex items-center gap-2.5 p-3 bg-amber-50/70 border border-amber-200 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="archive-check"
+                  checked={prodIsArchived}
+                  onChange={(e) => setProdIsArchived(e.target.checked)}
+                  className="w-4 h-4 accent-[#C4601A] cursor-pointer"
+                />
+                <label htmlFor="archive-check" className="text-xs font-bold text-amber-900 cursor-pointer flex-1">
+                  📦 Put in Archive (Keep hidden from live website)
+                </label>
+              </div>
+
               <button
                 type="submit"
                 className="w-full bg-[#C4601A] text-white py-3.5 rounded-xl text-xs font-bold hover:bg-[#FFF0E8] transition-colors cursor-pointer"
               >
-                {editingProduct ? 'Save Saree Changes' : 'Publish Saree to Inventory'}
+                {editingProduct 
+                  ? (prodIsArchived ? 'Save Changes (Keep in Archive)' : 'Save Changes & Keep Live') 
+                  : (prodIsArchived ? 'Add Saree to Archive' : 'Publish Saree to Live Website')}
               </button>
             </form>
           </div>

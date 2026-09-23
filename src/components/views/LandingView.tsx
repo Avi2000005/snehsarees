@@ -25,7 +25,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       return;
     }
     const text = `Namaste Sneh Sarees!\n\nI have a website enquiry:\n\n*Name:* ${formData.name}\n*Contact (Phone/Email):* ${formData.contact}\n*Message:* ${formData.message}`;
-    window.open(`https://wa.me/919414067123?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://wa.me/919461037123?text=${encodeURIComponent(text)}`, '_blank');
   };
   const getHostSymbol = (symbol: string) => {
     switch (symbol) {
@@ -49,7 +49,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       {/* Sticky Header Navigation Bar */}
       <header className="sticky top-0 left-0 right-0 h-16 brand-gradient border-b border-[#F5E4BC]/30 flex items-center justify-between px-6 z-50 shadow-md">
         <div className="font-serif text-xl font-bold text-white tracking-wide cursor-pointer flex items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <div className="w-9 h-9 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 md:w-12 md:h-12 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
             <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
           <span>Sneh <span className="text-[#F5E4BC]">Sarees</span></span>
@@ -325,9 +325,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
           {/* Bottom Border */}
           <rect y="calc(100% - 40px)" width="100%" height="40" fill="url(#saree-border-bottom)" opacity="0.35" />
         </svg>
-        {/* Motif Deco */}
-        <div className="mb-6 drop-shadow-[0_4px_16px_rgba(245,228,188,0.5)]">
-          <div className="w-24 h-24 rounded-full border-[3px] border-[#F5E4BC] p-1 bg-white overflow-hidden flex items-center justify-center">
+        {/* Motif Deco - Prominent Hero Logo Circle */}
+        <div className="mt-8 md:mt-12 mb-6 drop-shadow-[0_8px_32px_rgba(245,228,188,0.7)]">
+          <div className="w-36 h-36 md:w-44 md:h-44 rounded-full border-4 border-[#F5E4BC] p-1.5 bg-white overflow-hidden flex items-center justify-center shadow-2xl transition-transform hover:scale-105 duration-300">
             <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
         </div>
@@ -429,7 +429,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-[#222222] uppercase tracking-wider">Phone Number</h4>
-                    <a href="tel:+919414067123" className="text-sm md:text-base font-bold text-[#111111] hover:text-[#C4601A] transition-colors">+91 94140 67123</a>
+                    <a href="tel:+919461037123" className="text-sm md:text-base font-bold text-[#111111] hover:text-[#C4601A] transition-colors">+91 94610 37123</a>
                   </div>
                 </div>
 

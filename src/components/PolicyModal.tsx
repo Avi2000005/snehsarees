@@ -467,7 +467,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             </div>
             <div className="flex gap-2 flex-wrap shrink-0">
               <a
-                href={`https://wa.me/${BUSINESS_WHATSAPP || '919414067123'}?text=${encodeURIComponent('Namaste Sneh Sarees! I have a question regarding store policies.')}`}
+                href={`https://wa.me/${BUSINESS_WHATSAPP || '919461037123'}?text=${encodeURIComponent('Namaste Sneh Sarees! I have a question regarding store policies.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-[#25D366] hover:bg-[#1EBE5D] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"

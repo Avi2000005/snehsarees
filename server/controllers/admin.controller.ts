@@ -20,7 +20,7 @@ export const getAllOrders = async (req: Request, res: Response, next: NextFuncti
 // Product CRUD
 export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, price, fabric, occasion, colour, tags, isReel, views, rating, reviews, blouse, desc, image, stock, categoryId, variants, discountPrice, reelUrl } = req.body;
+    const { name, price, fabric, occasion, colour, tags, isReel, views, rating, reviews, blouse, desc, image, stock, categoryId, variants, discountPrice, reelUrl, isArchived } = req.body;
 
     const newProduct = await db.createProduct({
       name: name ? String(name).trim() : 'Untitled Saree',
@@ -40,7 +40,8 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       stock: stock !== undefined && stock !== null && stock !== '' ? parseInt(stock, 10) : 10,
       categoryId: categoryId !== undefined && categoryId !== null && categoryId !== '' ? parseInt(categoryId, 10) : undefined,
       variants: Array.isArray(variants) ? variants : [],
-      reelUrl: reelUrl ? String(reelUrl).trim() : undefined
+      reelUrl: reelUrl ? String(reelUrl).trim() : undefined,
+      isArchived: Boolean(isArchived)
     });
 
     res.status(201).json(newProduct);
@@ -168,7 +169,8 @@ export const createBulkProducts = async (req: Request, res: Response, next: Next
         categoryId,
         variants: Array.isArray(item.variants) ? item.variants : [],
         reelUrl: item.reelUrl ? String(item.reelUrl).trim() : undefined,
-        code: item.code ? String(item.code).trim() : undefined
+        code: item.code ? String(item.code).trim() : undefined,
+        isArchived: Boolean(item.isArchived)
       };
     });
 

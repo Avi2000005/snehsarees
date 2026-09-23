@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
 import { CHATBOT_RESPONSES, INTENT_MAP } from '../data';
 import { ActivePage } from '../types';
+import { BUSINESS_WHATSAPP } from '../config';
 
 interface ChatbotProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
       if (action === 'wa') {
         try {
           window.open(
-            'https://wa.me/919414067123?text=Namaste%20Snehsarees!%20I%20would%20like%20to%20know%20more%20about%20your%20sarees.',
+            `https://wa.me/${BUSINESS_WHATSAPP || '919461037123'}?text=Namaste%20Snehsarees!%20I%20would%20like%20to%20know%20more%20about%20your%20sarees.`,
             '_blank'
           );
         } catch (e) {

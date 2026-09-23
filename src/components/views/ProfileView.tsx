@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, User, ShoppingBag, LogIn, LogOut, Lock, Shield, FileText, HelpCircle, X, Home, MapPin, Edit3, Trash2, KeyRound, CheckCircle, Mail, Phone, Plus, Check, Truck, RotateCcw, Ban } from 'lucide-react';
+import { ArrowLeft, User, ShoppingBag, LogIn, LogOut, Lock, Shield, FileText, HelpCircle, X, Home, MapPin, Edit3, Trash2, KeyRound, CheckCircle, Mail, Phone, Plus, Check, Truck, RotateCcw, Ban, Loader2 } from 'lucide-react';
 import { ActivePage, UserProfile, UserAddress } from '../../types';
 import { API_URL } from '../../config';
 import { PolicyModal, PolicyTab } from '../PolicyModal';
+import { INDIAN_STATES, getDistrictsForState, lookupPincode } from '../../data/indiaLocations';
 
 interface ProfileViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -48,6 +49,55 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [addrState, setAddrState] = useState('');
   const [addrPin, setAddrPin] = useState('');
   const [addrDefault, setAddrDefault] = useState(false);
+
+  // PIN lookup state for Profile Address modal
+  const [isAddrPinSearching, setIsAddrPinSearching] = useState(false);
+  const [addrPinStatusMsg, setAddrPinStatusMsg] = useState<{ text: string; type: 'success' | 'error' | 'loading' } | null>(null);
+  const [addrPostOffices, setAddrPostOffices] = useState<string[]>([]);
+
+  const triggerAddrPinLookup = async (pinVal: string) => {
+    const clean = pinVal.replace(/\D/g, '').slice(0, 6);
+    if (clean.length !== 6) return;
+    setIsAddrPinSearching(true);
+    setAddrPinStatusMsg({ text: 'Verifying PIN code...', type: 'loading' });
+    try {
+      const res = await lookupPincode(clean);
+      if (res && res.state) {
+        setAddrState(res.state);
+        if (res.district) setAddrCity(res.district);
+        if (res.postOffices && res.postOffices.length > 0) {
+          setAddrPostOffices(res.postOffices);
+        }
+        setAddrPinStatusMsg({
+          text: `Auto-detected: ${res.district ? res.district + ', ' : ''}${res.state}`,
+          type: 'success'
+        });
+      } else {
+        setAddrPinStatusMsg({
+          text: 'PIN not found. Select State & District manually.',
+          type: 'error'
+        });
+      }
+    } catch {
+      setAddrPinStatusMsg({
+        text: 'PIN lookup offline. Select State & District manually.',
+        type: 'error'
+      });
+    } finally {
+      setIsAddrPinSearching(false);
+    }
+  };
+
+  const handleAddrPinChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 6);
+    setAddrPin(clean);
+    if (clean.length < 6) {
+      setAddrPinStatusMsg(null);
+      setAddrPostOffices([]);
+    } else if (clean.length === 6) {
+      triggerAddrPinLookup(clean);
+    }
+  };
 
   // Password State
   const [newPassword, setNewPassword] = useState('');
@@ -128,6 +178,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setAddrState('');
     setAddrPin('');
     setAddrDefault(false);
+    setAddrPinStatusMsg(null);
+    setAddrPostOffices([]);
     setAddressModalOpen(true);
   };
 
@@ -140,6 +192,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setAddrState(addr.state);
     setAddrPin(addr.pinCode);
     setAddrDefault(addr.isDefault);
+    setAddrPinStatusMsg(null);
+    setAddrPostOffices([]);
     setAddressModalOpen(true);
   };
 
@@ -263,9 +317,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   return (
-    <div id="page-profile" className="bg-[#FAF6F0] min-h-screen">
+    <div id="page-profile" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
       {/* Header bar */}
-      <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+      <div className="va-top-bar sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
           className="va-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
           onClick={subView === 'main' ? onBack : () => setSubView('main')}
@@ -893,48 +947,133 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                    City *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="City"
-                    value={addrCity}
-                    onChange={e => setAddrCity(e.target.value)}
-                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+              {/* Pincode with Auto-detection */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider">
                     Pincode *
                   </label>
+                  <span className="text-[10px] font-semibold text-[#C4601A]">
+                    ⚡ Auto-fills State & District
+                  </span>
+                </div>
+                <div className="relative">
                   <input
                     type="text"
-                    placeholder="6-digit PIN"
+                    placeholder="Enter 6-digit PIN code"
                     value={addrPin}
-                    onChange={e => setAddrPin(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                    onChange={e => handleAddrPinChange(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 pr-20 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                     maxLength={6}
                     required
                   />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {isAddrPinSearching ? (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-[#C4601A] bg-[#FFF5EE] px-1.5 py-0.5 rounded">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Checking
+                      </span>
+                    ) : addrPin.length === 6 ? (
+                      <button
+                        type="button"
+                        onClick={() => triggerAddrPinLookup(addrPin)}
+                        className="text-[10px] font-semibold text-[#C4601A] hover:bg-[#FFF5EE] px-1.5 py-0.5 rounded border border-[#E8E0D5] transition-colors cursor-pointer"
+                      >
+                        Verify
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
+
+                {addrPinStatusMsg && (
+                  <div
+                    className={`mt-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 ${
+                      addrPinStatusMsg.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : addrPinStatusMsg.type === 'loading'
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    }`}
+                  >
+                    {addrPinStatusMsg.type === 'success' && <Check className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
+                    {addrPinStatusMsg.type === 'loading' && <Loader2 className="w-3 h-3 animate-spin text-amber-600 flex-shrink-0" />}
+                    {addrPinStatusMsg.type === 'error' && <span className="text-rose-500 font-bold">ℹ</span>}
+                    <span>{addrPinStatusMsg.text}</span>
+                  </div>
+                )}
+
+                {addrPostOffices.length > 0 && (
+                  <div className="mt-2 p-2 bg-[#FAF6F0] rounded-lg border border-[#E8E0D5]">
+                    <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block mb-1">
+                      Local Post Offices in this PIN:
+                    </span>
+                    <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                      {addrPostOffices.slice(0, 6).map((po) => (
+                        <button
+                          key={po}
+                          type="button"
+                          onClick={() => {
+                            if (!addrLine2) setAddrLine2(po);
+                            else if (!addrLine2.includes(po)) setAddrLine2(`${addrLine2}, Near ${po}`);
+                            showToast(`Added ${po} to address`);
+                          }}
+                          className="text-[10px] bg-white border border-[#E8E0D5] hover:border-[#C4601A] hover:text-[#C4601A] px-1.5 py-0.5 rounded text-gray-700 transition-colors cursor-pointer"
+                        >
+                          + {po}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  State *
-                </label>
-                <input
-                  type="text"
-                  placeholder="State"
-                  value={addrState}
-                  onChange={e => setAddrState(e.target.value)}
-                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                  required
-                />
+              {/* State & District Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                    State / UT *
+                  </label>
+                  <select
+                    value={addrState}
+                    onChange={e => {
+                      setAddrState(e.target.value);
+                      setAddrCity('');
+                    }}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A] text-[#1A1A1A] cursor-pointer"
+                    required
+                  >
+                    <option value="">-- Select State / UT --</option>
+                    {INDIAN_STATES.map(st => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                    {addrState && !INDIAN_STATES.includes(addrState) && (
+                      <option value={addrState}>{addrState}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                    District / City *
+                  </label>
+                  <select
+                    value={addrCity}
+                    onChange={e => setAddrCity(e.target.value)}
+                    disabled={!addrState}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A] text-[#1A1A1A] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    required
+                  >
+                    <option value="">
+                      {!addrState ? '-- Select State First --' : '-- Select District --'}
+                    </option>
+                    {getDistrictsForState(addrState).map(dist => (
+                      <option key={dist} value={dist}>{dist}</option>
+                    ))}
+                    {addrCity && !getDistrictsForState(addrState).includes(addrCity) && (
+                      <option value={addrCity}>{addrCity}</option>
+                    )}
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 pt-2">

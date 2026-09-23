@@ -16,9 +16,11 @@ interface DrawerProps {
   onClose: () => void;
   onNavigate: (page: ActivePage, param?: string) => void;
   showToast: (msg: string) => void;
+  user?: { name?: string; email?: string } | null;
+  onLogout?: () => void;
 }
 
-export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, showToast }) => {
+export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, showToast, user, onLogout }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [policyOpen, setPolicyOpen] = useState(false);
 
@@ -32,9 +34,8 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
   }, [isOpen]);
 
   const handleLogout = () => {
-    showToast('Signed out of guest session successfully');
+    if (onLogout) onLogout();
     onClose();
-    onNavigate('landing');
   };
 
   // Short store-related category labels mapping
@@ -150,16 +151,28 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
             <span className="text-[13px] font-semibold text-[#1A1A1A] group-hover:text-[#C4601A]">Store Policies &amp; Legal</span>
           </button>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="drawer-item w-full text-left flex items-center gap-3 px-4 py-3 border-b border-[#F0EAE2] hover:bg-red-50 text-red-600 transition-colors cursor-pointer"
-          >
-            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-              <LogOut className="w-4 h-4 text-red-500" />
-            </div>
-            <span className="text-[13px] font-semibold">Logout</span>
-          </button>
+          {/* Login / Logout — conditional on auth state */}
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="drawer-item w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-red-50 text-red-600 transition-colors cursor-pointer rounded-xl"
+            >
+              <div className="w-8.5 h-8.5 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                <LogOut className="w-4 h-4 text-red-500" />
+              </div>
+              <span className="text-[13px] font-semibold">Logout</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => { onNavigate('auth'); onClose(); }}
+              className="drawer-item w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-[#FFF0E8] transition-colors cursor-pointer rounded-xl group"
+            >
+              <div className="w-8.5 h-8.5 rounded-lg bg-[#FFF0E8] border border-[#F0C8A0]/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-4 h-4 text-[#C4601A]" />
+              </div>
+              <span className="text-[13px] font-semibold text-[#C4601A]">Login / Register</span>
+            </button>
+          )}
         </div>
       </div>
 

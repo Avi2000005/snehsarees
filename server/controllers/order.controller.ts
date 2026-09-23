@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { db } from '../data/db';
 import { razorpayInstance } from '../config/razorpay';
 import { ENV } from '../config/env';
@@ -108,11 +108,8 @@ export const syncCustomerOrderTracking = async (req: UserRequest, res: Response,
 export const createRazorpayOrder = async (req: UserRequest, res: Response, next: NextFunction) => {
   try {
     const { name, phone, address, city, pincode, state, items, method, couponCode } = req.body;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Sign in to place an order.' });
-    }
+    // userId is optional — guests can place orders without being logged in
+    const userId = req.user?.id || null;
 
     if (!name || !phone || !address || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Invalid order payload. Delivery information and products are required.' });
@@ -286,11 +283,8 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
 export const verifyRazorpayPayment = async (req: UserRequest, res: Response, next: NextFunction) => {
   try {
     const { order_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Sign in required to verify payments.' });
-    }
+    // userId is optional — guests can verify payments too
+    const userId = req.user?.id || null;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ error: 'Missing payment signature verification parameters.' });
@@ -298,8 +292,12 @@ export const verifyRazorpayPayment = async (req: UserRequest, res: Response, nex
 
     const targetOrderId = order_id || razorpay_order_id;
     const order = await db.getOrderById(targetOrderId);
-    if (!order || (order as any).userId !== userId) {
+    // If order has a userId, ensure the requester matches (logged-in user). Guests (userId=null) can verify their own orders.
+    if (!order) {
       return res.status(404).json({ error: 'Order not found.' });
+    }
+    if ((order as any).userId && userId && (order as any).userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized.' });
     }
 
     const finalizeOrder = async () => {
@@ -391,6 +389,52 @@ export const getOrderInvoice = async (req: UserRequest, res: Response, next: Nex
     }
 
     res.json({ invoiceUrl });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /api/orders/guest-track
+ * Allows a guest (or anyone) to look up an order by Order ID + Phone Number.
+ * The phone must match the last 10 digits stored on the order for basic security.
+ */
+export const guestTrackOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId, phone } = req.body;
+
+    if (!orderId || !phone) {
+      return res.status(400).json({ error: 'Order ID and phone number are required.' });
+    }
+
+    const order = await db.getOrderById(orderId.trim().toUpperCase());
+    if (!order) {
+      return res.status(404).json({ error: 'No order found with this ID. Please check and try again.' });
+    }
+
+    // Match last 10 digits of stored phone to last 10 digits entered (handles country codes)
+    const storedPhone = String((order as any).phone || '').replace(/\D/g, '').slice(-10);
+    const enteredPhone = String(phone).replace(/\D/g, '').slice(-10);
+
+    if (!storedPhone || storedPhone !== enteredPhone) {
+      return res.status(404).json({ error: 'No order found with this ID and phone number. Please check and try again.' });
+    }
+
+    // Sync live tracking status before returning
+    try {
+      const orderStatus = (order as any).status || '';
+      if (['paid', 'placed', 'processing', 'shipped'].includes(orderStatus)) {
+        await syncShiprocketOrderStatus(order.id);
+        const freshOrder = await db.getOrderById(order.id);
+        if (freshOrder) {
+          return res.json({ order: freshOrder });
+        }
+      }
+    } catch {
+      // Non-fatal — return order as-is if sync fails
+    }
+
+    res.json({ order });
   } catch (err) {
     next(err);
   }

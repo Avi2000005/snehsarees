@@ -11,6 +11,7 @@ interface ViewAllViewProps {
   activeType: string;
   onToggleWishlist: (id: number) => void;
   onAddToCart: (id: number, colour?: string) => void;
+  onBuyNow: (id: number, colour?: string, directProduct?: Product) => void;
   wishlist: number[];
   cartCount: number;
 }
@@ -23,6 +24,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
   activeType = 'all',
   onToggleWishlist,
   onAddToCart,
+  onBuyNow,
   wishlist,
   cartCount
 }) => {
@@ -203,7 +205,8 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
     const favorited = wishlist.includes(p.id);
     const isTrending = p.tags && p.tags.includes('trending');
     const isOutOfStock = p.stock === 0;
-    const isLowStock = p.stock !== undefined && p.stock > 0 && p.stock <= 3;
+    const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
+    const isLowStock = effectivePrice >= 2000 && p.stock !== undefined && p.stock > 0 && p.stock <= 3;
 
     return (
       <div
@@ -275,8 +278,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
               disabled={isOutOfStock}
               onClick={(e) => {
                 e.stopPropagation();
-                onAddToCart(p.id);
-                onNavigate('cart');
+                onBuyNow(p.id, undefined, p);
               }}
               className={`grid-buy-btn w-full text-white text-[11px] font-bold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer shadow-2xs ${
                 isOutOfStock
@@ -319,7 +321,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onAddToCart(p.id);
+              onBuyNow(p.id, undefined, p);
             }}
             className="reel-grid-buy text-[10px] font-semibold text-white border border-white/60 py-1 px-2.5 rounded-lg inline-block hover:bg-white hover:text-black transition-colors pointer-events-auto"
           >

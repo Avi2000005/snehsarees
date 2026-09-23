@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Banknote, Home, Plus, X, ShieldCheck, Lock, Check } from 'lucide-react';
+import { ArrowLeft, Banknote, Home, Plus, X, ShieldCheck, Lock, Check, Loader2 } from 'lucide-react';
 import { CartItem, ActivePage, Order, UserProfile, UserAddress } from '../../types';
 import { API_URL } from '../../config';
 import { PolicyModal, PolicyTab } from '../PolicyModal';
+import { INDIAN_STATES, getDistrictsForState, lookupPincode } from '../../data/indiaLocations';
 
 interface CheckoutViewProps {
   cart: CartItem[];
   onNavigate: (page: ActivePage, param?: string) => void;
+  onBack?: () => void;
   onOrderConfirm: (order: Order) => void;
   showToast: (msg: string) => void;
   token: string | null;
@@ -17,6 +19,7 @@ interface CheckoutViewProps {
 export const CheckoutView: React.FC<CheckoutViewProps> = ({
   cart,
   onNavigate,
+  onBack,
   onOrderConfirm,
   showToast,
   token,
@@ -40,6 +43,16 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const [state, setState] = useState(defaultAddr?.state || '');
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(defaultAddr?.id || null);
+
+  // PIN lookup state for main address
+  const [isPinSearching, setIsPinSearching] = useState(false);
+  const [pinStatusMsg, setPinStatusMsg] = useState<{ text: string; type: 'success' | 'error' | 'loading' } | null>(null);
+  const [availablePostOffices, setAvailablePostOffices] = useState<string[]>([]);
+
+  // PIN lookup state for Add Address modal
+  const [isModalPinSearching, setIsModalPinSearching] = useState(false);
+  const [modalPinStatusMsg, setModalPinStatusMsg] = useState<{ text: string; type: 'success' | 'error' | 'loading' } | null>(null);
+  const [modalPostOffices, setModalPostOffices] = useState<string[]>([]);
 
   React.useEffect(() => {
     if (user) {
@@ -65,6 +78,97 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setCity(addr.city);
     setState(addr.state);
     setPincode(addr.pinCode);
+    setPinStatusMsg(null);
+    setAvailablePostOffices([]);
+  };
+
+  const triggerPincodeLookup = async (pinVal: string) => {
+    const clean = pinVal.replace(/\D/g, '').slice(0, 6);
+    if (clean.length !== 6) return;
+    setIsPinSearching(true);
+    setPinStatusMsg({ text: 'Verifying PIN code...', type: 'loading' });
+    try {
+      const res = await lookupPincode(clean);
+      if (res && res.state) {
+        setState(res.state);
+        if (res.district) setCity(res.district);
+        if (res.postOffices && res.postOffices.length > 0) {
+          setAvailablePostOffices(res.postOffices);
+        }
+        setPinStatusMsg({
+          text: `Auto-detected: ${res.district ? res.district + ', ' : ''}${res.state}`,
+          type: 'success'
+        });
+      } else {
+        setPinStatusMsg({
+          text: 'PIN not found in postal directory. Please select State & District manually.',
+          type: 'error'
+        });
+      }
+    } catch {
+      setPinStatusMsg({
+        text: 'PIN lookup offline. Please select State & District manually.',
+        type: 'error'
+      });
+    } finally {
+      setIsPinSearching(false);
+    }
+  };
+
+  const handlePincodeChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 6);
+    setPincode(clean);
+    setSelectedAddressId(null);
+    if (clean.length < 6) {
+      setPinStatusMsg(null);
+      setAvailablePostOffices([]);
+    } else if (clean.length === 6) {
+      triggerPincodeLookup(clean);
+    }
+  };
+
+  const triggerModalPincodeLookup = async (pinVal: string) => {
+    const clean = pinVal.replace(/\D/g, '').slice(0, 6);
+    if (clean.length !== 6) return;
+    setIsModalPinSearching(true);
+    setModalPinStatusMsg({ text: 'Verifying PIN code...', type: 'loading' });
+    try {
+      const res = await lookupPincode(clean);
+      if (res && res.state) {
+        setNewState(res.state);
+        if (res.district) setNewCity(res.district);
+        if (res.postOffices && res.postOffices.length > 0) {
+          setModalPostOffices(res.postOffices);
+        }
+        setModalPinStatusMsg({
+          text: `Auto-detected: ${res.district ? res.district + ', ' : ''}${res.state}`,
+          type: 'success'
+        });
+      } else {
+        setModalPinStatusMsg({
+          text: 'PIN not found. Select State & District manually.',
+          type: 'error'
+        });
+      }
+    } catch {
+      setModalPinStatusMsg({
+        text: 'PIN lookup offline. Select State & District manually.',
+        type: 'error'
+      });
+    } finally {
+      setIsModalPinSearching(false);
+    }
+  };
+
+  const handleModalPinChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 6);
+    setNewPin(clean);
+    if (clean.length < 6) {
+      setModalPinStatusMsg(null);
+      setModalPostOffices([]);
+    } else if (clean.length === 6) {
+      triggerModalPincodeLookup(clean);
+    }
   };
 
   // Add Address Modal States
@@ -173,12 +277,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setValidatingCoupon(true);
     setCouponError(null);
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch(`${API_URL}/api/coupons/validate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({
           code: couponCode.trim().toUpperCase(),
           cartTotal: getSubtotal()
@@ -282,9 +385,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setIsProcessing(true);
     try {
       const addressString = `${addr1.trim()}${addr2.trim() ? ', ' + addr2.trim() : ''}, ${city.trim()} - ${pincode.trim()}, ${state.trim()}`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch(`${API_URL}/api/orders/razorpay-create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers,
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim(),
@@ -321,10 +426,14 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     try {
       const addressString = `${addr1.trim()}${addr2.trim() ? ', ' + addr2.trim() : ''}, ${city.trim()} - ${pincode.trim()}, ${state.trim()}`;
 
+      // Build headers — guests have no token so Authorization is omitted
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) authHeaders['Authorization'] = `Bearer ${token}`;
+
       // Step 1: Create Razorpay order on backend
       const res = await fetch(`${API_URL}/api/orders/razorpay-create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: authHeaders,
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim(),
@@ -379,7 +488,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           try {
             const verifyRes = await fetch(`${API_URL}/api/orders/razorpay-verify`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              headers: authHeaders,
               body: JSON.stringify({
                 order_id: order.id,
                 razorpay_order_id: response.razorpay_order_id,
@@ -413,16 +522,20 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   };
 
   return (
-    <div id="page-checkout" className="bg-[#FAF6F0] min-h-screen">
+    <div id="page-checkout" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
       {/* Checkout Navbar */}
-      <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+      <div className="va-top-bar sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
           className="va-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
           onClick={() => {
             if (step === 2) {
               setStep(1);
             } else {
-              onNavigate('cart');
+              if (onBack) {
+                onBack();
+              } else {
+                onNavigate('cart');
+              }
             }
           }}
         >
@@ -485,6 +598,23 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             <h3 className="form-section-title font-serif text-lg font-bold text-[#1A1A1A] mb-4">
               Delivery Details
             </h3>
+
+            {/* Soft login prompt for guests */}
+            {!user && (
+              <div className="mb-4 p-3 bg-[#FFF8F4] border border-[#F0C9A8] rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-[#6B3A1F]">
+                  <span className="text-base">💡</span>
+                  <span className="font-semibold">Login to use saved addresses & track orders easily</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('auth')}
+                  className="text-[11px] font-bold text-white bg-[#C4601A] px-3 py-1.5 rounded-lg hover:bg-[#a84e15] transition-colors shrink-0 cursor-pointer"
+                >
+                  Login
+                </button>
+              </div>
+            )}
 
             {user?.addresses && user.addresses.length > 0 ? (
               <div className="mb-6 pb-4 border-b border-[#E8E0D5]">
@@ -619,54 +749,143 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               />
             </div>
 
-            <div className="form-row grid grid-cols-2 gap-3 mb-4">
+            {/* Pincode with Instant Auto-detection */}
+            <div className="form-group mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="form-label block text-xs font-bold text-[#4A4A4A] tracking-wider uppercase">
+                  Pincode *
+                </label>
+                <span className="text-[11px] font-semibold text-[#C4601A] flex items-center gap-1">
+                  ⚡ Auto-fills State & District
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  className="form-input w-full p-3 pr-24 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none"
+                  type="text"
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => handlePincodeChange(e.target.value)}
+                  placeholder="Enter 6-digit PIN (e.g. 411001)"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  {isPinSearching ? (
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-[#C4601A] bg-[#FFF5EE] px-2 py-1 rounded">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Checking...
+                    </span>
+                  ) : pincode.length === 6 ? (
+                    <button
+                      type="button"
+                      onClick={() => triggerPincodeLookup(pincode)}
+                      className="text-[11px] font-semibold text-[#C4601A] hover:bg-[#FFF5EE] px-2 py-1 rounded border border-[#E8E0D5] transition-colors cursor-pointer"
+                      title="Re-verify PIN"
+                    >
+                      Verify PIN
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* PIN Status Feedback */}
+              {pinStatusMsg && (
+                <div
+                  className={`mt-2 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 ${
+                    pinStatusMsg.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : pinStatusMsg.type === 'loading'
+                      ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}
+                >
+                  {pinStatusMsg.type === 'success' && <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
+                  {pinStatusMsg.type === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 flex-shrink-0" />}
+                  {pinStatusMsg.type === 'error' && <span className="text-rose-500 font-bold">ℹ</span>}
+                  <span>{pinStatusMsg.text}</span>
+                </div>
+              )}
+
+              {/* Local Post Office Suggestions */}
+              {availablePostOffices.length > 0 && (
+                <div className="mt-2 p-2.5 bg-[#FAF6F0] rounded-lg border border-[#E8E0D5]">
+                  <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block mb-1.5">
+                    Local Post Offices in this PIN (click to add to Landmark):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                    {availablePostOffices.slice(0, 8).map((po) => (
+                      <button
+                        key={po}
+                        type="button"
+                        onClick={() => {
+                          if (!addr2) {
+                            setAddr2(po);
+                          } else if (!addr2.includes(po)) {
+                            setAddr2(`${addr2}, Near ${po}`);
+                          }
+                          showToast(`Added ${po} to address`);
+                        }}
+                        className="text-[11px] bg-white border border-[#E8E0D5] hover:border-[#C4601A] hover:text-[#C4601A] px-2 py-0.5 rounded text-gray-700 transition-colors cursor-pointer"
+                      >
+                        + {po}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* State & District Dropdowns */}
+            <div className="form-row grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
               <div className="form-group">
                 <label className="form-label block text-xs font-bold text-[#4A4A4A] tracking-wider mb-1.5 uppercase">
-                  City *
+                  State / UT *
                 </label>
-                <input
-                  className="form-input w-full p-3 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none"
-                  type="text"
+                <select
+                  className="form-input w-full p-3 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none bg-white text-[#1A1A1A] cursor-pointer"
+                  value={state}
+                  onChange={(e) => {
+                    const newState = e.target.value;
+                    setState(newState);
+                    setCity('');
+                    setSelectedAddressId(null);
+                  }}
+                  required
+                >
+                  <option value="">-- Select State / UT --</option>
+                  {INDIAN_STATES.map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                  {state && !INDIAN_STATES.includes(state) && (
+                    <option value={state}>{state}</option>
+                  )}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label block text-xs font-bold text-[#4A4A4A] tracking-wider mb-1.5 uppercase">
+                  District / City *
+                </label>
+                <select
+                  className="form-input w-full p-3 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none bg-white text-[#1A1A1A] cursor-pointer disabled:bg-[#FAF6F0] disabled:text-gray-400 disabled:cursor-not-allowed"
                   value={city}
                   onChange={(e) => {
                     setCity(e.target.value);
                     setSelectedAddressId(null);
                   }}
-                  placeholder="City"
-                />
+                  disabled={!state}
+                  required
+                >
+                  <option value="">
+                    {!state ? '-- Select State First --' : '-- Select District --'}
+                  </option>
+                  {getDistrictsForState(state).map((dist) => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))}
+                  {city && !getDistrictsForState(state).includes(city) && (
+                    <option value={city}>{city}</option>
+                  )}
+                </select>
               </div>
-              <div className="form-group">
-                <label className="form-label block text-xs font-bold text-[#4A4A4A] tracking-wider mb-1.5 uppercase">
-                  Pincode *
-                </label>
-                <input
-                  className="form-input w-full p-3 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none"
-                  type="text"
-                  maxLength={6}
-                  value={pincode}
-                  onChange={(e) => {
-                    setPincode(e.target.value.replace(/\D/g, ''));
-                    setSelectedAddressId(null);
-                  }}
-                  placeholder="411001"
-                />
-              </div>
-            </div>
-
-            <div className="form-group mb-5">
-              <label className="form-label block text-xs font-bold text-[#4A4A4A] tracking-wider mb-1.5 uppercase">
-                State *
-              </label>
-              <input
-                className="form-input w-full p-3 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none"
-                type="text"
-                value={state}
-                onChange={(e) => {
-                  setState(e.target.value);
-                  setSelectedAddressId(null);
-                }}
-                placeholder="Maharashtra"
-              />
             </div>
 
             <button
@@ -931,48 +1150,133 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                    City *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="City"
-                    value={newCity}
-                    onChange={e => setNewCity(e.target.value)}
-                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+              {/* Pincode with Auto-detection */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider">
                     Pincode *
                   </label>
+                  <span className="text-[10px] font-semibold text-[#C4601A]">
+                    ⚡ Auto-fills State & District
+                  </span>
+                </div>
+                <div className="relative">
                   <input
                     type="text"
-                    placeholder="6-digit PIN"
+                    placeholder="Enter 6-digit PIN code"
                     value={newPin}
-                    onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                    onChange={e => handleModalPinChange(e.target.value)}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 pr-20 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                     maxLength={6}
                     required
                   />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {isModalPinSearching ? (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-[#C4601A] bg-[#FFF5EE] px-1.5 py-0.5 rounded">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Checking
+                      </span>
+                    ) : newPin.length === 6 ? (
+                      <button
+                        type="button"
+                        onClick={() => triggerModalPincodeLookup(newPin)}
+                        className="text-[10px] font-semibold text-[#C4601A] hover:bg-[#FFF5EE] px-1.5 py-0.5 rounded border border-[#E8E0D5] transition-colors cursor-pointer"
+                      >
+                        Verify
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
+
+                {modalPinStatusMsg && (
+                  <div
+                    className={`mt-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 ${
+                      modalPinStatusMsg.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : modalPinStatusMsg.type === 'loading'
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    }`}
+                  >
+                    {modalPinStatusMsg.type === 'success' && <Check className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
+                    {modalPinStatusMsg.type === 'loading' && <Loader2 className="w-3 h-3 animate-spin text-amber-600 flex-shrink-0" />}
+                    {modalPinStatusMsg.type === 'error' && <span className="text-rose-500 font-bold">ℹ</span>}
+                    <span>{modalPinStatusMsg.text}</span>
+                  </div>
+                )}
+
+                {modalPostOffices.length > 0 && (
+                  <div className="mt-2 p-2 bg-[#FAF6F0] rounded-lg border border-[#E8E0D5]">
+                    <span className="text-[10px] font-bold text-[#888888] uppercase tracking-wider block mb-1">
+                      Local Post Offices in this PIN:
+                    </span>
+                    <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                      {modalPostOffices.slice(0, 6).map((po) => (
+                        <button
+                          key={po}
+                          type="button"
+                          onClick={() => {
+                            if (!newLine2) setNewLine2(po);
+                            else if (!newLine2.includes(po)) setNewLine2(`${newLine2}, Near ${po}`);
+                            showToast(`Added ${po} to address`);
+                          }}
+                          className="text-[10px] bg-white border border-[#E8E0D5] hover:border-[#C4601A] hover:text-[#C4601A] px-1.5 py-0.5 rounded text-gray-700 transition-colors cursor-pointer"
+                        >
+                          + {po}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
-                  State *
-                </label>
-                <input
-                  type="text"
-                  placeholder="State"
-                  value={newState}
-                  onChange={e => setNewState(e.target.value)}
-                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                  required
-                />
+              {/* State & District Dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                    State / UT *
+                  </label>
+                  <select
+                    value={newState}
+                    onChange={e => {
+                      setNewState(e.target.value);
+                      setNewCity('');
+                    }}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A] text-[#1A1A1A] cursor-pointer"
+                    required
+                  >
+                    <option value="">-- Select State / UT --</option>
+                    {INDIAN_STATES.map(st => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                    {newState && !INDIAN_STATES.includes(newState) && (
+                      <option value={newState}>{newState}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1A1A1A] uppercase tracking-wider mb-1.5">
+                    District / City *
+                  </label>
+                  <select
+                    value={newCity}
+                    onChange={e => setNewCity(e.target.value)}
+                    disabled={!newState}
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:border-[#C4601A] text-[#1A1A1A] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    required
+                  >
+                    <option value="">
+                      {!newState ? '-- Select State First --' : '-- Select District --'}
+                    </option>
+                    {getDistrictsForState(newState).map(dist => (
+                      <option key={dist} value={dist}>{dist}</option>
+                    ))}
+                    {newCity && !getDistrictsForState(newState).includes(newCity) && (
+                      <option value={newCity}>{newCity}</option>
+                    )}
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 pt-2">

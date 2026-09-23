@@ -29,6 +29,7 @@ if (ENV.DATABASE_URL) {
         await pool!.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP;');
         await pool!.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP;');
         await pool!.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP;');
+        await pool!.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE;');
         
         await pool!.query(`
           CREATE TABLE IF NOT EXISTS returns (

@@ -72,6 +72,7 @@ export class JsonDatabaseAdapter implements IDatabase {
       variants: product.variants || [],
       reelUrl: product.reelUrl || undefined,
       code: product.code || undefined,
+      isArchived: product.isArchived ?? false,
       id: nextId
     };
     db.products.push(newProduct);
@@ -106,6 +107,7 @@ export class JsonDatabaseAdapter implements IDatabase {
         variants: product.variants || [],
         reelUrl: product.reelUrl || undefined,
         code: product.code || undefined,
+        isArchived: product.isArchived ?? false,
         id: product.id || currentMaxId
       };
       db.products.push(newProduct);

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { validateCoupon } from '../controllers/coupon.controller';
-import { userMiddleware } from '../middlewares/user.middleware';
+import { optionalUserMiddleware } from '../middlewares/user.middleware';
 
 const router = Router();
 
-// Validate is authenticated check
-router.post('/validate', userMiddleware, validateCoupon);
+// Guests can also validate coupons; per-user limits are skipped when not logged in
+router.post('/validate', optionalUserMiddleware, validateCoupon);
 
 export default router;

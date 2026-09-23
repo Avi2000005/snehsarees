@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivePage, Order } from '../../types';
 import { Home } from 'lucide-react';
+import { BUSINESS_WHATSAPP } from '../../config';
 
 interface SuccessViewProps {
   order: Order | null;
@@ -31,15 +32,15 @@ export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) =
 
     const encodedMsg = encodeURIComponent(msg);
     try {
-      window.open(`https://wa.me/919414067123?text=${encodedMsg}`, '_blank');
+      window.open(`https://wa.me/${BUSINESS_WHATSAPP || '919461037123'}?text=${encodedMsg}`, '_blank');
     } catch (e) {
       console.error('Success view WhatsApp launch error:', e);
     }
   };
 
   return (
-    <div id="page-success" className="bg-[#FAF6F0] min-h-screen">
-      <div className="va-top-bar bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+    <div id="page-success" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
+      <div className="va-top-bar bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <div className="w-8 h-8" />
         <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
           Order Confirmed

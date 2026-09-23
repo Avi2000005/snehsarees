@@ -22,7 +22,8 @@ import { ProfileView } from './components/views/ProfileView';
 import { BulkView } from './components/views/BulkView';
 import { AuthView } from './components/views/AuthView';
 import { AdminDashboardView } from './components/views/AdminDashboardView';
-import { API_URL } from './config';
+import { API_URL, BUSINESS_WHATSAPP } from './config';
+import bgImage from '@/assets/background.jpg';
 
 // Global Fetch Proxy to automatically send HTTP-only cookies on API calls
 const originalFetch = window.fetch;
@@ -49,11 +50,130 @@ interface NavigationState {
   scrollPos?: number;
 }
 
+export const getPageUrl = (page: ActivePage, param?: string | number): string => {
+  switch (page) {
+    case 'landing':
+      return '#/';
+    case 'home':
+      return '#/home';
+    case 'product':
+      return param ? `#/product/${param}` : '#/home';
+    case 'viewall':
+      return param ? `#/viewall/${param}` : '#/viewall/all';
+    case 'cart':
+      return '#/cart';
+    case 'checkout':
+      return '#/checkout';
+    case 'orders':
+      return '#/orders';
+    case 'wishlist':
+      return '#/wishlist';
+    case 'search':
+      return '#/search';
+    case 'profile':
+      return '#/profile';
+    case 'auth':
+      return '#/auth';
+    case 'bulk':
+      return '#/bulk';
+    case 'admin':
+      return '#/admin';
+    case 'success':
+      return '#/success';
+    case 'pending_payment':
+      return '#/pending_payment';
+    default:
+      return '#/home';
+  }
+};
+
+export const parseHash = (hash: string): { page: ActivePage; param?: string | number } => {
+  const clean = hash.replace(/^#\/?/, '').trim();
+  if (!clean || clean === 'landing') return { page: 'landing' };
+
+  const [route, ...rest] = clean.split('/');
+  const rawParam = rest.join('/');
+
+  switch (route) {
+    case 'home':
+      return { page: 'home' };
+    case 'product':
+    case 'detail': {
+      const parsedId = parseInt(rawParam, 10);
+      return { page: 'product', param: !isNaN(parsedId) ? parsedId : rawParam || undefined };
+    }
+    case 'viewall':
+    case 'category':
+      return { page: 'viewall', param: rawParam || 'all' };
+    case 'cart':
+      return { page: 'cart' };
+    case 'checkout':
+      return { page: 'checkout' };
+    case 'orders':
+      return { page: 'orders' };
+    case 'wishlist':
+      return { page: 'wishlist' };
+    case 'search':
+      return { page: 'search' };
+    case 'profile':
+      return { page: 'profile' };
+    case 'auth':
+      return { page: 'auth' };
+    case 'bulk':
+      return { page: 'bulk' };
+    case 'admin':
+      return { page: 'admin' };
+    case 'success':
+      return { page: 'success' };
+    case 'pending_payment':
+      return { page: 'pending_payment' };
+    default:
+      return { page: 'home' };
+  }
+};
+
+const getInitialNavigation = (): { page: ActivePage; param?: string | number } => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const prodId = params.get('product') || params.get('productId');
+    const viewParam = params.get('view');
+    const catParam = params.get('category');
+
+    if (prodId) {
+      const parsed = parseInt(prodId, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return { page: 'product', param: parsed };
+      }
+    }
+    if (catParam) {
+      return { page: 'viewall', param: catParam };
+    }
+    if (
+      viewParam &&
+      ['landing', 'home', 'viewall', 'bulk', 'profile', 'cart', 'orders', 'wishlist', 'search', 'auth', 'admin'].includes(
+        viewParam
+      )
+    ) {
+      return { page: viewParam as ActivePage };
+    }
+
+    if (window.location.hash) {
+      return parseHash(window.location.hash);
+    }
+  } catch (e) {
+    console.error('Error determining initial route:', e);
+  }
+  return { page: 'landing' };
+};
+
 export default function App() {
-  // Navigation states
-  const [page, setPage] = useState<ActivePage>('landing');
-  const [pageParam, setPageParam] = useState<string | number | undefined>(undefined);
-  const [historyStack, setHistoryStack] = useState<NavigationState[]>([{ page: 'landing' }]);
+  // Navigation states synchronized with URL hash and browser history
+  const initialNav = getInitialNavigation();
+  const [page, setPage] = useState<ActivePage>(initialNav.page);
+  const [pageParam, setPageParam] = useState<string | number | undefined>(initialNav.param);
+  const [historyStack, setHistoryStack] = useState<NavigationState[]>([
+    { page: initialNav.page, param: initialNav.param }
+  ]);
 
   // Core app synchronized states with localStorage persistence
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -88,6 +208,7 @@ export default function App() {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [buyNowCart, setBuyNowCart] = useState<CartItem[] | null>(null);
 
   // Sync state changes to localStorage
   useEffect(() => {
@@ -129,35 +250,78 @@ export default function App() {
       .catch(err => console.error('App products load error:', err));
   }, [page]);
 
-  // 1. Initial State Hydration & Deep Linking from URL
+  // 1. Initial State Sync & Browser History popstate Listener
   useEffect(() => {
-    // 1a. URL Deep Link detection (e.g. https://www.snehsarees.in/?product=12 or ?view=bulk or ?category=silk)
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const prodId = params.get('product') || params.get('productId');
-      const viewParam = params.get('view');
-      const catParam = params.get('category');
-
-      if (prodId) {
-        const parsed = parseInt(prodId, 10);
-        if (!isNaN(parsed) && parsed > 0) {
-          setPage('detail');
-          setPageParam(parsed);
-          setHistoryStack([{ page: 'landing' }, { page: 'home' }, { page: 'detail', param: parsed }]);
-        }
-      } else if (catParam) {
-        setPage('viewall');
-        setPageParam(catParam);
-        setHistoryStack([{ page: 'landing' }, { page: 'viewall', param: catParam }]);
-      } else if (viewParam && ['landing', 'home', 'viewall', 'bulk', 'profile', 'cart', 'orders', 'wishlist', 'search'].includes(viewParam)) {
-        setPage(viewParam as ActivePage);
-        setHistoryStack([{ page: 'landing' }, { page: viewParam as ActivePage }]);
-      }
-    } catch (e) {
-      console.error('Error parsing initial URL params:', e);
+    // 1a. Sync initial browser history entry with the active route
+    const currentHash = window.location.hash;
+    const targetUrl = getPageUrl(page, pageParam);
+    if (!currentHash || currentHash === '#/' || currentHash === '') {
+      window.history.replaceState({ page, param: pageParam, scrollPos: window.scrollY }, '', targetUrl);
+    } else {
+      window.history.replaceState({ page, param: pageParam, scrollPos: window.scrollY }, '', currentHash);
     }
 
-    // 1b. Read Auth Token
+    // 1b. Listen for browser back / forward buttons and mobile back gesture
+    const handlePopState = (event: PopStateEvent) => {
+      // Close drawer or chatbot if open
+      setDrawerOpen(false);
+      setChatbotOpen(false);
+
+      let targetPage: ActivePage = 'home';
+      let targetParam: string | number | undefined = undefined;
+      let targetScroll = 0;
+
+      if (event.state && event.state.page) {
+        targetPage = event.state.page;
+        targetParam = event.state.param;
+        targetScroll = event.state.scrollPos || 0;
+      } else if (window.location.hash) {
+        const parsed = parseHash(window.location.hash);
+        targetPage = parsed.page;
+        targetParam = parsed.param;
+      } else {
+        targetPage = 'landing';
+      }
+
+      if (targetPage !== 'checkout') {
+        setBuyNowCart(null);
+      }
+
+      setPage(targetPage);
+      setPageParam(targetParam);
+
+      setHistoryStack((prev) => {
+        if (prev.length > 1) {
+          const updated = [...prev];
+          updated.pop();
+          return updated;
+        }
+        return [{ page: targetPage, param: targetParam }];
+      });
+
+      // Restore scroll position smoothly
+      if (targetScroll > 0) {
+        let attempts = 0;
+        const interval = setInterval(() => {
+          window.scrollTo(0, targetScroll);
+          attempts++;
+          if (attempts >= 8 || Math.abs(window.scrollY - targetScroll) < 10) {
+            clearInterval(interval);
+          }
+        }, 50);
+      } else {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+        }, 20);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // 2. Read Auth Token
+  useEffect(() => {
     try {
       const storedToken = localStorage.getItem('sneh_user_token') || localStorage.getItem('laxmi_user_token');
       if (storedToken) {
@@ -176,19 +340,59 @@ export default function App() {
     }
   }, []);
 
-  // 2. Navigation Actions
-  const handleNavigate = (targetPage: ActivePage, param?: string | number) => {
+  // 3. Navigation Actions
+  const handleNavigate = (targetPage: ActivePage, param?: string | number, replace = false) => {
+    if (targetPage !== 'checkout') {
+      setBuyNowCart(null);
+    }
+
+    // Close any open drawer or chatbot on forward navigation
+    setDrawerOpen(false);
+    setChatbotOpen(false);
+
+    // If clicking on the exact same page & param, smoothly scroll to top without adding duplicate history
+    if (targetPage === page && param === pageParam) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     const currentScroll = window.scrollY;
+    const currentUrl = window.location.hash || getPageUrl(page, pageParam);
+
+    // Save scroll position for the current entry in window.history
+    try {
+      window.history.replaceState(
+        { page, param: pageParam, scrollPos: currentScroll },
+        '',
+        currentUrl
+      );
+    } catch (e) {
+      console.error('Error updating current history state:', e);
+    }
+
+    const nextUrl = getPageUrl(targetPage, param);
+    const nextState = { page: targetPage, param, scrollPos: 0 };
+
+    if (replace) {
+      window.history.replaceState(nextState, '', nextUrl);
+    } else {
+      window.history.pushState(nextState, '', nextUrl);
+    }
+
     setHistoryStack((prev) => {
-      if (prev.length > 0) {
+      if (replace) {
         const updated = [...prev];
+        updated[updated.length - 1] = nextState;
+        return updated;
+      }
+      const updated = [...prev];
+      if (updated.length > 0) {
         updated[updated.length - 1] = {
           ...updated[updated.length - 1],
           scrollPos: currentScroll
         };
-        return [...updated, { page: targetPage, param }];
       }
-      return [{ page: targetPage, param }];
+      return [...updated, nextState];
     });
 
     setPage(targetPage);
@@ -201,36 +405,16 @@ export default function App() {
   };
 
   const handleBack = () => {
-    if (historyStack.length <= 1) {
-      // Return to main catalogue shop view
-      handleNavigate('home');
-      return;
-    }
+    setBuyNowCart(null);
+    setDrawerOpen(false);
+    setChatbotOpen(false);
 
-    // Pop current page and view the previous one
-    const updated = [...historyStack];
-    updated.pop(); // Remove active
-    const prev = updated[updated.length - 1];
-
-    setPage(prev.page);
-    setPageParam(prev.param);
-    setHistoryStack(updated);
-
-    // Restore scroll position after a short delay (with retries for async content loads)
-    if (prev.scrollPos !== undefined) {
-      const targetScroll = prev.scrollPos;
-      let attempts = 0;
-      const interval = setInterval(() => {
-        window.scrollTo(0, targetScroll);
-        attempts++;
-        if (attempts >= 10 || Math.abs(window.scrollY - targetScroll) < 5) {
-          clearInterval(interval);
-        }
-      }, 50);
+    // If there is browser history within our app, trigger browser back so history and state stay 100% in sync
+    if (historyStack.length > 1) {
+      window.history.back();
     } else {
-      setTimeout(() => {
-        window.scrollTo(0, 0);
-      }, 20);
+      // Fallback: If landed directly on a subpage, navigate to home
+      handleNavigate('home');
     }
   };
 
@@ -355,8 +539,25 @@ export default function App() {
     // 2. Set as success target
     setCurrentOrder(finalizedOrder);
 
-    // 3. Clear cart
-    setCart([]);
+    // 3. Clear cart (only if it was a regular cart order, not a buy-now)
+    if (!buyNowCart) {
+      setCart([]);
+    }
+
+    // 4. Always clear buyNowCart after order
+    setBuyNowCart(null);
+  };
+
+  // Buy Now: go straight to checkout with just this one product, skipping the cart
+  const handleBuyNow = (id: number, colour?: string, directProduct?: Product) => {
+    const prod = directProduct || productsList.find((x) => x.id === id);
+    if (!prod) return;
+    const chosenColour = colour || prod.colour;
+    const price = prod.discountPrice && prod.discountPrice > 0 ? prod.discountPrice : prod.price;
+    const variant = prod.variants?.find((v) => v.colour.toLowerCase() === chosenColour.toLowerCase());
+    const imageUrl = variant?.image || prod.image;
+    setBuyNowCart([{ id: prod.id, name: prod.name, price, fabric: prod.fabric, colour: chosenColour, qty: 1, image: imageUrl }]);
+    handleNavigate('checkout');
   };
 
   // Recent Search controls
@@ -413,7 +614,7 @@ export default function App() {
   const handleWhatsAppAction = () => {
     try {
       window.open(
-        'https://wa.me/919414067123?text=Namaste%20Snehsarees!%20I%20would%20like%20to%20know%20more%20about%20your%20sarees.',
+        `https://wa.me/${BUSINESS_WHATSAPP || '919461037123'}?text=Namaste%20Snehsarees!%20I%20would%20like%20to%20know%20more%20about%20your%20sarees.`,
         '_blank'
       );
     } catch (e) {
@@ -452,6 +653,7 @@ export default function App() {
             onNavigate={handleNavigate}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
             wishlist={wishlist}
             recentSearches={recentSearches}
             onAddRecentSearch={handleAddRecentSearch}
@@ -469,6 +671,7 @@ export default function App() {
             activeType={String(pageParam || 'all')}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
             wishlist={wishlist}
             cartCount={cartBadgeCount}
           />
@@ -482,6 +685,7 @@ export default function App() {
             onBack={handleBack}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
             wishlist={wishlist}
             cartCount={cartBadgeCount}
             token={token}
@@ -502,21 +706,11 @@ export default function App() {
         );
 
       case 'checkout':
-        if (!token) {
-          return (
-            <AuthView
-              onNavigate={handleNavigate}
-              onBack={handleBack}
-              onLoginSuccess={handleLoginSuccess}
-              showToast={showToast}
-              redirectTo="checkout"
-            />
-          );
-        }
         return (
           <CheckoutView
-            cart={getResolvedCart()}
+            cart={buyNowCart || getResolvedCart()}
             onNavigate={handleNavigate}
+            onBack={handleBack}
             onOrderConfirm={handleOrderConfirmed}
             showToast={showToast}
             token={token}
@@ -541,22 +735,24 @@ export default function App() {
             onBack={handleBack}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
             productsList={productsList}
           />
         );
 
       case 'orders':
-        if (!token) {
-          return (
-            <AuthView
-              onNavigate={handleNavigate}
-              onBack={handleBack}
-              onLoginSuccess={handleLoginSuccess}
-              showToast={showToast}
-            />
-          );
-        }
-        return <OrdersView orders={orders} onNavigate={handleNavigate} onBack={handleBack} userToken={token || undefined} showToast={showToast} onRefreshOrders={fetchCustomerOrders} productsList={productsList} />;
+        return (
+          <OrdersView
+            orders={orders}
+            onNavigate={handleNavigate}
+            onBack={handleBack}
+            userToken={token || undefined}
+            showToast={showToast}
+            onRefreshOrders={fetchCustomerOrders}
+            productsList={productsList}
+            onLoginClick={() => handleNavigate('auth')}
+          />
+        );
 
       case 'profile':
         return (
@@ -609,34 +805,54 @@ export default function App() {
   };
 
   return (
-    <div className="relative font-sans antialiased text-[#1A1A1A] max-w-[430px] md:max-w-full mx-auto bg-ivory min-h-screen">
-      {/* Global subtle warm gradient watermark background */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.035] z-0">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="global-maroon-jaal" width="140" height="140" patternUnits="userSpaceOnUse">
-              {/* Thin warm lines */}
-              <path d="M 0,0 L 140,140 M 140,0 L 0,140" fill="none" stroke="#C4601A" strokeWidth="0.8" opacity="0.3" />
+    <div className={`relative font-sans antialiased text-[#1A1A1A] max-w-[430px] md:max-w-full mx-auto min-h-screen ${page === 'landing' ? 'bg-ivory' : ''}`}>
+      {/* Background for shopping website (all pages except landing) */}
+      {page !== 'landing' ? (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          {/* Balanced ambient saree flatlay background */}
+          <div
+            className="w-full h-full bg-cover bg-no-repeat opacity-[0.38] sm:opacity-[0.44] transition-opacity duration-300"
+            style={{
+              backgroundImage: `url(${bgImage})`,
+              backgroundAttachment: 'fixed',
+              backgroundPosition: 'center top',
+              backgroundSize: 'cover',
+            }}
+          />
+          {/* Gentle soft wash so foreground text and elements stay clearly in the spotlight */}
+          <div className="absolute inset-0 bg-[#FFFDF9]/30" />
+        </div>
+      ) : (
+        /* Global subtle warm gradient watermark background for landing page */
+        <div className="absolute inset-0 pointer-events-none opacity-[0.035] z-0">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="global-maroon-jaal" width="140" height="140" patternUnits="userSpaceOnUse">
+                {/* Thin warm lines */}
+                <path d="M 0,0 L 140,140 M 140,0 L 0,140" fill="none" stroke="#C4601A" strokeWidth="0.8" opacity="0.3" />
 
-              {/* Stylized Lotus Buti in warm coral */}
-              <g transform="translate(70, 70) scale(0.6)">
-                <path d="M -15,-5 C -10,10 10,10 15,-5 C 10,-2 -10,-2 -15,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1.2" />
-                <path d="M 0,-5 C -15,-30 -30,-25 -35,-15 C -25,-10 -10,-8 0,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1" />
-                <path d="M 0,-5 C 15,-30 30,-25 35,-15 C 25,-10 10,-8 0,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1" />
-                <path d="M 0,-5 C -8,-35 8,-35 0,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1.2" />
-              </g>
-              <circle cx="0" cy="0" r="1.5" fill="#C4601A" opacity="0.6" />
-              <circle cx="140" cy="0" r="1.5" fill="#C4601A" opacity="0.6" />
-              <circle cx="0" cy="140" r="1.5" fill="#C4601A" opacity="0.6" />
-              <circle cx="140" cy="140" r="1.5" fill="#C4601A" opacity="0.6" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#global-maroon-jaal)" />
-        </svg>
-      </div>
+                {/* Stylized Lotus Buti in warm coral */}
+                <g transform="translate(70, 70) scale(0.6)">
+                  <path d="M -15,-5 C -10,10 10,10 15,-5 C 10,-2 -10,-2 -15,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1.2" />
+                  <path d="M 0,-5 C -15,-30 -30,-25 -35,-15 C -25,-10 -10,-8 0,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1" />
+                  <path d="M 0,-5 C 15,-30 30,-25 35,-15 C 25,-10 10,-8 0,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1" />
+                  <path d="M 0,-5 C -8,-35 8,-35 0,-5 Z" fill="none" stroke="#C4601A" strokeWidth="1.2" />
+                </g>
+                <circle cx="0" cy="0" r="1.5" fill="#C4601A" opacity="0.6" />
+                <circle cx="140" cy="0" r="1.5" fill="#C4601A" opacity="0.6" />
+                <circle cx="0" cy="140" r="1.5" fill="#C4601A" opacity="0.6" />
+                <circle cx="140" cy="140" r="1.5" fill="#C4601A" opacity="0.6" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#global-maroon-jaal)" />
+          </svg>
+        </div>
+      )}
 
       {/* Dynamic contents */}
-      {renderViewContent()}
+      <div className="relative z-[1]">
+        {renderViewContent()}
+      </div>
 
       {/* Hamburger Menu Side panel */}
       <Drawer
@@ -644,6 +860,8 @@ export default function App() {
         onClose={() => setDrawerOpen(false)}
         onNavigate={handleNavigate}
         showToast={showToast}
+        user={user}
+        onLogout={handleLogout}
       />
 
       {/* FLOATING ACTION PILLS: WhatsApp + Chatbot Assistant */}
@@ -694,7 +912,7 @@ export default function App() {
 
       {/* Global Bottom Navigation Bar */}
       {['home', 'viewall', 'orders', 'profile', 'wishlist', 'search', 'bulk', 'cart'].includes(page) && (
-        <div className="bottom-nav fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-full h-[64px] md:h-[60px] lg:h-[60px] bg-white border-t border-[#E8E0D5] flex items-center z-20 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+        <div className="bottom-nav fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-full h-[64px] md:h-[60px] lg:h-[60px] bg-white/95 backdrop-blur-md border-t border-[#E8E0D5] flex items-center z-20 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
           <button
             onClick={() => handleNavigate('home')}
             className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'home' ? 'text-[#C4601A]' : 'text-[#888888] hover:text-[#C4601A]'

@@ -162,7 +162,7 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
     action: 'shop'
   },
   order: {
-    msg: "To track your order, WhatsApp us your Order ID at +91 94140 67123 and we'll update you instantly!",
+    msg: "To track your order, WhatsApp us your Order ID at +91 94610 37123 and we'll update you instantly!",
     replies: ['WhatsApp Us', 'Back to Menu']
   },
   delivery: {
@@ -178,7 +178,7 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
     replies: ['Back to Menu']
   },
   contact: {
-    msg: '📞 Call/WhatsApp: +91 94140 67123\n📍 Sneh Sarees, Kota, Rajasthan, India\n⏰ Mon–Sat, 9am–7pm',
+    msg: '📞 Call/WhatsApp: +91 94610 37123\n📍 Sneh Sarees, Kota, Rajasthan, India\n⏰ Mon–Sat, 9am–7pm',
     replies: ['WhatsApp Us', 'Back to Menu']
   },
   whatsapp: {

@@ -43,7 +43,19 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
   try {
     let list = await db.getProducts();
 
-    const { fabric, occasion, colour, search } = req.query;
+    const { fabric, occasion, colour, search, all, includeArchived } = req.query;
+
+    // Saree publishing rule:
+    // Only published sarees with valid images are shown on the live website.
+    // Sarees without images or marked as archived are hidden unless all=true (for Admin).
+    if (all !== 'true' && includeArchived !== 'true') {
+      list = list.filter(
+        (p) =>
+          Boolean(p.image && p.image.trim() !== '') &&
+          !p.isArchived &&
+          !(Array.isArray(p.tags) && p.tags.includes('archived'))
+      );
+    }
 
     if (fabric) {
       list = list.filter((p) => p.fabric.toLowerCase() === String(fabric).toLowerCase());
@@ -85,6 +97,18 @@ export const getProductById = async (req: Request, res: Response, next: NextFunc
     const product = await db.getProductById(id);
     if (!product) {
       return res.status(404).json({ error: 'Product not found.' });
+    }
+
+    const { all, includeArchived } = req.query;
+    if (all !== 'true' && includeArchived !== 'true') {
+      const isUnpublished =
+        !product.image ||
+        product.image.trim() === '' ||
+        product.isArchived === true ||
+        (Array.isArray(product.tags) && product.tags.includes('archived'));
+      if (isUnpublished) {
+        return res.status(404).json({ error: 'Product is currently not available.' });
+      }
     }
 
     const discountedProducts = await applyActiveOfferDiscounts([product]);

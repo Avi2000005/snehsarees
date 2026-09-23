@@ -19,6 +19,7 @@ export interface Product {
   variants?: { colour: string; image: string }[];
   reelUrl?: string;
   code?: string;
+  isArchived?: boolean;
 }
 
 export interface Category {

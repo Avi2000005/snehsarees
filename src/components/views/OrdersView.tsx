@@ -12,6 +12,7 @@ interface OrdersViewProps {
   showToast: (msg: string) => void;
   onRefreshOrders?: () => void;
   productsList?: Product[];
+  onLoginClick?: () => void;
 }
 
 const RETURN_REASONS: { value: ReturnReason; label: string; icon: string }[] = [
@@ -59,9 +60,44 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: 'Rejected',
 };
 
-export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBack, userToken, showToast, onRefreshOrders, productsList }) => {
+export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBack, userToken, showToast, onRefreshOrders, productsList, onLoginClick }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
+
+  // Guest order tracking state
+  const [guestOrderId, setGuestOrderId] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [guestTrackedOrder, setGuestTrackedOrder] = useState<Order | null>(null);
+  const [guestTrackError, setGuestTrackError] = useState<string | null>(null);
+  const [guestTrackLoading, setGuestTrackLoading] = useState(false);
+
+  const handleGuestTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guestOrderId.trim() || !guestPhone.trim()) {
+      showToast('Please enter both Order ID and phone number.');
+      return;
+    }
+    setGuestTrackLoading(true);
+    setGuestTrackError(null);
+    setGuestTrackedOrder(null);
+    try {
+      const res = await fetch(`${API_URL}/api/orders/guest-track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: guestOrderId.trim(), phone: guestPhone.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setGuestTrackedOrder(data.order);
+      } else {
+        setGuestTrackError(data.error || 'No order found. Please check the details and try again.');
+      }
+    } catch {
+      setGuestTrackError('Network error. Please try again.');
+    } finally {
+      setGuestTrackLoading(false);
+    }
+  };
 
   const handleDownloadInvoice = async (orderId: string) => {
     if (!userToken) { showToast('Please sign in to download invoices.'); return; }
@@ -241,9 +277,9 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
   };
 
   return (
-    <div id="page-orders" className="bg-[#FAF6F0] min-h-screen">
+    <div id="page-orders" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
       {/* Header bar */}
-      <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+      <div className="va-top-bar sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button
           className="va-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
           onClick={onBack}
@@ -274,7 +310,138 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
       </div>
 
       <div className="page-content px-4 md:px-7 lg:px-12 max-w-[820px] mx-auto pt-4 pb-32">
-        {orders.length === 0 ? (
+
+        {/* ── GUEST VIEW: No token — show tracker + login prompt ── */}
+        {!userToken ? (
+          <div className="flex flex-col gap-5">
+            {/* Guest Order Tracker */}
+            <div className="bg-white rounded-xl border border-[#E8E0D5] shadow-xs overflow-hidden">
+              <div className="bg-gradient-to-r from-[#C4601A] to-[#E8920E] px-5 py-4">
+                <h2 className="font-serif text-white font-bold text-lg">Track Your Order</h2>
+                <p className="text-white/80 text-xs mt-0.5">Enter your Order ID and phone number to see your order status</p>
+              </div>
+              <form onSubmit={handleGuestTrack} className="p-5 flex flex-col gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#4A4A4A] tracking-wider uppercase mb-1.5">Order ID *</label>
+                  <input
+                    className="w-full p-3 rounded-lg border border-[#E8E0D5] text-sm font-mono focus:border-[#C4601A] outline-none uppercase tracking-wider"
+                    type="text"
+                    value={guestOrderId}
+                    onChange={e => setGuestOrderId(e.target.value.toUpperCase())}
+                    placeholder="SNEH-ORD-YYYYMMDD-XXXXX"
+                    required
+                  />
+                  <p className="text-[10px] text-[#888] mt-1">Your Order ID was shown on the order confirmation screen and sent via WhatsApp.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#4A4A4A] tracking-wider uppercase mb-1.5">Phone Number *</label>
+                  <input
+                    className="w-full p-3 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none"
+                    type="tel"
+                    value={guestPhone}
+                    onChange={e => setGuestPhone(e.target.value)}
+                    placeholder="Mobile number used at checkout"
+                    required
+                  />
+                </div>
+                {guestTrackError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-3 py-2.5 rounded-xl">
+                    {guestTrackError}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={guestTrackLoading}
+                  className="w-full bg-[#C4601A] text-white py-3.5 rounded-xl text-sm font-bold hover:bg-[#a84e15] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {guestTrackLoading ? (
+                    <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Tracking...</>
+                  ) : (
+                    <><Package className="w-4 h-4" /> Track Order</>
+                  )}
+                </button>
+              </form>
+
+              {/* Tracked order result */}
+              {guestTrackedOrder && (
+                <div className="border-t border-[#E8E0D5] p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-700">Order Found!</span>
+                  </div>
+                  {/* Order header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <span className="block font-bold text-[#C4601A] text-[13px] mb-0.5">Order #{guestTrackedOrder.id}</span>
+                      <span className="text-[11px] text-[#888888] flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {new Date(guestTrackedOrder.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <span className={`font-semibold px-2.5 py-1 rounded-full text-[10px] uppercase flex items-center gap-1 ${
+                      guestTrackedOrder.status === 'shipped' ? 'bg-blue-50 text-blue-700' :
+                      guestTrackedOrder.status === 'delivered' ? 'bg-emerald-50 text-emerald-700' :
+                      guestTrackedOrder.status === 'processing' ? 'bg-amber-50 text-amber-700' :
+                      guestTrackedOrder.status === 'cancelled' ? 'bg-red-50 text-red-600' :
+                      'bg-emerald-50 text-emerald-700'
+                    }`}>
+                      {guestTrackedOrder.status === 'shipped' ? <Truck className="w-3.5 h-3.5" /> :
+                        guestTrackedOrder.status === 'delivered' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
+                        <Package className="w-3.5 h-3.5" />}
+                      {guestTrackedOrder.status || 'Placed'}
+                    </span>
+                  </div>
+                  {/* Items */}
+                  <div className="flex flex-col gap-2 mb-3">
+                    {(guestTrackedOrder.items || []).map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs bg-[#FAF6F0] rounded-lg px-3 py-2">
+                        <span className="font-semibold text-[#1A1A1A]">{item.name} <span className="text-[#888]">×{item.qty}</span></span>
+                        <span className="font-bold text-[#C4601A]">₹{(item.price * item.qty).toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Total + address */}
+                  <div className="text-xs text-[#4A4A4A] flex flex-col gap-1">
+                    <div className="flex justify-between font-bold border-t border-[#E8E0D5] pt-2">
+                      <span>Total</span>
+                      <span className="text-[#C4601A]">₹{(guestTrackedOrder.total || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                    {(guestTrackedOrder as any).address && (
+                      <div className="text-[#888] mt-1">📦 Delivering to: {(guestTrackedOrder as any).address}</div>
+                    )}
+                    {(guestTrackedOrder as any).trackingId && (
+                      <div className="mt-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                        <div className="text-[10px] font-bold text-blue-800 uppercase mb-1">Tracking Info</div>
+                        <div className="text-xs font-semibold text-blue-700">{(guestTrackedOrder as any).carrierName} — AWB: {(guestTrackedOrder as any).trackingId}</div>
+                        {(guestTrackedOrder as any).trackingUrl && (
+                          <a href={(guestTrackedOrder as any).trackingUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 underline mt-1 block">View on courier website →</a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Login prompt for guests */}
+            <div className="bg-white rounded-xl border border-[#E8E0D5] p-5 flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 bg-[#FFF0E8] rounded-full flex items-center justify-center">
+                <ShoppingBag className="w-6 h-6 text-[#C4601A]" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-[#1A1A1A] text-base mb-1">Have an account?</h3>
+                <p className="text-xs text-[#888888] leading-relaxed">Login to view your complete order history, manage returns, and write reviews.</p>
+              </div>
+              <button
+                onClick={onLoginClick}
+                className="bg-[#C4601A] text-white px-8 py-3 rounded-full text-sm font-bold hover:bg-[#a84e15] transition-colors cursor-pointer"
+              >
+                Login / Register
+              </button>
+            </div>
+          </div>
+
+        ) : orders.length === 0 ? (
           <div className="text-center py-16 px-6 max-w-sm mx-auto">
             <div className="mb-4 flex justify-center text-primrose opacity-35">
               <ShoppingBag className="w-14 h-14" strokeWidth={1.2} />
@@ -412,7 +579,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                       </p>
                       <div className="flex gap-2 flex-wrap pt-1">
                         <a
-                          href={`https://wa.me/${BUSINESS_WHATSAPP || '919414067123'}?text=${encodeURIComponent(
+                          href={`https://wa.me/${BUSINESS_WHATSAPP || '919461037123'}?text=${encodeURIComponent(
                             `Namaste Sneh Sarees! 🙏\n\nI have placed an order and want to share payment proof:\n• Order ID: ${ord.id}\n• Amount: ₹${ord.total.toLocaleString('en-IN')}\n• Customer: ${ord.name}\n\nAttaching payment screenshot below. Please verify and confirm my order!`
                           )}`}
                           target="_blank"
@@ -614,7 +781,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                     {/* WhatsApp Help / Support + Download Invoice */}
                     <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
                       <a
-                        href={`https://wa.me/${BUSINESS_WHATSAPP || '919414067123'}?text=${encodeURIComponent(`Namaste Sneh Sarees! I need assistance with my Order: #${ord.id}`)}`}
+                        href={`https://wa.me/${BUSINESS_WHATSAPP || '919461037123'}?text=${encodeURIComponent(`Namaste Sneh Sarees! I need assistance with my Order: #${ord.id}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#C4601A] hover:underline font-bold text-[10px] flex items-center gap-1.5"

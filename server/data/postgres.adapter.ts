@@ -26,7 +26,8 @@ function mapDbRowToProduct(row: any): Product {
     categoryId: row.category_id !== null && row.category_id !== undefined ? parseInt(row.category_id, 10) : undefined,
     variants: row.variants ? (typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants) : [],
     reelUrl: row.reel_url || undefined,
-    code: row.code || (Array.isArray(row.tags) ? row.tags.find((t: string) => t && t.startsWith('code:'))?.replace('code:', '') : undefined)
+    code: row.code || (Array.isArray(row.tags) ? row.tags.find((t: string) => t && t.startsWith('code:'))?.replace('code:', '') : undefined),
+    isArchived: row.is_archived === true || (Array.isArray(row.tags) && row.tags.includes('archived'))
   };
 }
 
@@ -56,8 +57,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
     const query = `
       INSERT INTO products (
         name, price, fabric, occasion, colour, tags, 
-        is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url, is_archived
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING *
     `;
     const tags = Array.isArray(product.tags) ? [...product.tags] : [];
@@ -82,7 +83,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
       product.categoryId !== undefined ? product.categoryId : null,
       JSON.stringify(product.variants || []),
       product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : null,
-      product.reelUrl || null
+      product.reelUrl || null,
+      product.isArchived === true
     ];
     const result = await client.query(query, values);
     return mapDbRowToProduct(result.rows[0]);
@@ -98,8 +100,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
       const query = `
         INSERT INTO products (
           name, price, fabric, occasion, colour, tags, 
-          is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+          is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url, is_archived
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
         RETURNING *
       `;
       for (const product of products) {
@@ -125,7 +127,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
           product.categoryId !== undefined ? product.categoryId : null,
           JSON.stringify(product.variants || []),
           product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : null,
-          product.reelUrl || null
+          product.reelUrl || null,
+          product.isArchived === true
         ];
         const res = await client.query(query, values);
         if (res.rows[0]) {
@@ -166,7 +169,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
       categoryId: 'category_id',
       variants: 'variants',
       discountPrice: 'discount_price',
-      reelUrl: 'reel_url'
+      reelUrl: 'reel_url',
+      isArchived: 'is_archived'
     };
 
     for (const [key, value] of Object.entries(product)) {

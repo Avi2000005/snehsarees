@@ -10,6 +10,7 @@ interface ProductDetailViewProps {
   onBack: () => void;
   onToggleWishlist: (id: number) => void;
   onAddToCart: (id: number, colour?: string) => void;
+  onBuyNow: (id: number, colour?: string, directProduct?: Product) => void;
   wishlist: number[];
   cartCount: number;
   token: string | null;
@@ -22,6 +23,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   onBack,
   onToggleWishlist,
   onAddToCart,
+  onBuyNow,
   wishlist,
   cartCount,
   token,
@@ -81,8 +83,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       })
       .then((data) => {
         setP(data);
-        setSelectedColour(data.colour || 'Red');
-        setDisplayImage(data.image || '');
+        const initialColour = data.colour || (data.variants && data.variants[0]?.colour) || '';
+        setSelectedColour(initialColour);
+        setDisplayImage(data.image || (data.variants && data.variants[0]?.image) || '');
         setLoading(false);
         if (data.categoryId) {
           fetch(`${API_URL}/api/categories`)
@@ -127,15 +130,30 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
   const isWishlisted = wishlist.includes(p.id);
 
-  // Combine original colour and variants into a unified options list
-  const colorOptions: { name: string; image: string }[] = [];
-  if (p.colour) {
-    colorOptions.push({ name: p.colour, image: p.image || '' });
+  // Unified list of all saree photos (Main saree image + all variant/angle photos)
+  const photoOptions: { name: string; image: string }[] = [];
+  const registeredPhotoUrls = new Set<string>();
+
+  // If main product image exists, add it as first photo
+  if (p.image && p.image.trim()) {
+    const key = p.image.trim().split('?')[0].toLowerCase();
+    registeredPhotoUrls.add(key);
+    photoOptions.push({
+      name: p.colour && p.colour.trim() ? p.colour.trim() : 'Angle 1',
+      image: p.image.trim()
+    });
   }
+
+  // Add all variants / angle photos
   if (p.variants && Array.isArray(p.variants)) {
     p.variants.forEach((v) => {
-      if (v.colour && v.image && !colorOptions.some(opt => opt.name.toLowerCase() === v.colour.toLowerCase())) {
-        colorOptions.push({ name: v.colour, image: v.image });
+      if (v.image && v.image.trim()) {
+        const key = v.image.trim().split('?')[0].toLowerCase();
+        if (!registeredPhotoUrls.has(key)) {
+          registeredPhotoUrls.add(key);
+          const label = v.colour && v.colour.trim() ? v.colour.trim() : `Angle ${photoOptions.length + 1}`;
+          photoOptions.push({ name: label, image: v.image.trim() });
+        }
       }
     });
   }
@@ -147,7 +165,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   ];
 
   const isOutOfStock = p.stock === 0;
-  const isLowStock = p.stock !== undefined && p.stock > 0 && p.stock <= 3;
+  const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
+  const isLowStock = effectivePrice >= 2000 && p.stock !== undefined && p.stock > 0 && p.stock <= 3;
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
@@ -156,8 +175,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
-    onAddToCart(p.id, selectedColour);
-    onNavigate('cart'); // Go straight to checkout/cart
+    onBuyNow(p.id, selectedColour, p);
   };
 
   const getEmbedUrl = (url: string): { type: 'youtube' | 'instagram' | 'direct'; url: string } => {
@@ -184,25 +202,17 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   };
 
   const mediaItems: { type: 'image' | 'video'; url: string }[] = [];
-  if (p) {
-    if (p.image) {
-      mediaItems.push({ type: 'image', url: p.image });
-    }
-    if (p.variants && Array.isArray(p.variants)) {
-      p.variants.forEach((v) => {
-        if (v.image) {
-          mediaItems.push({ type: 'image', url: v.image });
-        }
-      });
-    }
-  }
+  photoOptions.forEach((opt) => {
+    mediaItems.push({ type: 'image', url: opt.image });
+  });
 
-  const currentMedia = mediaItems[activeMediaIndex] || mediaItems[0] || { type: 'image', url: displayImage || p.image || '' };
+  const currentImageUrl = displayImage || (mediaItems[activeMediaIndex]?.url) || p.image || '';
+  const currentMedia: { type: 'image' | 'video'; url: string } = { type: 'image', url: currentImageUrl };
 
   return (
-    <div id="page-product" className="bg-[#FAF6F0] min-h-screen pb-[100px]">
+    <div id="page-product" className="min-h-screen pb-[100px] bg-[#FAF6F0]/80 backdrop-blur-xs">
       {/* Top Bar Navigation */}
-      <div className="pd-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between px-4 md:px-7 lg:px-12 z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+      <div className="pd-top-bar sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between px-4 md:px-7 lg:px-12 z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <div className="flex items-center gap-1.5">
           <button
             className="pd-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
@@ -311,27 +321,24 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           {mediaItems.length > 1 && (
             <div className="absolute bottom-4 left-4 right-16 flex gap-2 overflow-x-auto py-1 z-20 no-scroll" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {mediaItems.map((item, idx) => {
-                const active = activeMediaIndex === idx;
+                const active = displayImage 
+                  ? (displayImage === item.url || displayImage.split('?')[0].split('/').pop() === item.url.split('?')[0].split('/').pop())
+                  : activeMediaIndex === idx;
                 return (
                   <button
                     key={idx}
-                    onClick={() => setActiveMediaIndex(idx)}
-                    className={`w-10 h-10 rounded-lg border-2 bg-white overflow-hidden relative shrink-0 transition-all ${
-                      active ? 'border-[#C4601A] scale-105 shadow-sm' : 'border-white/80 hover:border-white'
+                    onClick={() => {
+                      setActiveMediaIndex(idx);
+                      setDisplayImage(item.url);
+                      if (photoOptions[idx]) {
+                        setSelectedColour(photoOptions[idx].name);
+                      }
+                    }}
+                    className={`w-10 h-10 rounded-lg border-2 bg-white overflow-hidden relative shrink-0 transition-all cursor-pointer ${
+                      active ? 'border-[#C4601A] scale-105 shadow-sm ring-2 ring-[#C4601A]/40' : 'border-white/80 hover:border-white opacity-85 hover:opacity-100'
                     }`}
                   >
-                    {item.type === 'video' ? (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-[#C4601A]/10 relative">
-                        {p.image ? (
-                          <img src={p.image} className="w-full h-full object-cover opacity-50" />
-                        ) : (
-                          <Play className="w-4.5 h-4.5 text-[#C4601A]" />
-                        )}
-                        <Play className="absolute w-5 h-5 text-white bg-[#C4601A]/80 rounded-full p-1" />
-                      </div>
-                    ) : (
-                      <img src={item.url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
-                    )}
+                    <img src={item.url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                   </button>
                 );
               })}
@@ -385,47 +392,50 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             <span className="text-xs text-[#333333] font-bold font-sans">MRP (Incl. of all taxes)</span>
           </div>
 
-          {/* Color selection swatch list */}
-          <div className="pd-section-label text-xs font-bold text-[#222222] uppercase tracking-wider mb-2.5">
-            Select Colour Way: <span className="text-[#C4601A] font-extrabold normal-case ml-1">{selectedColour}</span>
-          </div>
-          <div className="flex gap-4 mb-5 flex-wrap">
-            {colorOptions.map((c) => {
-              const active = selectedColour.toLowerCase() === c.name.toLowerCase();
-              return (
-                <div key={c.name} className="flex flex-col items-center gap-1.5">
-                  <button
-                    className={`relative w-10 h-10 rounded-full border-2 transition-all cursor-pointer overflow-hidden ${
-                      active ? 'border-[#C4601A] scale-110 shadow-md' : 'border-[#E8E0D5]/60 hover:border-gray-400'
-                    }`}
-                    onClick={() => {
-                      setSelectedColour(c.name);
-                      setDisplayImage(c.image);
-                      const idx = mediaItems.findIndex((item) => item.url === c.image);
-                      if (idx !== -1) {
-                        setActiveMediaIndex(idx);
-                      }
-                    }}
-                    title={c.name}
-                  >
-                    {c.image ? (
-                      <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-linear-to-br from-[#C4601A] to-[#F5E4BC]" />
-                    )}
-                    {active && (
-                      <div className="absolute inset-0 bg-[#C4601A]/40 flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">✓</span>
-                      </div>
-                    )}
-                  </button>
-                  <span className={`text-[10px] font-semibold leading-none ${active ? 'text-[#C4601A] font-bold' : 'text-[#666666]'}`}>
-                    {c.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {/* More Photos selection list */}
+          {photoOptions.length > 1 && (
+            <div className="mb-5">
+              <div className="pd-section-label text-xs font-bold text-[#222222] uppercase tracking-wider mb-2.5">
+                More Photos:
+              </div>
+              <div className="flex gap-3.5 mb-1 flex-wrap">
+                {photoOptions.map((c, idx) => {
+                  const active = displayImage 
+                    ? (displayImage === c.image || displayImage.split('?')[0].split('/').pop() === c.image.split('?')[0].split('/').pop())
+                    : (selectedColour && selectedColour.toLowerCase() === c.name.toLowerCase()) || activeMediaIndex === idx;
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-1.5">
+                      <button
+                        className={`relative w-12 h-12 rounded-xl border-2 transition-all cursor-pointer overflow-hidden ${
+                          active ? 'border-[#C4601A] scale-105 shadow-md ring-2 ring-[#C4601A]/30' : 'border-[#E8E0D5] hover:border-gray-400'
+                        }`}
+                        onClick={() => {
+                          setSelectedColour(c.name);
+                          setDisplayImage(c.image);
+                          setActiveMediaIndex(idx);
+                        }}
+                        title={c.name}
+                      >
+                        {c.image ? (
+                          <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-linear-to-br from-[#C4601A] to-[#F5E4BC]" />
+                        )}
+                        {active && (
+                          <div className="absolute inset-0 bg-[#C4601A]/35 flex items-center justify-center">
+                            <span className="text-white text-xs font-bold drop-shadow">✓</span>
+                          </div>
+                        )}
+                      </button>
+                      <span className={`text-[10px] font-semibold leading-none ${active ? 'text-[#C4601A] font-bold' : 'text-[#666666]'}`}>
+                        {c.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Inventory warnings inside page layout */}
           {isOutOfStock ? (
@@ -438,7 +448,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             </div>
           ) : null}
 
-          {/* Blouse alert bubble */}
+          {/* Blouse alert bubble - temporarily hidden as requested */}
+          {/*
           {p.blouse ? (
             <div className="pd-blouse-info bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9] py-2.5 px-4 rounded-lg text-xs md:text-sm font-semibold mb-5 flex items-center gap-1.5">
               <span>✓</span> Blouse Piece Included
@@ -448,6 +459,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               <span>ℹ</span> Blouse Piece Not Included
             </div>
           )}
+          */}
 
 
 

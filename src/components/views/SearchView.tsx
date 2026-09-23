@@ -8,6 +8,7 @@ interface SearchViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
   onToggleWishlist: (id: number) => void;
   onAddToCart: (id: number, colour?: string) => void;
+  onBuyNow: (id: number, colour?: string, directProduct?: Product) => void;
   wishlist: number[];
   recentSearches: string[];
   onAddRecentSearch: (term: string) => void;
@@ -20,6 +21,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onNavigate,
   onToggleWishlist,
   onAddToCart,
+  onBuyNow,
   wishlist,
   recentSearches,
   onAddRecentSearch,
@@ -125,7 +127,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
     const favorited = wishlist.includes(p.id);
     const isTrending = p.tags && p.tags.includes('trending');
     const isOutOfStock = p.stock === 0;
-    const isLowStock = p.stock !== undefined && p.stock > 0 && p.stock <= 3;
+    const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
+    const isLowStock = effectivePrice >= 2000 && p.stock !== undefined && p.stock > 0 && p.stock <= 3;
 
     return (
       <div
@@ -197,8 +200,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
               disabled={isOutOfStock}
               onClick={(e) => {
                 e.stopPropagation();
-                onAddToCart(p.id);
-                onNavigate('cart');
+                onBuyNow(p.id, undefined, p);
               }}
               className={`grid-buy-btn w-full text-white text-[11px] font-semibold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer ${
                 isOutOfStock
