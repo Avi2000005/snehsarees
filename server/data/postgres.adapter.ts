@@ -317,9 +317,13 @@ export class PostgresDatabaseAdapter implements IDatabase {
     try {
       await dbClient.query('BEGIN');
 
+      try {
+        await dbClient.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`);
+      } catch {}
+
       const orderQuery = `
-        INSERT INTO orders (id, user_id, customer_name, phone, address, total, method, status, coupon_code, discount_amount, delivery_fee)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO orders (id, user_id, customer_name, phone, address, total, method, status, coupon_code, discount_amount, delivery_fee, customer_email)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       `;
       const orderValues = [
         order.id,
@@ -332,7 +336,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
         (order as any).status || 'placed',
         order.couponCode || null,
         order.discountAmount || 0,
-        order.deliveryFee || 0
+        order.deliveryFee || 0,
+        (order as any).userEmail || (order as any).email || null
       ];
       await dbClient.query(orderQuery, orderValues);
 
@@ -362,6 +367,40 @@ export class PostgresDatabaseAdapter implements IDatabase {
     } finally {
       dbClient.release();
     }
+  }
+
+  async linkGuestOrders(userId: number, email?: string, phone?: string): Promise<number> {
+    const client = this.getPool();
+    const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+
+    if (!cleanPhone && !cleanEmail) return 0;
+
+    try {
+      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`);
+    } catch {}
+
+    const conditions: string[] = [];
+    const params: any[] = [userId];
+
+    if (cleanPhone) {
+      params.push(cleanPhone);
+      conditions.push(`RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 10) = $${params.length}`);
+    }
+
+    if (cleanEmail) {
+      params.push(cleanEmail);
+      conditions.push(`LOWER(TRIM(COALESCE(customer_email, ''))) = $${params.length}`);
+    }
+
+    const query = `
+      UPDATE orders
+      SET user_id = $1
+      WHERE user_id IS NULL AND (${conditions.join(' OR ')})
+    `;
+
+    const result = await client.query(query, params);
+    return result.rowCount ?? 0;
   }
 
   async updateOrderStatus(id: string, status: string): Promise<boolean> {

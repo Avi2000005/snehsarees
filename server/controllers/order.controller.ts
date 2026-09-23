@@ -16,6 +16,16 @@ export const getOrders = async (req: UserRequest, res: Response, next: NextFunct
     const seenIds = new Set<string>();
 
     if (userId) {
+      // Auto-link any guest orders matching user's phone or email
+      try {
+        const user = await db.getUserById(userId);
+        if (user && (user.phone || user.email)) {
+          await db.linkGuestOrders(userId, user.email, user.phone);
+        }
+      } catch (linkErr) {
+        console.error('[Auto-Link] Error syncing guest orders in getOrders:', linkErr);
+      }
+
       const userOrders = await db.getOrdersByUserId(userId);
       userOrders.forEach(o => {
         seenIds.add(o.id);
@@ -107,7 +117,7 @@ export const syncCustomerOrderTracking = async (req: UserRequest, res: Response,
 
 export const createRazorpayOrder = async (req: UserRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, phone, address, city, pincode, state, items, method, couponCode } = req.body;
+    const { name, phone, email, address, city, pincode, state, items, method, couponCode } = req.body;
     // userId is optional — guests can place orders without being logged in
     const userId = req.user?.id || null;
 
@@ -239,6 +249,7 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       method,
       name,
       phone,
+      userEmail: email?.trim() || req.user?.email || undefined,
       address,
       city: city?.trim() || '',
       pincode: pincode?.trim() || '',

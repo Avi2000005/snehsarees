@@ -6,6 +6,7 @@ export interface UserRequest extends Request {
   user?: {
     id: number;
     phone: string;
+    email?: string;
     role?: string;
   };
 }
@@ -42,6 +43,7 @@ export const userMiddleware = (req: UserRequest, res: Response, next: NextFuncti
       req.user = {
         id: decoded.userId || 0,
         phone: decoded.phone || '',
+        email: decoded.email || '',
         role: decoded.role || 'user',
       };
       return next();
@@ -81,7 +83,8 @@ export const optionalUserMiddleware = (req: UserRequest, res: Response, next: Ne
       if (decoded && decoded.userId) {
         req.user = {
           id: decoded.userId,
-          phone: decoded.phone,
+          phone: decoded.phone || '',
+          email: decoded.email || '',
         };
       }
     } catch {

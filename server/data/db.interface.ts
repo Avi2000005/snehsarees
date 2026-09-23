@@ -28,6 +28,7 @@ export interface IDatabase {
   updateOrderStatus(id: string, status: string): Promise<boolean>;
   updateOrderLocation(id: string, address: string): Promise<boolean>;
   updateOrderTracking(id: string, trackingId: string, carrierName: string, trackingUrl: string): Promise<boolean>;
+  linkGuestOrders(userId: number, email?: string, phone?: string): Promise<number>;
 
   // Inquiries
   getInquiries(): Promise<Inquiry[]>;

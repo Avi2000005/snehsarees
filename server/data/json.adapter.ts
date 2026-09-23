@@ -221,6 +221,40 @@ export class JsonDatabaseAdapter implements IDatabase {
     return true;
   }
 
+  async linkGuestOrders(userId: number, email?: string, phone?: string): Promise<number> {
+    const db = await this.readDb();
+    if (!db.orders || !Array.isArray(db.orders)) return 0;
+
+    const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+
+    if (!cleanPhone && !cleanEmail) return 0;
+
+    let linkedCount = 0;
+    for (const order of db.orders) {
+      if (!order.userId) {
+        const orderPhoneDigits = order.phone ? String(order.phone).replace(/\D/g, '').slice(-10) : '';
+        const orderEmail = (order.userEmail || (order as any).customer_email || (order as any).email || '').trim().toLowerCase();
+
+        const phoneMatch = cleanPhone && orderPhoneDigits && orderPhoneDigits === cleanPhone;
+        const emailMatch = cleanEmail && orderEmail && orderEmail === cleanEmail;
+
+        if (phoneMatch || emailMatch) {
+          order.userId = userId;
+          if (cleanEmail && !order.userEmail) {
+            order.userEmail = cleanEmail;
+          }
+          linkedCount++;
+        }
+      }
+    }
+
+    if (linkedCount > 0) {
+      await this.writeDb(db);
+    }
+    return linkedCount;
+  }
+
   // Inquiries
   async getInquiries(): Promise<Inquiry[]> {
     const db = await this.readDb();

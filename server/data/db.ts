@@ -36,6 +36,7 @@ class DynamicDatabaseAdapter implements IDatabase {
   updateOrderStatus(id: string, status: string) { return this.getActiveAdapter().updateOrderStatus(id, status); }
   updateOrderLocation(id: string, address: string) { return this.getActiveAdapter().updateOrderLocation(id, address); }
   updateOrderTracking(id: string, trackingId: string, carrierName: string, trackingUrl: string) { return this.getActiveAdapter().updateOrderTracking(id, trackingId, carrierName, trackingUrl); }
+  linkGuestOrders(userId: number, email?: string, phone?: string) { return this.getActiveAdapter().linkGuestOrders(userId, email, phone); }
 
   getInquiries() { return this.getActiveAdapter().getInquiries(); }
   createInquiry(inquiry: any) { return this.getActiveAdapter().createInquiry(inquiry); }

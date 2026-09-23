@@ -113,10 +113,20 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     });
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: 'user' },
+      { userId: user.id, email: user.email, phone: user.phone, role: 'user' },
       ENV.JWT_SECRET,
       { expiresIn: '30d' }
     );
+
+    // Auto-link any past guest orders placed with this email or phone
+    try {
+      const linkedCount = await db.linkGuestOrders(user.id, user.email, user.phone);
+      if (linkedCount > 0) {
+        console.log(`[Auto-Link] Successfully linked ${linkedCount} past guest order(s) to new user #${user.id} (${user.email})`);
+      }
+    } catch (linkErr) {
+      console.error('[Auto-Link] Error linking guest orders on register:', linkErr);
+    }
 
     setTokenCookie(req, res, token);
 
@@ -188,10 +198,20 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       }
 
       const token = jwt.sign(
-        { userId: user.id, email: user.email, role: 'user' },
+        { userId: user.id, email: user.email, phone: user.phone, role: 'user' },
         ENV.JWT_SECRET,
         { expiresIn: '30d' }
       );
+
+      // Auto-link any past guest orders placed with this email or phone
+      try {
+        const linkedCount = await db.linkGuestOrders(user.id, user.email, user.phone);
+        if (linkedCount > 0) {
+          console.log(`[Auto-Link] Successfully linked ${linkedCount} past guest order(s) to user #${user.id} on login`);
+        }
+      } catch (linkErr) {
+        console.error('[Auto-Link] Error linking guest orders on login:', linkErr);
+      }
 
       setTokenCookie(req, res, token);
 
@@ -237,10 +257,14 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       }
 
       const token = jwt.sign(
-        { userId: user.id, phone: user.phone, role: 'user' },
+        { userId: user.id, email: user.email, phone: user.phone, role: 'user' },
         ENV.JWT_SECRET,
         { expiresIn: '30d' }
       );
+
+      try {
+        await db.linkGuestOrders(user.id, user.email, user.phone);
+      } catch {}
 
       setTokenCookie(req, res, token);
 
