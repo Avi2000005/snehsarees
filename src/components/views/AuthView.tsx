@@ -4,7 +4,7 @@ import { ArrowLeft, Mail, Lock, User, LogIn, UserPlus, Home, Eye, EyeOff, Refres
 import { API_URL } from '../../config';
 
 interface AuthViewProps {
-  onNavigate: (page: ActivePage) => void;
+  onNavigate: (page: ActivePage, param?: string | number, replace?: boolean) => void;
   onBack: () => void;
   onLoginSuccess: (token: string, user: UserProfile) => void;
   showToast: (msg: string) => void;
@@ -81,7 +81,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
       localStorage.setItem('laxmi_user_token', data.token);
       showToast(`Welcome back, ${data.user.name}! 🎉`);
       onLoginSuccess(data.token, data.user);
-      onNavigate(redirectTo || 'home');
+      onNavigate(redirectTo || 'home', undefined, true);
     } catch (err: any) {
       showToast(err.message);
     } finally {
@@ -156,7 +156,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
       localStorage.setItem('laxmi_user_token', data.token);
       showToast(`Account created! Welcome, ${data.user.name} 🎉`);
       onLoginSuccess(data.token, data.user);
-      onNavigate(redirectTo || 'home');
+      onNavigate(redirectTo || 'home', undefined, true);
     } catch (err: any) {
       showToast(err.message);
     } finally {
