@@ -247,6 +247,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   // Payment state — Razorpay is the only accepted payment method
   const [paymentMethod] = useState<'razorpay'>('razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   // Coupon states
   const [couponCode, setCouponCode] = useState('');
@@ -485,6 +486,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         },
         handler: async (response) => {
           // Step 3: Verify payment signature on backend
+          setIsVerifyingPayment(true);
           try {
             const verifyRes = await fetch(`${API_URL}/api/orders/razorpay-verify`, {
               method: 'POST',
@@ -505,6 +507,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             onNavigate('success');
           } catch (verifyErr: any) {
             showToast(verifyErr.message || 'Payment verification error. Please contact support.');
+          } finally {
+            setIsVerifyingPayment(false);
           }
         },
       });
@@ -523,6 +527,40 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
   return (
     <div id="page-checkout" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
+
+      {/* ── Payment Verification Loading Overlay — shows after returning from Razorpay ── */}
+      {isVerifyingPayment && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-6 px-8 text-center">
+            {/* Animated spinner ring */}
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 rounded-full border-4 border-[#F5E4BC]" />
+              <div className="absolute inset-0 rounded-full border-4 border-t-[#C4601A] animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ShieldCheck className="w-8 h-8 text-[#C4601A]" />
+              </div>
+            </div>
+            <div>
+              <p className="font-serif text-xl font-bold text-[#1A1A1A] mb-2">Confirming Your Payment</p>
+              <p className="text-sm text-[#666666] leading-relaxed max-w-[260px]">
+                Please wait while we securely verify your transaction…
+              </p>
+              <p className="text-xs text-[#999999] mt-3 font-medium">Do not close or refresh this page</p>
+            </div>
+            {/* Animated dots */}
+            <div className="flex gap-2">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-[#C4601A] animate-bounce"
+                  style={{ animationDelay: `${i * 0.18}s` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Checkout Navbar */}
       <div className="va-top-bar sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button

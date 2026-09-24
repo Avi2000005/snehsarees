@@ -37,6 +37,17 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [categoryInfo, setCategoryInfo] = useState<Category | null>(null);
   const [showReelPlayer, setShowReelPlayer] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
+  const [recentlyViewedProducts, setRecentlyViewedProducts] = useState<Product[]>([]);
+
+  // Touch swipe tracking refs (populated values used after mediaItems is computed)
+  const touchStartX = React.useRef<number>(0);
+  const touchStartY = React.useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
 
   const handleShare = async () => {
     if (!p) return;
@@ -97,13 +108,57 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               }
             })
             .catch((err) => console.error('Error fetching category:', err));
+
+          // Fetch suggested products from same category
+          fetch(`${API_URL}/api/products`)
+            .then((r) => r.json())
+            .then((allProducts: Product[]) => {
+              if (Array.isArray(allProducts)) {
+                const suggestions = allProducts
+                  .filter((pr) => pr.categoryId === data.categoryId && pr.id !== data.id)
+                  .slice(0, 8);
+                setSuggestedProducts(suggestions);
+              }
+            })
+            .catch((err) => console.error('Error fetching suggestions:', err));
         }
+        // Save current product to recently viewed in localStorage
+        try {
+          const stored = localStorage.getItem('sneh_recently_viewed');
+          const ids: number[] = stored ? JSON.parse(stored) : [];
+          const filtered = ids.filter((id) => id !== data.id);
+          const updated = [data.id, ...filtered].slice(0, 12); // keep last 12
+          localStorage.setItem('sneh_recently_viewed', JSON.stringify(updated));
+        } catch {}
       })
       .catch(() => {
         setP(null);
         setLoading(false);
       });
-    
+
+    // Load recently viewed products from localStorage (excluding current)
+    try {
+      const stored = localStorage.getItem('sneh_recently_viewed');
+      const ids: number[] = stored ? JSON.parse(stored) : [];
+      const otherIds = ids.filter((id) => id !== productId);
+      if (otherIds.length > 0) {
+        fetch(`${API_URL}/api/products`)
+          .then((r) => r.json())
+          .then((allProducts: Product[]) => {
+            if (Array.isArray(allProducts)) {
+              // Preserve the recently-viewed order
+              const map = new Map(allProducts.map((pr) => [pr.id, pr]));
+              const recent = otherIds
+                .map((id) => map.get(id))
+                .filter((pr): pr is Product => !!pr)
+                .slice(0, 8);
+              setRecentlyViewedProducts(recent);
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
+
     fetchReviews();
   }, [productId]);
 
@@ -209,8 +264,22 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const currentImageUrl = displayImage || (mediaItems[activeMediaIndex]?.url) || p.image || '';
   const currentMedia: { type: 'image' | 'video'; url: string } = { type: 'image', url: currentImageUrl };
 
+  // handleTouchEnd defined here (after mediaItems & photoOptions) to properly access them
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (mediaItems.length <= 1) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return; // not a horizontal swipe
+    const newIndex = dx < 0
+      ? Math.min(activeMediaIndex + 1, mediaItems.length - 1)  // swipe left → next
+      : Math.max(activeMediaIndex - 1, 0);                      // swipe right → prev
+    setActiveMediaIndex(newIndex);
+    setDisplayImage(mediaItems[newIndex].url);
+    if (photoOptions[newIndex]) setSelectedColour(photoOptions[newIndex].name);
+  };
+
   return (
-    <div id="page-product" className="min-h-screen pb-[100px] bg-[#FAF6F0]/80 backdrop-blur-xs">
+    <div id="page-product" className="min-h-screen pb-[100px] bg-[#FAF6F0]/80">
       {/* Top Bar Navigation */}
       <div className="pd-top-bar sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between px-4 md:px-7 lg:px-12 z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <div className="flex items-center gap-1.5">
@@ -271,7 +340,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
       <div className="max-w-[1000px] mx-auto bg-white border border-[#E8E0D5] md:my-6 md:rounded-3xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-2">
         {/* Left Side: Media showcase */}
-        <div className="pd-media-section bg-[#FAF6F0] relative h-[380px] md:h-[480px] lg:h-[550px] overflow-hidden border-b md:border-b-0 md:border-r border-[#E8E0D5]">
+        <div
+          className="pd-media-section bg-[#FAF6F0] relative h-[380px] md:h-[480px] lg:h-[550px] overflow-hidden border-b md:border-b-0 md:border-r border-[#E8E0D5]"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           {currentMedia.type === 'video' ? (
             (currentMedia.url.includes('youtube.com') || currentMedia.url.includes('youtu.be')) ? (
               <iframe
@@ -301,7 +374,16 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               />
             )
           ) : (
-            <SareeSwatch id={p.id} imageUrl={currentMedia.url} />
+            <>
+              <SareeSwatch id={p.id} imageUrl={currentMedia.url} />
+              {/* Invisible overlay to reliably capture horizontal touch-swipe events */}
+              <div
+                className="absolute inset-0 z-[5]"
+                style={{ touchAction: 'pan-y' }}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+              />
+            </>
           )}
           
           {isOutOfStock && (
@@ -351,21 +433,22 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         </div>
 
         {/* Right Side: Info and Attributes */}
-        <div className="pd-info-section p-5 md:p-8 flex flex-col justify-center">
-          <div className="pd-meta flex items-center gap-2 mb-2">
-            <span className="pd-fabric-tag bg-[#FAF6F0] border border-[#E8E0D5] text-[#C4601A] text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
-              {p.fabric}
-            </span>
-            {reviewsList.length > 0 ? (
-              <span className="pd-rating bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
-                ★ {(reviewsList.reduce((sum, r) => sum + r.rating, 0) / reviewsList.length).toFixed(1)}
-              </span>
-            ) : (
-              <span className="pd-rating bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-medium px-2 py-0.5 rounded">
-                No reviews yet
-              </span>
-            )}
-          </div>
+        <div className="pd-info-section p-5 md:p-8 flex flex-col justify-start pt-5 md:pt-6">
+          {/* Fabric + rating badges — only shown when content exists */}
+          {((p.fabric && p.fabric.trim()) || reviewsList.length > 0) && (
+            <div className="pd-meta flex items-center gap-2 mb-1.5">
+              {p.fabric && p.fabric.trim() && (
+                <span className="pd-fabric-tag bg-[#FAF6F0] border border-[#E8E0D5] text-[#C4601A] text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                  {p.fabric}
+                </span>
+              )}
+              {reviewsList.length > 0 && (
+                <span className="pd-rating bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
+                  ★ {(reviewsList.reduce((sum, r) => sum + r.rating, 0) / reviewsList.length).toFixed(1)}
+                </span>
+              )}
+            </div>
+          )}
 
           <h1 className="pd-title font-serif text-2xl md:text-3xl font-bold text-[#111111] leading-tight mb-2">
             {p.name}
@@ -463,13 +546,17 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
 
 
-          {/* Description */}
-          <div className="pd-section-label text-xs font-bold text-[#555555] uppercase tracking-wider mb-2">
-            Description
-          </div>
-          <p className="pd-description text-[#4A4A4A] text-sm md:text-base leading-relaxed mb-6 font-serif">
-            {p.desc}
-          </p>
+          {/* Description — only shown if content exists */}
+          {p.desc && p.desc.trim() && (
+            <>
+              <div className="pd-section-label text-xs font-bold text-[#555555] uppercase tracking-wider mb-2">
+                Description
+              </div>
+              <p className="pd-description text-[#4A4A4A] text-sm md:text-base leading-relaxed mb-6 font-serif">
+                {p.desc}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Trending Reel Section */}
@@ -565,106 +652,211 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           </div>
         )}
 
-        {/* Customer review feed */}
-        <div className="pd-reviews-section px-5 md:px-8 pb-6 col-span-1 md:col-span-2 border-t border-[#E8E0D5] pt-6 mt-4">
-          <h3 className="pd-reviews-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A] mb-4.5">
-            Customer Reviews ({reviewsList.length})
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Aggregate Stars Summary */}
-            <div className="bg-[#FAF6F0] p-5 rounded-2xl border border-[#E8E0D5] flex flex-col items-center justify-center text-center">
-              <span className="text-4xl font-extrabold text-[#C4601A] font-sans">
-                {reviewsList.length > 0 
-                  ? (reviewsList.reduce((sum, r) => sum + r.rating, 0) / reviewsList.length).toFixed(1)
-                  : (p?.rating || '0.0')}
-              </span>
-              <div className="flex text-amber-500 my-1.5">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const avg = reviewsList.length > 0 
-                    ? (reviewsList.reduce((sum, r) => sum + r.rating, 0) / reviewsList.length)
-                    : (p?.rating || 0);
+        {/* Customer review feed — only shown when there are actual reviews */}
+        {reviewsList.length > 0 && (
+          <div className="pd-reviews-section px-5 md:px-8 pb-4 col-span-1 md:col-span-2 border-t border-[#E8E0D5] pt-6 mt-4">
+            <h3 className="pd-reviews-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A] mb-4">
+              Customer Reviews ({reviewsList.length})
+            </h3>
+
+            {/* Star summary row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+              <div className="bg-[#FAF6F0] p-4 rounded-2xl border border-[#E8E0D5] flex items-center gap-4">
+                <span className="text-4xl font-extrabold text-[#C4601A] font-sans">
+                  {(reviewsList.reduce((sum, r) => sum + r.rating, 0) / reviewsList.length).toFixed(1)}
+                </span>
+                <div>
+                  <div className="flex text-amber-500 mb-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => {
+                      const avg = reviewsList.reduce((sum, r) => sum + r.rating, 0) / reviewsList.length;
+                      return <Star key={i} className={`w-4 h-4 ${i < Math.round(avg) ? 'fill-amber-500 text-amber-500' : 'text-gray-300'}`} />;
+                    })}
+                  </div>
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">{reviewsList.length} verified ratings</span>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-[#E8E0D5] flex flex-col justify-center space-y-1">
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const count = reviewsList.filter(r => Math.round(r.rating) === stars).length;
+                  const pct = Math.round((count / reviewsList.length) * 100);
                   return (
-                    <Star key={i} className={`w-5 h-5 ${i < Math.round(Number(avg)) ? 'fill-amber-500 text-amber-500' : 'text-gray-300'}`} />
+                    <div key={stars} className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="w-10 text-right font-medium">{stars} ★</span>
+                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="w-7 text-right text-gray-500">{pct}%</span>
+                    </div>
                   );
                 })}
               </div>
-              <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
-                {reviewsList.length} verified ratings
-              </span>
             </div>
 
-            {/* Rating Breakdown (Amazon/Flipkart style) */}
-            <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] flex flex-col justify-center space-y-1.5">
-              {[5, 4, 3, 2, 1].map((stars) => {
-                const count = reviewsList.filter(r => Math.round(r.rating) === stars).length;
-                const total = reviewsList.length;
-                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                return (
-                  <div key={stars} className="flex items-center gap-2 text-xs text-gray-600">
-                    <span className="w-12 text-right font-medium">{stars} star</span>
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="w-8 text-right text-gray-500">{pct}%</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Prompt users to write reviews via My Orders */}
-            <div className="bg-[#FAF6F0] p-5 rounded-2xl border border-[#E8E0D5] flex flex-col items-center justify-center text-center gap-3">
-              <span className="text-3xl">⭐</span>
-              <p className="text-xs font-bold text-[#1A1A1A]">Bought this saree?</p>
-              <p className="text-[11px] text-[#888888] leading-relaxed">
-                You can write, edit or delete your review from the <strong>My Orders</strong> section after your order is delivered.
-              </p>
-              <button
-                onClick={() => onNavigate('orders')}
-                className="border border-[#C4601A] text-[#C4601A] font-bold text-[10px] uppercase tracking-wider px-5 py-2 rounded-full hover:bg-[#C4601A] hover:text-white transition-all cursor-pointer"
-              >
-                Go to My Orders
-              </button>
-            </div>
-          </div>
- 
-          <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1">
-            {reviewsList.map((r) => (
-              <div key={r.id} className="pd-review-card bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-3.5 shadow-5xs">
-                <div className="pd-review-header flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="pd-review-avatar w-8 h-8 rounded-full bg-[#C4601A] flex items-center justify-center text-white font-bold text-xs uppercase shrink-0">
-                      {(r.userUsername || r.userName || 'A')[0]}
-                    </div>
-                    <div>
-                      <h5 className="pd-reviewer-name text-[13px] font-semibold text-[#1A1A1A] leading-tight">
-                        {r.userUsername ? `@${r.userUsername}` : (r.userName || 'Anonymous Buyer')}
-                      </h5>
-                      <div className="pd-review-stars text-amber-500 flex mt-0.5">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'fill-amber-500' : 'text-gray-300'}`} />
-                        ))}
+            <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1">
+              {reviewsList.map((r) => (
+                <div key={r.id} className="pd-review-card bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-3.5">
+                  <div className="pd-review-header flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="pd-review-avatar w-8 h-8 rounded-full bg-[#C4601A] flex items-center justify-center text-white font-bold text-xs uppercase shrink-0">
+                        {(r.userUsername || r.userName || 'A')[0]}
+                      </div>
+                      <div>
+                        <h5 className="pd-reviewer-name text-[13px] font-semibold text-[#1A1A1A] leading-tight">
+                          {r.userUsername ? `@${r.userUsername}` : (r.userName || 'Anonymous Buyer')}
+                        </h5>
+                        <div className="pd-review-stars text-amber-500 flex mt-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'fill-amber-500' : 'text-gray-300'}`} />
+                          ))}
+                        </div>
                       </div>
                     </div>
+                    {r.isVerified && (
+                      <span className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">Verified Buyer</span>
+                    )}
                   </div>
-                  {r.isVerified && (
-                    <span className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">Verified Buyer</span>
-                  )}
+                  <p className="pd-review-text text-xs text-[#4A4A4A] leading-relaxed italic">
+                    "{r.body || 'Good product.'}"
+                  </p>
                 </div>
-                <p className="pd-review-text text-xs text-[#4A4A4A] leading-relaxed italic">
-                  "{r.body || 'Good product.'}"
-                </p>
-              </div>
-            ))}
-            {reviewsList.length === 0 && (
-              <div className="p-6 text-center text-xs text-gray-500 bg-[#FAF6F0] rounded-xl border border-dashed border-[#E8E0D5]">Be the first to review this gorgeous saree!</div>
-            )}
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Write a Review CTA — always visible regardless of review count */}
+        <div className="px-5 md:px-8 pb-6 col-span-1 md:col-span-2 border-t border-[#E8E0D5] pt-5 mt-2">
+          <div className="bg-[#FAF6F0] rounded-2xl border border-[#E8E0D5] p-5 flex flex-col sm:flex-row items-center gap-4">
+            <span className="text-3xl shrink-0">⭐</span>
+            <div className="flex-1 text-center sm:text-left">
+              <p className="text-sm font-bold text-[#1A1A1A] mb-1">Bought this saree?</p>
+              <p className="text-xs text-[#888888] leading-relaxed">
+                You can write, edit or delete your review from the <strong>My Orders</strong> section after your order is delivered.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigate('orders')}
+              className="shrink-0 border border-[#C4601A] text-[#C4601A] font-bold text-[10px] uppercase tracking-wider px-5 py-2.5 rounded-full hover:bg-[#C4601A] hover:text-white transition-all cursor-pointer"
+            >
+              Go to My Orders
+            </button>
           </div>
         </div>
       </div>
 
+      {/* ── Suggested Products ─────────────────────────────────────── */}
+      {suggestedProducts.length > 0 && (
+        <div className="max-w-[1000px] mx-auto px-4 md:px-6 py-6 md:py-8">
+          <h3 className="font-serif text-lg md:text-xl font-bold text-[#1A1A1A] mb-4">
+            You May Also Like
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+            {suggestedProducts.map((sp) => {
+              const spPrice = sp.discountPrice && sp.discountPrice > 0 ? sp.discountPrice : sp.price;
+              const spDiscount = sp.discountPrice && sp.discountPrice > 0
+                ? Math.round(((sp.price - sp.discountPrice) / sp.price) * 100)
+                : 0;
+              return (
+                <div
+                  key={sp.id}
+                  className="bg-white rounded-2xl border border-[#E8E0D5] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                  onClick={() => onNavigate('product', String(sp.id))}
+                >
+                  <div className="relative h-44 md:h-52 bg-[#FAF6F0] overflow-hidden">
+                    {sp.image ? (
+                      <img
+                        src={sp.image}
+                        alt={sp.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#F5E4BC] to-[#C4601A]/30" />
+                    )}
+                    {spDiscount > 0 && (
+                      <span className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full">
+                        {spDiscount}% OFF
+                      </span>
+                    )}
+                    {sp.stock === 0 && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold bg-red-700 px-2 py-0.5 rounded-full">Sold Out</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-xs font-semibold text-[#1A1A1A] leading-snug line-clamp-2 mb-1.5 font-serif">{sp.name}</p>
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-sm font-extrabold text-[#C4601A]">₹{spPrice.toLocaleString('en-IN')}</span>
+                      {spDiscount > 0 && (
+                        <span className="text-[10px] text-gray-400 line-through">₹{sp.price.toLocaleString('en-IN')}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Recently Viewed ──────────────────────────────────────── */}
+      {recentlyViewedProducts.length > 0 && (
+        <div className="max-w-[1000px] mx-auto px-4 md:px-6 pb-6">
+          <h3 className="font-serif text-lg md:text-xl font-bold text-[#1A1A1A] mb-4">
+            Recently Viewed
+          </h3>
+          {/* Horizontal scroll strip on mobile, wrap on desktop */}
+          <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible no-scroll">
+            {recentlyViewedProducts.map((rv) => {
+              const rvPrice = rv.discountPrice && rv.discountPrice > 0 ? rv.discountPrice : rv.price;
+              const rvDiscount = rv.discountPrice && rv.discountPrice > 0
+                ? Math.round(((rv.price - rv.discountPrice) / rv.price) * 100)
+                : 0;
+              return (
+                <div
+                  key={rv.id}
+                  className="bg-white rounded-2xl border border-[#E8E0D5] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group shrink-0 w-40 md:w-auto"
+                  onClick={() => onNavigate('product', String(rv.id))}
+                >
+                  <div className="relative h-36 md:h-44 bg-[#FAF6F0] overflow-hidden">
+                    {rv.image ? (
+                      <img
+                        src={rv.image}
+                        alt={rv.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#F5E4BC] to-[#C4601A]/30" />
+                    )}
+                    {rvDiscount > 0 && (
+                      <span className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">
+                        {rvDiscount}% OFF
+                      </span>
+                    )}
+                    {rv.stock === 0 && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold bg-red-700 px-2 py-0.5 rounded-full">Sold Out</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2.5">
+                    <p className="text-xs font-semibold text-[#1A1A1A] leading-snug line-clamp-2 mb-1 font-serif">{rv.name}</p>
+                    <div className="flex items-baseline gap-1 flex-wrap">
+                      <span className="text-xs font-extrabold text-[#C4601A]">₹{rvPrice.toLocaleString('en-IN')}</span>
+                      {rvDiscount > 0 && (
+                        <span className="text-[9px] text-gray-400 line-through">₹{rv.price.toLocaleString('en-IN')}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* STICKY BOTTOM ACTION TOOLBAR */}
-      <div className="pd-sticky-bar fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-full bg-white border-t border-[#E8E0D5] p-2.5 px-3 md:px-9 flex gap-2 items-center z-[13] shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+      <div className="pd-sticky-bar fixed bottom-0 left-0 right-0 bg-white border-t border-[#E8E0D5] p-2.5 px-3 md:px-9 flex gap-2 items-center z-50 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] safe-pb">
         <button
           disabled={isOutOfStock}
           className={`pd-add-cart flex-1 border-2 text-xs md:text-sm font-bold py-3.5 rounded-xl active:scale-98 transition-all cursor-pointer ${

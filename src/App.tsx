@@ -809,24 +809,27 @@ export default function App() {
     <div className={`relative font-sans antialiased text-[#1A1A1A] max-w-[430px] md:max-w-full mx-auto min-h-screen ${page === 'landing' ? 'bg-ivory' : ''}`}>
       {/* Background for shopping website (all pages except landing) */}
       {page !== 'landing' ? (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0">
           {/* Mobile portrait background — shown only on small screens */}
           <div
-            className="block sm:hidden w-full h-full bg-cover bg-no-repeat opacity-[0.40] transition-opacity duration-300"
+            className="block sm:hidden w-full h-full opacity-[0.40] transition-opacity duration-300"
             style={{
               backgroundImage: `url(${bgMobileImage})`,
               backgroundPosition: 'center center',
               backgroundSize: 'cover',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'scroll',
             }}
           />
           {/* Desktop/tablet landscape background — shown on sm and above */}
           <div
-            className="hidden sm:block w-full h-full bg-cover bg-no-repeat opacity-[0.44] transition-opacity duration-300"
+            className="hidden sm:block w-full h-full opacity-[0.44] transition-opacity duration-300"
             style={{
               backgroundImage: `url(${bgImage})`,
-              backgroundAttachment: 'fixed',
+              backgroundAttachment: 'scroll',
               backgroundPosition: 'center top',
               backgroundSize: 'cover',
+              backgroundRepeat: 'no-repeat',
             }}
           />
           {/* Gentle soft wash so foreground text and elements stay clearly in the spotlight */}
