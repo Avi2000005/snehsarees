@@ -140,7 +140,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
+    <div className="min-h-screen bg-transparent">
       {/* Top sticky navigation bar */}
       <div className="fixed top-0 left-0 right-0 h-[56px] md:h-[64px] bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] flex items-center px-4 z-50 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button

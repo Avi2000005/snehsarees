@@ -812,7 +812,7 @@ export default function App() {
         <div className="fixed inset-0 pointer-events-none z-0">
           {/* Mobile portrait background — shown only on small screens */}
           <div
-            className="block sm:hidden w-full h-full opacity-[0.40] transition-opacity duration-300"
+            className="block sm:hidden w-full h-full opacity-[0.44] transition-opacity duration-300"
             style={{
               backgroundImage: `url(${bgMobileImage})`,
               backgroundPosition: 'center center',

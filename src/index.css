@@ -48,7 +48,7 @@
 /* Custom design specifications */
 body {
   font-family: var(--font-body);
-  background-color: var(--color-ivory);
+  background-color: transparent;
   color: #000000;
 }
 
@@ -145,6 +145,42 @@ body {
   background-blend-mode: overlay, normal;
   background-size: cover;
   background-position: center;
+}
+
+/* ─── Hero section background images ────────────────────────────────────────── */
+/* Desktop: landscape image */
+.hero-section {
+  background-image: url('/hero-bg-desktop.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Mobile: portrait image */
+@media (max-width: 767px) {
+  .hero-section {
+    background-image: url('/hero-bg-mobile.jpg');
+    background-position: center top;
+  }
+}
+
+/* ─── Landing page body (below hero) background ─────────────────────────── */
+/* Desktop: landscape fabric image */
+.landing-body-bg {
+  background-image: url('/landing-body-bg-desktop.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: local;
+}
+
+/* Mobile: portrait fabric image */
+@media (max-width: 767px) {
+  .landing-body-bg {
+    background-image: url('/landing-body-bg-mobile.jpg');
+    background-position: center top;
+    background-size: cover;
+  }
 }
 
 .khadi-cloth-bg {

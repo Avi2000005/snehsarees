@@ -277,7 +277,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
   };
 
   return (
-    <div id="page-orders" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
+    <div id="page-orders" className="min-h-screen bg-transparent">
       {/* Header bar */}
       <div className="va-top-bar sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <button

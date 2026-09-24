@@ -526,7 +526,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   };
 
   return (
-    <div id="page-checkout" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
+    <div id="page-checkout" className="min-h-screen bg-transparent">
 
       {/* ── Payment Verification Loading Overlay — shows after returning from Razorpay ── */}
       {isVerifyingPayment && (

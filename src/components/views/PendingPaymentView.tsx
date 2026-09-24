@@ -36,7 +36,7 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
 
   if (!order) {
     return (
-      <div className="bg-[#FAF6F0] min-h-screen flex flex-col items-center justify-center p-6 text-center">
+      <div className="bg-transparent min-h-screen flex flex-col items-center justify-center p-6 text-center">
         <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4 text-amber-700">
           <AlertCircle className="w-8 h-8" />
         </div>

@@ -45,7 +45,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
   };
 
   return (
-    <div className="bg-[#FAF6F0] min-h-screen">
+    <div className="min-h-screen">
       {/* Sticky Header Navigation Bar */}
       <header className="sticky top-0 left-0 right-0 h-16 brand-gradient border-b border-[#F5E4BC]/30 flex items-center justify-between px-6 z-50 shadow-md">
         <div className="font-serif text-xl font-bold text-white tracking-wide cursor-pointer flex items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
@@ -164,7 +164,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
         )}
       </header>
       {/* Hero Header */}
-      <div className="min-h-screen brand-gradient flex flex-col items-center justify-center p-8 pt-16 pb-12 text-center relative overflow-hidden">
+      <div className="hero-section min-h-screen flex flex-col items-center justify-center p-8 pt-16 pb-12 text-center relative overflow-hidden">
+        {/* Dark gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#7A2F08]/60 via-[#7A2F08]/35 to-[#7A2F08]/55 z-0 pointer-events-none" />
         {/* SVG definitions and patterns */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -361,6 +363,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
         </div>
       </div>
 
+      {/* Seamless gradient bridge — eliminates the white strip between hero and body */}
+      <div className="h-16 bg-gradient-to-b from-[#7A2F08] to-transparent -mb-16 relative z-10 pointer-events-none" />
+
+      {/* Post-hero content with fabric background */}
+      <div className="landing-body-bg relative">
+        {/* Light overlay so card content stays readable */}
+        <div className="absolute inset-0 bg-white/25 pointer-events-none z-0" />
+
       {/* Our Story */}
       <section id="our-story" className="py-12 md:py-16 px-6 md:px-12 max-w-[1100px] mx-auto bg-white/80 backdrop-blur-md rounded-2xl my-8 shadow-sm border border-[#E8E0D5]/80 relative z-10 overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#FFF0E8] to-transparent rounded-bl-full pointer-events-none opacity-60" />
@@ -551,6 +561,8 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
           </form>
         </div>
       </section>
+
+      </div>{/* end landing-body-bg */}
 
       {/* Footer */}
       <footer className="brand-gradient pt-12 pb-8 px-6 md:px-12 text-center text-white border-t border-[#F5E4BC]/20">

@@ -11,7 +11,7 @@ interface SuccessViewProps {
 export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) => {
   if (!order) {
     return (
-      <div className="bg-[#FAF6F0] min-h-screen flex flex-col items-center justify-center p-8">
+      <div className="bg-transparent min-h-screen flex flex-col items-center justify-center p-8">
         <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-4">No Order Details Found</h2>
         <button
           onClick={() => onNavigate('home')}
