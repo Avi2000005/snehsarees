@@ -24,6 +24,7 @@ import { AuthView } from './components/views/AuthView';
 import { AdminDashboardView } from './components/views/AdminDashboardView';
 import { API_URL, BUSINESS_WHATSAPP } from './config';
 import bgImage from '@/assets/background.jpg';
+import bgMobileImage from '@/assets/background-mobile.jpg';
 
 // Global Fetch Proxy to automatically send HTTP-only cookies on API calls
 const originalFetch = window.fetch;
@@ -809,9 +810,18 @@ export default function App() {
       {/* Background for shopping website (all pages except landing) */}
       {page !== 'landing' ? (
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          {/* Balanced ambient saree flatlay background */}
+          {/* Mobile portrait background — shown only on small screens */}
           <div
-            className="w-full h-full bg-cover bg-no-repeat opacity-[0.38] sm:opacity-[0.44] transition-opacity duration-300"
+            className="block sm:hidden w-full h-full bg-cover bg-no-repeat opacity-[0.40] transition-opacity duration-300"
+            style={{
+              backgroundImage: `url(${bgMobileImage})`,
+              backgroundPosition: 'center center',
+              backgroundSize: 'cover',
+            }}
+          />
+          {/* Desktop/tablet landscape background — shown on sm and above */}
+          <div
+            className="hidden sm:block w-full h-full bg-cover bg-no-repeat opacity-[0.44] transition-opacity duration-300"
             style={{
               backgroundImage: `url(${bgImage})`,
               backgroundAttachment: 'fixed',
