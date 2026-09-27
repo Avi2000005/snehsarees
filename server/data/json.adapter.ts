@@ -255,6 +255,25 @@ export class JsonDatabaseAdapter implements IDatabase {
     return linkedCount;
   }
 
+  // Email Notification Tracking
+  async markOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean> {
+    const db = await this.readDb();
+    const index = db.orders.findIndex((o) => o.id === orderId);
+    if (index === -1) return false;
+    const col = emailType === 'placed' ? 'emailPlacedSent' : emailType === 'shipped' ? 'emailShippedSent' : 'emailDeliveredSent';
+    (db.orders[index] as any)[col] = true;
+    await this.writeDb(db);
+    return true;
+  }
+
+  async isOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean> {
+    const db = await this.readDb();
+    const order = db.orders.find((o) => o.id === orderId);
+    if (!order) return false;
+    const col = emailType === 'placed' ? 'emailPlacedSent' : emailType === 'shipped' ? 'emailShippedSent' : 'emailDeliveredSent';
+    return (order as any)[col] === true;
+  }
+
   // Inquiries
   async getInquiries(): Promise<Inquiry[]> {
     const db = await this.readDb();

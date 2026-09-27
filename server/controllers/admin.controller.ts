@@ -3,6 +3,7 @@ import { db } from '../data/db';
 import { ENV } from '../config/env';
 import cloudinary from '../config/cloudinary';
 import { createShipment, syncShiprocketOrderStatus, syncActiveOrdersWithShiprocket } from '../services/shiprocket.service';
+import { sendOrderConfirmationEmail, sendOrderShippedEmail, sendOrderDeliveredEmail } from '../services/order-email.service';
 
 // Admin: Get ALL confirmed orders (exclude unpaid / pending orders)
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
@@ -244,6 +245,11 @@ export const updateOrderStatus = async (req: Request, res: Response, next: NextF
         await db.deductProductStock(item.id, item.qty);
       }
 
+      // Send order confirmation email when admin confirms order
+      sendOrderConfirmationEmail(order).catch((e: any) => {
+        console.error(`[Admin] Confirmation email dispatch error for ${id}:`, e.message);
+      });
+
       // Auto-dispatch to Shiprocket when admin confirms a ManualUPI order
       try {
         const shipment = await createShipment(order as any);
@@ -276,6 +282,17 @@ export const updateOrderStatus = async (req: Request, res: Response, next: NextF
     const success = await db.updateOrderStatus(id, status);
     if (!success) {
       return res.status(404).json({ error: 'Order not found to update.' });
+    }
+
+    // Trigger transactional emails on status milestone changes
+    if (status === 'shipped' && currentStatus !== 'shipped') {
+      sendOrderShippedEmail(id).catch((e: any) => {
+        console.error(`[Admin] Shipped email dispatch error for ${id}:`, e.message);
+      });
+    } else if (status === 'delivered' && currentStatus !== 'delivered') {
+      sendOrderDeliveredEmail(id).catch((e: any) => {
+        console.error(`[Admin] Delivered email dispatch error for ${id}:`, e.message);
+      });
     }
 
     const message = status === 'cancelled'
@@ -323,6 +340,15 @@ export const updateOrderTracking = async (req: Request, res: Response, next: Nex
     if (!success) {
       return res.status(404).json({ error: 'Order not found to update tracking.' });
     }
+
+    // Send shipment notification email with tracking details
+    sendOrderShippedEmail(id, {
+      trackingId: finalTrackingId,
+      carrierName: finalCarrierName,
+      trackingUrl: finalTrackingUrl,
+    }).catch((e: any) => {
+      console.error(`[Admin] Shipped email dispatch error for ${id}:`, e.message);
+    });
 
     res.json({
       success: true,
@@ -520,3 +546,47 @@ export const bulkAssignProductImages = async (req: Request, res: Response, next:
     next(err);
   }
 };
+
+// Admin: Re-dispatch or test transactional email for an order
+export const resendOrderEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { type, recipientEmail } = req.body; // type: 'placed' | 'shipped' | 'delivered'
+
+    if (!type || !['placed', 'shipped', 'delivered'].includes(type)) {
+      return res.status(400).json({ error: "Email type must be one of: 'placed', 'shipped', 'delivered'." });
+    }
+
+    const order = await db.getOrderById(id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    if (recipientEmail && typeof recipientEmail === 'string' && recipientEmail.includes('@')) {
+      order.userEmail = recipientEmail.trim().toLowerCase();
+    }
+
+    let success = false;
+    if (type === 'placed') {
+      success = await sendOrderConfirmationEmail(order, true);
+    } else if (type === 'shipped') {
+      success = await sendOrderShippedEmail(order, undefined, true);
+    } else if (type === 'delivered') {
+      success = await sendOrderDeliveredEmail(order, true);
+    }
+
+    if (!success) {
+      return res.status(500).json({
+        error: `Failed to send ${type} email. Please verify that a valid email address is associated with this order.`,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `${type.charAt(0).toUpperCase() + type.slice(1)} notification email successfully sent for order #${order.id}.`,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+

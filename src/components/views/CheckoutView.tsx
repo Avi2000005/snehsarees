@@ -328,6 +328,17 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       return;
     }
 
+    const customerEmail = email.trim() || user?.email || '';
+    if (!customerEmail) {
+      showToast('Please enter your email address for order receipt & tracking ✉️');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      showToast('Please enter a valid email address');
+      return;
+    }
+
     if (pincode.trim().length !== 6) {
       showToast('Enter a valid 6-digit pincode');
       return;
@@ -399,7 +410,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           city: city.trim(),
           pincode: pincode.trim(),
           state: state.trim(),
-          items: cart.map(it => ({ id: it.id, qty: it.qty })),
+          items: cart.map(it => ({ id: it.id, qty: it.qty, colour: it.colour, fabric: it.fabric })),
           method: 'COD',
           couponCode: appliedCoupon ? appliedCoupon.code : undefined
         })
@@ -443,7 +454,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           city: city.trim(),
           pincode: pincode.trim(),
           state: state.trim(),
-          items: cart.map(it => ({ id: it.id, qty: it.qty })),
+          items: cart.map(it => ({ id: it.id, qty: it.qty, colour: it.colour, fabric: it.fabric })),
           method: 'Razorpay',
           couponCode: appliedCoupon ? appliedCoupon.code : undefined
         })
@@ -743,15 +754,20 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             </div>
 
             <div className="form-group mb-4">
-              <label className="form-label block text-xs font-bold text-[#4A4A4A] tracking-wider mb-1.5 uppercase">
-                Email Address
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="form-label block text-xs font-bold text-[#4A4A4A] tracking-wider uppercase">
+                  Email Address *
+                </label>
+                <span className="text-[11px] font-semibold text-[#C4601A] flex items-center gap-1">
+                  ✉️ Order Receipt &amp; Live Tracking
+                </span>
+              </div>
               <input
                 className="form-input w-full p-3 rounded-lg border border-[#E8E0D5] text-sm focus:border-[#C4601A] outline-none"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email address"
+                placeholder="name@example.com (for order & delivery updates)"
               />
             </div>
 

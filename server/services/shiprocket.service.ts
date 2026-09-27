@@ -1,6 +1,7 @@
 import { ENV } from '../config/env';
 import { Order } from '../../src/types';
 import { db } from '../data/db';
+import { sendOrderShippedEmail, sendOrderDeliveredEmail } from './order-email.service';
 
 interface ShipmentResult {
   trackingId: string;
@@ -133,15 +134,22 @@ export async function createShipment(
       billing_email: '',
       billing_phone: order.phone,
       shipping_is_billing: true,
-      order_items: order.items.map((it) => ({
-        name: it.name,
-        sku: `SAREE-${it.id}`,
-        units: it.qty,
-        selling_price: it.price,
-        discount: 0,
-        tax: '',
-        hsn: 521007, // HSN code for sarees (silk/cotton woven)
-      })),
+      order_items: order.items.map((it) => {
+        const itemColour = (it.colour || '').trim();
+        const displayName = itemColour && !it.name.toLowerCase().includes(itemColour.toLowerCase())
+          ? `${it.name} (${itemColour})`
+          : it.name;
+        const cleanSkuColour = itemColour ? `-${itemColour.toUpperCase().replace(/[^A-Z0-9]/g, '')}` : '';
+        return {
+          name: displayName,
+          sku: `SAREE-${it.id}${cleanSkuColour}`,
+          units: it.qty,
+          selling_price: it.price,
+          discount: 0,
+          tax: '',
+          hsn: 521007, // HSN code for sarees (silk/cotton woven)
+        };
+      }),
       payment_method: order.method === 'COD' ? 'COD' : 'Prepaid',
       sub_total: order.total,
       length: 30,  // cm — standard saree package
@@ -460,6 +468,9 @@ export async function syncShiprocketOrderStatus(
     } else if (detectedStatus === 'delivered') {
       if (currentStatus !== 'delivered') {
         await db.updateOrderStatus(orderId, 'delivered');
+        sendOrderDeliveredEmail(orderId).catch(err => {
+          console.error(`[Shiprocket Sync] Delivered email error for ${orderId}:`, err.message);
+        });
         const resObj: ShiprocketSyncResult = {
           updated: true,
           orderId,
@@ -475,6 +486,13 @@ export async function syncShiprocketOrderStatus(
       if (currentStatus !== 'shipped' || needsTrackingUpdate) {
         const trackingUrl = awb ? `https://shiprocket.co/tracking/${awb}` : (localOrder.trackingUrl || '');
         await db.updateOrderTracking(orderId, awb || localOrder.trackingId || `SR-${orderId}`, courierName, trackingUrl);
+        sendOrderShippedEmail(orderId, {
+          trackingId: awb || localOrder.trackingId,
+          carrierName: courierName,
+          trackingUrl
+        }).catch(err => {
+          console.error(`[Shiprocket Sync] Shipped email error for ${orderId}:`, err.message);
+        });
         const resObj: ShiprocketSyncResult = {
           updated: true,
           orderId,

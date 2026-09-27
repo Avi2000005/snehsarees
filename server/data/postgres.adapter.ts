@@ -220,11 +220,14 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getOrders(): Promise<Order[]> {
     const client = this.getPool();
     const query = `
-      SELECT o.id, o.user_id as "userId", u.email as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
+      SELECT o.id, o.user_id as "userId", COALESCE(o.customer_email, u.email) as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
              o.tracking_id as "trackingId", o.carrier_name as "carrierName", o.tracking_url as "trackingUrl",
              o.coupon_code as "couponCode", o.discount_amount as "discountAmount", COALESCE(o.delivery_fee, 0) as "deliveryFee",
              o.processing_at as "processingAt", o.shipped_at as "shippedAt", o.delivered_at as "deliveredAt",
              o.cancelled_at as "cancelledAt", o.created_at as "createdAt",
+             COALESCE(o.email_placed_sent, false) as "emailPlacedSent",
+             COALESCE(o.email_shipped_sent, false) as "emailShippedSent",
+             COALESCE(o.email_delivered_sent, false) as "emailDeliveredSent",
              COALESCE(
                JSON_AGG(
                  JSON_BUILD_OBJECT(
@@ -241,7 +244,7 @@ export class PostgresDatabaseAdapter implements IDatabase {
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.status NOT IN ('pending', 'pending_payment')
-      GROUP BY o.id, u.email
+      GROUP BY o.id, u.email, o.customer_email, o.email_placed_sent, o.email_shipped_sent, o.email_delivered_sent
       ORDER BY o.created_at DESC
     `;
     const result = await client.query(query);
@@ -251,11 +254,14 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getOrdersByUserId(userId: number): Promise<Order[]> {
     const client = this.getPool();
     const query = `
-      SELECT o.id, o.user_id as "userId", u.email as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
+      SELECT o.id, o.user_id as "userId", COALESCE(o.customer_email, u.email) as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
              o.tracking_id as "trackingId", o.carrier_name as "carrierName", o.tracking_url as "trackingUrl",
              o.coupon_code as "couponCode", o.discount_amount as "discountAmount", COALESCE(o.delivery_fee, 0) as "deliveryFee",
              o.processing_at as "processingAt", o.shipped_at as "shippedAt", o.delivered_at as "deliveredAt",
              o.cancelled_at as "cancelledAt", o.created_at as "createdAt",
+             COALESCE(o.email_placed_sent, false) as "emailPlacedSent",
+             COALESCE(o.email_shipped_sent, false) as "emailShippedSent",
+             COALESCE(o.email_delivered_sent, false) as "emailDeliveredSent",
              COALESCE(
                JSON_AGG(
                  JSON_BUILD_OBJECT(
@@ -272,7 +278,7 @@ export class PostgresDatabaseAdapter implements IDatabase {
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.user_id = $1 AND o.status NOT IN ('pending', 'pending_payment')
-      GROUP BY o.id, u.email
+      GROUP BY o.id, u.email, o.customer_email, o.email_placed_sent, o.email_shipped_sent, o.email_delivered_sent
       ORDER BY o.created_at DESC
     `;
     const result = await client.query(query, [userId]);
@@ -282,11 +288,14 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getOrderById(id: string): Promise<Order | null> {
     const client = this.getPool();
     const query = `
-      SELECT o.id, o.user_id as "userId", u.email as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
+      SELECT o.id, o.user_id as "userId", COALESCE(o.customer_email, u.email) as "userEmail", o.customer_name as name, o.phone, o.address, o.total, o.method, o.status,
              o.tracking_id as "trackingId", o.carrier_name as "carrierName", o.tracking_url as "trackingUrl",
              o.coupon_code as "couponCode", o.discount_amount as "discountAmount", COALESCE(o.delivery_fee, 0) as "deliveryFee",
              o.processing_at as "processingAt", o.shipped_at as "shippedAt", o.delivered_at as "deliveredAt",
              o.cancelled_at as "cancelledAt", o.created_at as "createdAt",
+             COALESCE(o.email_placed_sent, false) as "emailPlacedSent",
+             COALESCE(o.email_shipped_sent, false) as "emailShippedSent",
+             COALESCE(o.email_delivered_sent, false) as "emailDeliveredSent",
              COALESCE(
                JSON_AGG(
                  JSON_BUILD_OBJECT(
@@ -303,7 +312,7 @@ export class PostgresDatabaseAdapter implements IDatabase {
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.id = $1
-      GROUP BY o.id, u.email
+      GROUP BY o.id, u.email, o.customer_email, o.email_placed_sent, o.email_shipped_sent, o.email_delivered_sent
     `;
     const result = await client.query(query, [id]);
     return result.rows[0] || null;
@@ -445,6 +454,33 @@ export class PostgresDatabaseAdapter implements IDatabase {
         [carrierName || null, trackingUrl || null, id]
       );
       return (result.rowCount ?? 0) > 0;
+    }
+  }
+
+  // Email Notification Tracking
+  async markOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean> {
+    const client = this.getPool();
+    const col = emailType === 'placed' ? 'email_placed_sent' : emailType === 'shipped' ? 'email_shipped_sent' : 'email_delivered_sent';
+    try {
+      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS ${col} BOOLEAN DEFAULT FALSE`);
+      const res = await client.query(`UPDATE orders SET ${col} = TRUE WHERE id = $1`, [orderId]);
+      return (res.rowCount ?? 0) > 0;
+    } catch (err: any) {
+      console.error(`[Postgres] markOrderEmailSent error for ${orderId} (${emailType}):`, err.message);
+      return false;
+    }
+  }
+
+  async isOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean> {
+    const client = this.getPool();
+    const col = emailType === 'placed' ? 'email_placed_sent' : emailType === 'shipped' ? 'email_shipped_sent' : 'email_delivered_sent';
+    try {
+      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS ${col} BOOLEAN DEFAULT FALSE`);
+      const res = await client.query(`SELECT ${col} as "sent" FROM orders WHERE id = $1`, [orderId]);
+      return res.rows[0]?.sent === true;
+    } catch (err: any) {
+      console.error(`[Postgres] isOrderEmailSent error for ${orderId} (${emailType}):`, err.message);
+      return false;
     }
   }
 

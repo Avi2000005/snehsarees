@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../data/db';
 import { syncShiprocketOrderStatus } from '../services/shiprocket.service';
+import { sendOrderShippedEmail, sendOrderDeliveredEmail } from '../services/order-email.service';
 
 /**
  * Handles incoming webhooks from Shiprocket.
@@ -123,6 +124,9 @@ export const handleShiprocketWebhook = async (req: Request, res: Response, next:
       if (currentStatus !== 'delivered') {
         await db.updateOrderStatus(orderId, 'delivered');
         console.log(`[Shiprocket Webhook] ✅ Order ${orderId} marked delivered.`);
+        sendOrderDeliveredEmail(orderId).catch(err => {
+          console.error(`[Webhook] Delivered email error for ${orderId}:`, err.message);
+        });
       }
     } else if (isShipped) {
       const finalAwb = awb || targetOrder.trackingId;
@@ -135,6 +139,13 @@ export const handleShiprocketWebhook = async (req: Request, res: Response, next:
         await db.updateOrderStatus(orderId, 'shipped');
       }
       console.log(`[Shiprocket Webhook] 🚚 Order ${orderId} marked shipped (AWB: ${finalAwb}).`);
+      sendOrderShippedEmail(orderId, {
+        trackingId: finalAwb,
+        carrierName: finalCourier,
+        trackingUrl: finalUrl
+      }).catch(err => {
+        console.error(`[Webhook] Shipped email error for ${orderId}:`, err.message);
+      });
     } else if (isProcessing) {
       if (currentStatus === 'paid' || currentStatus === 'placed') {
         await db.updateOrderStatus(orderId, 'processing');

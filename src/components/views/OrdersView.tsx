@@ -805,10 +805,18 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                   </div>
 
                   {/* Tracking Card */}
-                  {ord.trackingId && ord.status !== 'delivered' && ord.status !== 'cancelled' && (
-                    <div className="bg-gradient-to-r from-[#C4601A]/5 to-blue-50 border border-[#C4601A]/15 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#C4601A]">
-                        <Truck className="w-3.5 h-3.5" /> Shipment Dispatched
+                  {ord.trackingId && ord.status !== 'cancelled' && (
+                    <div className={`border rounded-xl p-3 space-y-2 ${ord.status === 'delivered' ? 'bg-emerald-50/60 border-emerald-200' : 'bg-gradient-to-r from-[#C4601A]/5 to-blue-50 border-[#C4601A]/15'}`}>
+                      <div className={`flex items-center gap-1.5 text-[11px] font-bold ${ord.status === 'delivered' ? 'text-emerald-700' : 'text-[#C4601A]'}`}>
+                        {ord.status === 'delivered' ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Shipment Delivered
+                          </>
+                        ) : (
+                          <>
+                            <Truck className="w-3.5 h-3.5" /> Shipment Dispatched
+                          </>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                         <div className="text-[#888888]">Carrier</div>
@@ -816,13 +824,13 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
                         <div className="text-[#888888]">Tracking ID</div>
                         <div className="flex items-center gap-1 font-bold text-[#1A1A1A] font-mono">
                           {ord.trackingId}
-                          <button onClick={() => { navigator.clipboard.writeText(ord.trackingId!); }} title="Copy tracking ID" className="text-[#888888] hover:text-[#C4601A] cursor-pointer p-0.5">
+                          <button onClick={() => { navigator.clipboard.writeText(ord.trackingId!); showToast('Tracking ID copied!'); }} title="Copy tracking ID" className="text-[#888888] hover:text-[#C4601A] cursor-pointer p-0.5">
                             <Copy className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
                       {ord.trackingUrl && (
-                        <a href={ord.trackingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 w-full bg-[#C4601A] hover:bg-[#FFF0E8] text-white text-[10px] font-bold py-2 rounded-lg transition-colors">
+                        <a href={ord.trackingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 w-full bg-[#C4601A] hover:bg-[#a84e15] text-white text-[10px] font-bold py-2 rounded-lg transition-colors shadow-xs">
                           <ExternalLink className="w-3 h-3" /> Track Shipment Live
                         </a>
                       )}

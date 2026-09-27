@@ -68,6 +68,9 @@ export interface Order {
   shippedAt?: string;
   deliveredAt?: string;
   cancelledAt?: string;
+  emailPlacedSent?: boolean;
+  emailShippedSent?: boolean;
+  emailDeliveredSent?: boolean;
 }
 
 export interface OfferBanner {

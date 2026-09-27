@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, X, Heart, Home } from 'lucide-react';
 import { ActivePage, Product } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
+import { ProductCard } from '../ProductCard';
 import { API_URL } from '../../config';
 
 interface SearchViewProps {
@@ -124,95 +125,15 @@ export const SearchView: React.FC<SearchViewProps> = ({
   };
 
   const renderGridCard = (p: Product) => {
-    const favorited = wishlist.includes(p.id);
-    const isTrending = p.tags && p.tags.includes('trending');
-    const isOutOfStock = p.stock === 0;
-    const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
-    const isLowStock = effectivePrice >= 2000 && p.stock !== undefined && p.stock > 0 && p.stock <= 3;
-
     return (
-      <div
+      <ProductCard
         key={p.id}
-        onClick={() => !isOutOfStock && onNavigate('product', String(p.id))}
-        className={`grid-product-card bg-white rounded-xl overflow-hidden shadow-xs border border-[#E8E0D5] relative transition-all ${
-          isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'
-        }`}
-      >
-        <div className="grid-card-img relative h-[190px] md:h-[228px] lg:h-[250px] bg-[#F0E8DC]">
-          <SareeSwatch id={p.id} imageUrl={p.image} />
-          {isTrending && (
-            <div className="trending-badge absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase">
-              TRENDING
-            </div>
-          )}
-          {isOutOfStock && (
-            <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center z-10">
-              <span className="bg-red-700 text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                OUT OF STOCK
-              </span>
-            </div>
-          )}
-          {isLowStock && !isOutOfStock && (
-            <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-md animate-pulse z-10">
-              Only {p.stock} Left!
-            </div>
-          )}
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleWishlist(p.id);
-            }}
-            className="grid-wishlist absolute top-2 right-2 w-7.5 h-7.5 bg-white/90 rounded-full flex items-center justify-center text-sm z-10 hover:scale-110 active:scale-125 transition-transform"
-          >
-            {favorited ? '♥' : '♡'}
-          </div>
-        </div>
-        <div className="grid-card-info p-2.5 md:p-3.5">
-          <div className="grid-product-name font-sans text-sm md:text-base font-bold text-[#111111] leading-tight mb-1 line-clamp-2 min-h-[38px]">
-            {p.name}
-          </div>
-          <span className="grid-fabric-tag inline-block text-[10px] font-semibold text-[#222222] bg-[#FAF0E6] border border-[#F0C8A0]/60 px-2 py-0.5 rounded-md mb-2">
-            {p.fabric}
-          </span>
-          <div className="grid-rating text-[11px] text-amber-500 mb-1">
-            {p.reviews > 0 ? '★'.repeat(Math.round(p.rating || 0)) + '☆'.repeat(5 - Math.round(p.rating || 0)) : '☆☆☆☆☆'}
-            <span className="text-[#333333] font-semibold ml-1">({p.reviews || 0})</span>
-          </div>
-          <div className="grid-price text-base font-bold text-[#C4601A] mb-2.5 font-sans">
-            ₹{p.price.toLocaleString('en-IN')}
-          </div>
-          <div className="grid-card-btns flex flex-col gap-1.5">
-            <button
-              disabled={isOutOfStock}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(p.id);
-              }}
-              className={`grid-cart-btn w-full border-1.5 text-[11px] font-semibold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer ${
-                isOutOfStock 
-                  ? 'border-gray-300 text-gray-400 cursor-not-allowed'
-                  : 'border-[#C4601A] text-[#C4601A] hover:bg-[#C4601A]/5'
-              }`}
-            >
-              {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
-            </button>
-            <button
-              disabled={isOutOfStock}
-              onClick={(e) => {
-                e.stopPropagation();
-                onBuyNow(p.id, undefined, p);
-              }}
-              className={`grid-buy-btn w-full text-white text-[11px] font-semibold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer ${
-                isOutOfStock
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#C4601A] hover:bg-[#FFF0E8]'
-              }`}
-            >
-              {isOutOfStock ? 'Sold Out' : 'Buy Now'}
-            </button>
-          </div>
-        </div>
-      </div>
+        product={p}
+        isWishlisted={wishlist.includes(p.id)}
+        onNavigate={onNavigate}
+        onAddToCart={(id) => onAddToCart(id)}
+        onToggleWishlist={onToggleWishlist}
+      />
     );
   };
 

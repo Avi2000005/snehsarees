@@ -6,7 +6,7 @@ import {
   ArrowLeft, LogIn, Lock, Mail, LayoutDashboard, ShoppingBag,
   Users, Layers, Trash2, Edit3, PlusCircle, CheckCircle, RefreshCw, X, MapPin,
   Tag, MessageSquare, Film, RotateCcw, FileSpreadsheet, Download, Upload, AlertCircle, FileText, CheckCircle2,
-  Image as ImageIcon, Camera, Sparkles, Check, Archive, Globe
+  Image as ImageIcon, Camera, Sparkles, Check, Archive, Globe, Star
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -116,7 +116,16 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [prodVariants, setProdVariants] = useState<{ colour: string; image: string }[]>([]);
   const [newVariantColour, setNewVariantColour] = useState('');
   const [newVariantImage, setNewVariantImage] = useState('');
+  const [newVariantMode, setNewVariantMode] = useState<'upload' | 'url'>('upload');
+  const [newVariantUrl, setNewVariantUrl] = useState('');
   const [uploadingVariantImage, setUploadingVariantImage] = useState(false);
+
+  // Thumbnail & Angle / Color editing state
+  const [thumbnailInputMode, setThumbnailInputMode] = useState<'upload' | 'url'>('upload');
+  const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
+  const [editingVariantColour, setEditingVariantColour] = useState('');
+  const [editingVariantImage, setEditingVariantImage] = useState('');
+  const [uploadingEditVariantImage, setUploadingEditVariantImage] = useState(false);
 
   // Address edit modal state
   const [editingOrderLocation, setEditingOrderLocation] = useState<Order | null>(null);
@@ -415,20 +424,94 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   const handleAddVariant = () => {
     if (!newVariantColour.trim()) {
-      showToast('Please enter a variant color name.');
+      showToast('Please enter a photo / angle label.');
       return;
     }
-    if (!newVariantImage) {
-      showToast('Please upload an image for this color variant.');
+    const finalImage = newVariantMode === 'url' ? newVariantUrl.trim() : newVariantImage;
+    if (!finalImage) {
+      showToast('Please upload an image or provide an image URL for this angle.');
       return;
     }
-    setProdVariants([...prodVariants, { colour: newVariantColour.trim(), image: newVariantImage }]);
+    setProdVariants([...prodVariants, { colour: newVariantColour.trim(), image: finalImage }]);
     setNewVariantColour('');
     setNewVariantImage('');
+    setNewVariantUrl('');
+    showToast('Photo / Angle added to gallery!');
   };
 
   const handleRemoveVariant = (index: number) => {
+    if (editingVariantIndex === index) {
+      setEditingVariantIndex(null);
+    }
     setProdVariants(prodVariants.filter((_, i) => i !== index));
+    showToast('Angle photo removed.');
+  };
+
+  const handleStartEditVariant = (index: number) => {
+    setEditingVariantIndex(index);
+    setEditingVariantColour(prodVariants[index].colour);
+    setEditingVariantImage(prodVariants[index].image);
+  };
+
+  const handleSaveEditVariant = () => {
+    if (editingVariantIndex === null) return;
+    if (!editingVariantColour.trim()) {
+      showToast('Please enter an angle/color label.');
+      return;
+    }
+    if (!editingVariantImage.trim()) {
+      showToast('Please attach an image for this angle.');
+      return;
+    }
+    const updated = [...prodVariants];
+    updated[editingVariantIndex] = {
+      colour: editingVariantColour.trim(),
+      image: editingVariantImage.trim()
+    };
+    setProdVariants(updated);
+    setEditingVariantIndex(null);
+    setEditingVariantColour('');
+    setEditingVariantImage('');
+    showToast('Angle/Color updated successfully!');
+  };
+
+  const handleCancelEditVariant = () => {
+    setEditingVariantIndex(null);
+    setEditingVariantColour('');
+    setEditingVariantImage('');
+  };
+
+  const handleSetVariantAsThumbnail = (index: number) => {
+    const v = prodVariants[index];
+    if (!v || !v.image) return;
+    setProdImage(v.image);
+    showToast(`Set "${v.colour}" as main thumbnail!`);
+  };
+
+  const handleEditVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingEditVariantImage(true);
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/products/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.imageUrl) {
+        setEditingVariantImage(data.imageUrl);
+        showToast('Angle image updated!');
+      } else {
+        showToast(data.error || 'Angle upload failed.');
+      }
+    } catch (err) {
+      showToast('Error uploading angle image.');
+    } finally {
+      setUploadingEditVariantImage(false);
+    }
   };
 
   const handleCreateCategory = async (e: React.FormEvent) => {
@@ -670,6 +753,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setProdVariants([]);
     setNewVariantColour('');
     setNewVariantImage('');
+    setNewVariantUrl('');
+    setEditingVariantIndex(null);
+    setEditingVariantColour('');
+    setEditingVariantImage('');
+    setThumbnailInputMode('upload');
     setProdReelUrl('');
     setProdIsArchived(false);
   };
@@ -1911,44 +1999,77 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     const isLive = hasImage && !isArchived;
 
                     return (
-                      <div key={p.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#FAF6F0]/20 gap-3">
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {p.code ? (
-                              <span className="font-mono text-[11px] font-extrabold bg-[#FFF0E8] text-[#C4601A] border border-[#C4601A]/30 px-2 py-0.5 rounded-md shadow-3xs" title="Reference ID for photo matching">
-                                REF: {p.code}
-                              </span>
+                      <div key={p.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#FAF6F0]/20 gap-3 border-b border-gray-100 last:border-b-0">
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                          {/* Saree Thumbnail Image Preview */}
+                          <div
+                            onClick={() => handleEditProductClick(p)}
+                            className="relative w-12 h-15 rounded-lg border border-[#E8E0D5] bg-[#FAF6F0] overflow-hidden shrink-0 cursor-pointer group shadow-3xs"
+                            title="Click to edit thumbnail or saree details"
+                          >
+                            {hasImage ? (
+                              <img
+                                src={p.image}
+                                alt={p.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              />
                             ) : (
-                              <span className="font-mono text-[11px] font-bold bg-[#FAF6F0] text-[#888888] border border-[#E8E0D5] px-2 py-0.5 rounded-md shadow-3xs">
-                                ID: #{p.id}
-                              </span>
+                              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                                <Camera className="w-4 h-4 text-gray-400" />
+                                <span className="text-[7px] font-bold mt-0.5">No Photo</span>
+                              </div>
                             )}
-                            <span className="font-bold text-[#1A1A1A] text-sm">{p.name}</span>
-
-                            {/* Status Badges */}
-                            {isLive ? (
-                              <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title="Visible on live customer website">
-                                ● Live on Website
-                              </span>
-                            ) : isArchived ? (
-                              <span className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title="Archived: hidden from live website">
-                                📦 Archived (Hidden)
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title={`Upload photo named ${p.code || p.id}.webp in Bulk Photos`}>
-                                ⚠️ Needs Photo (Draft)
-                              </span>
-                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Edit3 className="w-3.5 h-3.5 text-white" />
+                            </div>
                           </div>
-                          <div className="flex gap-3 text-[#888888] text-[10px] flex-wrap">
-                            <span>Fabric: <strong>{p.fabric || '—'}</strong></span>
-                            <span>Occasion: <strong>{p.occasion || '—'}</strong></span>
-                            <span>Category: <strong>{categories.find(c => c.id === p.categoryId)?.name || 'Unassigned'}</strong></span>
-                            <span>Stock: <strong className={p.stock === 0 ? "text-red-600 font-extrabold" : "text-gray-800"}>{p.stock !== undefined ? p.stock : 0} qty</strong></span>
-                            <span>Price: <strong className="text-[#C4601A]">₹{p.price}</strong></span>
-                            {p.discountPrice && p.discountPrice > 0 ? (
-                              <span>Discount: <strong className="text-emerald-700">₹{p.discountPrice}</strong></span>
-                            ) : null}
+
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {p.code ? (
+                                <span className="font-mono text-[11px] font-extrabold bg-[#FFF0E8] text-[#C4601A] border border-[#C4601A]/30 px-2 py-0.5 rounded-md shadow-3xs" title="Reference ID for photo matching">
+                                  REF: {p.code}
+                                </span>
+                              ) : (
+                                <span className="font-mono text-[11px] font-bold bg-[#FAF6F0] text-[#888888] border border-[#E8E0D5] px-2 py-0.5 rounded-md shadow-3xs">
+                                  ID: #{p.id}
+                                </span>
+                              )}
+                              <span className="font-bold text-[#1A1A1A] text-sm">{p.name}</span>
+
+                              {/* Status Badges */}
+                              {isLive ? (
+                                <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title="Visible on live customer website">
+                                  ● Live on Website
+                                </span>
+                              ) : isArchived ? (
+                                <span className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title="Archived: hidden from live website">
+                                  📦 Archived (Hidden)
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title={`Upload photo named ${p.code || p.id}.webp in Bulk Photos`}>
+                                  ⚠️ Needs Photo (Draft)
+                                </span>
+                              )}
+
+                              {/* Angles Badge */}
+                              {p.variants && p.variants.length > 0 && (
+                                <span className="text-[9px] font-bold text-[#C4601A] bg-[#FFF0E8] border border-[#C4601A]/30 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-3xs" title={`${p.variants.length} angle photo(s) available`}>
+                                  📷 {p.variants.length} angle{p.variants.length !== 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-3 text-[#888888] text-[10px] flex-wrap">
+                              <span>Color: <strong className="text-gray-800">{p.colour || '—'}</strong></span>
+                              <span>Fabric: <strong>{p.fabric || '—'}</strong></span>
+                              <span>Occasion: <strong>{p.occasion || '—'}</strong></span>
+                              <span>Category: <strong>{categories.find(c => c.id === p.categoryId)?.name || 'Unassigned'}</strong></span>
+                              <span>Stock: <strong className={p.stock === 0 ? "text-red-600 font-extrabold" : "text-gray-800"}>{p.stock !== undefined ? p.stock : 0} qty</strong></span>
+                              <span>Price: <strong className="text-[#C4601A]">₹{p.price}</strong></span>
+                              {p.discountPrice && p.discountPrice > 0 ? (
+                                <span>Discount: <strong className="text-emerald-700">₹{p.discountPrice}</strong></span>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -2078,14 +2199,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     </div>
 
                     {/* Order Items */}
-                    <div className="bg-[#FAF6F0] p-2.5 rounded-lg text-[10px] space-y-1">
-                      {o.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between text-[#888888]">
-                          <span>{it.name} ({it.fabric} - {it.colour}) x{it.qty}</span>
-                          <span className="font-bold text-[#1A1A1A]">₹{it.price * it.qty}</span>
-                        </div>
-                      ))}
-                      <div className="border-t border-[#E8E0D5] pt-1 mt-1.5 flex justify-between font-bold text-[#C4601A]">
+                    <div className="bg-[#FAF6F0] p-2.5 rounded-lg text-[11px] space-y-1.5">
+                      {o.items.map((it, idx) => {
+                        const cleanName = it.name ? it.name.replace(/\s*\(\s*-\s*\)/g, '').trim() : '';
+                        const hasColour = Boolean(it.colour && it.colour.trim() && it.colour.trim() !== '-');
+                        const hasFabric = Boolean(it.fabric && it.fabric.trim() && it.fabric.trim() !== '-');
+                        return (
+                          <div key={idx} className="flex justify-between items-center text-[#555555]">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-[#1A1A1A]">{cleanName}</span>
+                              {hasColour && !cleanName.toLowerCase().includes(it.colour.toLowerCase()) && (
+                                <span className="bg-[#FFF0E8] border border-[#F5C68A] text-[#C4601A] font-bold px-1.5 py-0.5 rounded text-[10px] flex items-center gap-0.5">
+                                  🎨 Color: {it.colour}
+                                </span>
+                              )}
+                              {hasFabric && (
+                                <span className="text-[#888888] text-[10px]">[{it.fabric}]</span>
+                              )}
+                              <span className="text-[#888888] font-bold">×{it.qty}</span>
+                            </div>
+                            <span className="font-bold text-[#1A1A1A]">₹{it.price * it.qty}</span>
+                          </div>
+                        );
+                      })}
+                      <div className="border-t border-[#E8E0D5] pt-1 mt-1.5 flex justify-between font-bold text-[#C4601A] text-xs">
                         <span>Grand Total</span>
                         <span>₹{o.total}</span>
                       </div>
@@ -3033,29 +3170,123 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A] mb-1">
-                  Saree Image <span className="text-[#888888] normal-case font-normal">(Recommended ratio: 3:4 portrait, e.g. 600x800 px)</span>
-                </label>
-                <div className="flex gap-3 items-center bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5">
+              {/* Saree Thumbnail / Cover Photo Section */}
+              <div className="bg-[#FAF6F0]/60 border border-[#E8E0D5] rounded-xl p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-1.5">
+                    <span>Main Saree Thumbnail (Cover Photo)</span>
+                    <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.2 rounded-full normal-case">
+                      Storefront Display
+                    </span>
+                  </label>
                   {prodImage && (
-                    <img
-                      src={prodImage}
-                      alt="Saree preview"
-                      className="w-10 h-10 rounded object-cover border border-[#E8E0D5] shrink-0"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setProdImage('')}
+                      className="text-[10px] font-semibold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Clear Thumbnail
+                    </button>
                   )}
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="text-[10px] text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
-                      disabled={uploadingImage}
-                    />
-                    {uploadingImage && <span className="text-[9px] text-[#C4601A] animate-pulse block mt-1">Uploading...</span>}
+                </div>
+
+                <div className="flex gap-3 items-center bg-white border border-[#E8E0D5] rounded-xl p-2.5 shadow-3xs">
+                  {prodImage ? (
+                    <div className="relative group shrink-0">
+                      <img
+                        src={prodImage}
+                        alt="Saree thumbnail preview"
+                        className="w-14 h-16 rounded-lg object-cover border border-[#E8E0D5]"
+                      />
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#C4601A] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-xs">
+                        ★ Main
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="w-14 h-16 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-gray-400 shrink-0">
+                      <Camera className="w-5 h-5 mb-0.5 text-gray-400" />
+                      <span className="text-[8px] font-bold">No Photo</span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    {/* Toggle between File Upload and URL Input */}
+                    <div className="flex items-center gap-3">
+                      <label className="text-[9px] font-semibold text-gray-600">
+                        {thumbnailInputMode === 'upload' ? 'Upload new photo:' : 'Image URL:'}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setThumbnailInputMode(thumbnailInputMode === 'upload' ? 'url' : 'upload')}
+                        className="text-[9px] text-[#C4601A] font-bold hover:underline cursor-pointer ml-auto"
+                      >
+                        {thumbnailInputMode === 'upload' ? 'Or paste Image URL' : 'Or upload Image File'}
+                      </button>
+                    </div>
+
+                    {thumbnailInputMode === 'upload' ? (
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="text-[10px] text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
+                          disabled={uploadingImage}
+                        />
+                        {uploadingImage && <span className="text-[9px] text-[#C4601A] animate-pulse block mt-1">Uploading thumbnail...</span>}
+                      </div>
+                    ) : (
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={prodImage}
+                          onChange={(e) => setProdImage(e.target.value)}
+                          placeholder="https://example.com/saree-photo.webp"
+                          className="flex-1 bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-1.5 text-xs font-mono focus:outline-none focus:border-[#C4601A]"
+                        />
+                      </div>
+                    )}
+                    <span className="text-[8px] text-gray-400 block">Recommended ratio: 3:4 portrait (e.g. 600×800 px)</span>
                   </div>
                 </div>
+
+                {/* Choose from Angles as Thumbnail Quick Picker */}
+                {prodVariants.length > 0 && (
+                  <div className="pt-2 border-t border-[#E8E0D5]/70">
+                    <span className="block text-[9px] font-bold text-gray-600 mb-1.5">
+                      Choose an Angle photo below to set as Main Thumbnail:
+                    </span>
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scroll">
+                      {prodVariants.map((v, idx) => {
+                        const isCurrentThumbnail = prodImage === v.image;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setProdImage(v.image);
+                              showToast(`Set "${v.colour}" as main thumbnail!`);
+                            }}
+                            className={`shrink-0 flex items-center gap-1.5 p-1.5 pr-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                              isCurrentThumbnail
+                                ? 'bg-[#FFF0E8] border-[#C4601A] ring-1 ring-[#C4601A]'
+                                : 'bg-white border-[#E8E0D5] hover:border-[#C4601A]/50 hover:bg-gray-50'
+                            }`}
+                            title={`Make ${v.colour} the main thumbnail`}
+                          >
+                            <img src={v.image} alt={v.colour} className="w-7 h-8 rounded object-cover" />
+                            <div className="min-w-0">
+                              <span className="block text-[9px] font-bold text-gray-800 truncate max-w-[85px]">{v.colour}</span>
+                              <span className={`block text-[8px] font-bold ${isCurrentThumbnail ? 'text-emerald-700' : 'text-[#C4601A]'}`}>
+                                {isCurrentThumbnail ? '✓ Current' : '★ Set as main'}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -3205,69 +3436,261 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 </label>
               </div>
 
-              {/* More Photos / Angles Builder */}
-              <div className="bg-gray-50 border border-dashed border-[#E8E0D5] rounded-xl p-3 space-y-3">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#C4601A]">
-                  More Photos / Angles (Gallery)
-                </span>
+              {/* More Photos / Angles (Gallery & Color Variants) Builder */}
+              <div className="bg-gray-50 border border-dashed border-[#E8E0D5] rounded-xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-[#C4601A] flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>More Photos / Angles / Color Variants</span>
+                  </span>
+                  <span className="text-[9px] font-bold text-gray-500">
+                    {prodVariants.length} photo{prodVariants.length !== 1 ? 's' : ''} in gallery
+                  </span>
+                </div>
 
-                {/* List of existing variants */}
+                {/* List of existing variants with full Edit / Delete / Make Thumbnail capabilities */}
                 {prodVariants.length > 0 && (
-                  <div className="flex gap-2 flex-wrap pb-1">
-                    {prodVariants.map((v, idx) => (
-                      <div key={idx} className="flex items-center gap-1.5 bg-white border border-[#E8E0D5] p-1 pr-2 rounded-lg text-[10px] shadow-3xs">
-                        <img src={v.image} alt={v.colour} className="w-5 h-5 rounded object-cover" />
-                        <span className="font-semibold text-gray-700">{v.colour}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveVariant(idx)}
-                          className="text-red-500 hover:text-red-700 cursor-pointer font-bold ml-0.5 text-xs"
+                  <div className="space-y-2">
+                    {prodVariants.map((v, idx) => {
+                      const isEditing = editingVariantIndex === idx;
+                      const isMainThumbnail = prodImage === v.image;
+
+                      if (isEditing) {
+                        return (
+                          <div key={idx} className="bg-white border-2 border-[#C4601A] p-3 rounded-xl shadow-xs space-y-2.5 animate-fade-in">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-[#C4601A]">
+                                Editing Photo / Angle #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleCancelEditVariant}
+                                className="text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                              <div>
+                                <label className="block text-[9px] font-bold text-gray-600 mb-1">
+                                  Angle / Color Label:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editingVariantColour}
+                                  onChange={(e) => setEditingVariantColour(e.target.value)}
+                                  placeholder="e.g. Pallu View, Front Angle, Red..."
+                                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                                  autoFocus
+                                />
+                                {/* Quick suggestion chips for edit */}
+                                <div className="flex gap-1 flex-wrap mt-1">
+                                  {['Front View', 'Pallu Angle', 'Border Detail', 'Pleats', 'Blouse Piece'].map((chip) => (
+                                    <button
+                                      key={chip}
+                                      type="button"
+                                      onClick={() => setEditingVariantColour(chip)}
+                                      className="text-[8px] bg-gray-100 hover:bg-[#FFF0E8] hover:text-[#C4601A] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                                    >
+                                      {chip}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-[9px] font-bold text-gray-600 mb-1">
+                                  Change Angle Photo:
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  {editingVariantImage && (
+                                    <img
+                                      src={editingVariantImage}
+                                      alt="Angle Preview"
+                                      className="w-9 h-11 rounded object-cover border border-[#E8E0D5] shrink-0"
+                                    />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={handleEditVariantImageUpload}
+                                      disabled={uploadingEditVariantImage}
+                                      className="text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
+                                    />
+                                    {uploadingEditVariantImage && (
+                                      <span className="text-[8px] text-[#C4601A] animate-pulse block mt-0.5">Uploading...</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
+                              <button
+                                type="button"
+                                onClick={handleCancelEditVariant}
+                                className="px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded-lg cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSaveEditVariant}
+                                className="px-3.5 py-1 text-xs font-bold text-white bg-[#C4601A] hover:bg-[#a84e15] rounded-lg shadow-xs cursor-pointer"
+                              >
+                                Save Changes
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center justify-between p-2 rounded-xl border bg-white shadow-3xs hover:border-[#C4601A]/40 transition-all ${
+                            isMainThumbnail ? 'border-[#C4601A]/50 bg-[#FFFDFB]' : 'border-[#E8E0D5]'
+                          }`}
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img
+                              src={v.image}
+                              alt={v.colour}
+                              className="w-8 h-10 rounded-md object-cover border border-[#E8E0D5] shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <span className="font-bold text-[#1A1A1A] text-xs block truncate">{v.colour}</span>
+                              {isMainThumbnail ? (
+                                <span className="text-[8px] font-extrabold text-[#C4601A] bg-[#FFF0E8] border border-[#C4601A]/30 px-1.5 py-0.2 rounded-full inline-block mt-0.5">
+                                  ★ Active Main Thumbnail
+                                </span>
+                              ) : (
+                                <span className="text-[8px] text-gray-400 block mt-0.5">Gallery Angle #{idx + 1}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {!isMainThumbnail && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetVariantAsThumbnail(idx)}
+                                className="px-2 py-1 text-[9px] font-bold text-[#C4601A] bg-[#FFF0E8] hover:bg-[#C4601A] hover:text-white border border-[#C4601A]/30 rounded-lg transition-colors cursor-pointer"
+                                title="Use this photo as the main thumbnail"
+                              >
+                                ★ Make Thumbnail
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditVariant(idx)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-lg transition-colors cursor-pointer"
+                              title="Edit angle name / photo"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVariant(idx)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-lg transition-colors cursor-pointer"
+                              title="Delete photo angle"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
                 {/* Add new variant controls */}
-                <div className="space-y-2 pt-1 border-t border-[#E8E0D5]/50">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <input
-                        type="text"
-                        value={newVariantColour}
-                        onChange={(e) => setNewVariantColour(e.target.value)}
-                        placeholder="Photo / Angle label (e.g. Angle 1, Angle 2)"
-                        className="w-full bg-white border border-[#E8E0D5] rounded-lg p-2 text-[10px] font-semibold focus:outline-none focus:border-[#C4601A]"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleVariantImageUpload}
-                        disabled={uploadingVariantImage}
-                        className="text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full mt-1"
-                      />
-                      <span className="text-[8px] text-gray-400 block mt-0.5">(Recommended: 3:4 portrait)</span>
-                      {uploadingVariantImage && (
-                        <span className="text-[8px] text-[#C4601A] animate-pulse block mt-0.5">Uploading...</span>
-                      )}
+                <div className="space-y-2 pt-2 border-t border-[#E8E0D5]/70 bg-white/70 p-3 rounded-xl border border-[#E8E0D5]">
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-600">
+                    + Add New Angle / Color Photo
+                  </span>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={newVariantColour}
+                      onChange={(e) => setNewVariantColour(e.target.value)}
+                      placeholder="Photo / Angle label (e.g. Pallu View, Front Angle, Red)"
+                      className="w-full bg-white border border-[#E8E0D5] rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                    />
+                    {/* Quick suggestion chips */}
+                    <div className="flex gap-1 flex-wrap mt-1">
+                      {['Front Angle', 'Pallu View', 'Border Detail', 'Pleats', 'Blouse Piece'].map((chip) => (
+                        <button
+                          key={chip}
+                          type="button"
+                          onClick={() => setNewVariantColour(chip)}
+                          className="text-[8px] bg-gray-100 hover:bg-[#FFF0E8] hover:text-[#C4601A] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                        >
+                          + {chip}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  {newVariantImage && (
-                    <div className="flex items-center gap-2">
-                      <img src={newVariantImage} alt="Variant upload preview" className="w-6 h-6 rounded object-cover border border-[#E8E0D5]" />
-                      <span className="text-[9px] text-[#888888] italic">Variant image selected!</span>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[9px] font-semibold text-gray-600">
+                        {newVariantMode === 'upload' ? 'Upload photo file:' : 'Angle Image URL:'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setNewVariantMode(newVariantMode === 'upload' ? 'url' : 'upload')}
+                        className="text-[9px] text-[#C4601A] font-bold hover:underline cursor-pointer ml-auto"
+                      >
+                        {newVariantMode === 'upload' ? 'Or paste Image URL' : 'Or upload Image File'}
+                      </button>
+                    </div>
+
+                    {newVariantMode === 'upload' ? (
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleVariantImageUpload}
+                          disabled={uploadingVariantImage}
+                          className="text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
+                        />
+                        <span className="text-[8px] text-gray-400 block mt-0.5">(Recommended: 3:4 portrait)</span>
+                        {uploadingVariantImage && (
+                          <span className="text-[8px] text-[#C4601A] animate-pulse block mt-0.5">Uploading...</span>
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={newVariantUrl}
+                        onChange={(e) => setNewVariantUrl(e.target.value)}
+                        placeholder="https://example.com/angle-photo.webp"
+                        className="w-full bg-white border border-[#E8E0D5] rounded-lg p-2 text-xs font-mono focus:outline-none focus:border-[#C4601A]"
+                      />
+                    )}
+                  </div>
+
+                  {(newVariantImage || newVariantUrl) && (
+                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-1.5 rounded-lg">
+                      <img
+                        src={newVariantMode === 'url' ? newVariantUrl : newVariantImage}
+                        alt="Variant upload preview"
+                        className="w-6 h-7 rounded object-cover border border-[#E8E0D5]"
+                      />
+                      <span className="text-[9px] text-emerald-800 font-semibold">Ready to add to saree gallery!</span>
                     </div>
                   )}
+
                   <button
                     type="button"
                     onClick={handleAddVariant}
-                    className="w-full bg-white hover:bg-gray-100 text-[#C4601A] border border-[#C4601A]/20 font-bold py-1.5 rounded-lg text-[10px] transition-colors cursor-pointer"
+                    className="w-full bg-[#FFF0E8] hover:bg-[#C4601A] hover:text-white text-[#C4601A] border border-[#C4601A]/30 font-bold py-2 rounded-lg text-xs transition-colors cursor-pointer shadow-3xs"
                   >
-                    + Add Photo / Angle
+                    + Add This Photo / Angle to Gallery
                   </button>
                 </div>
               </div>

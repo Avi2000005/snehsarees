@@ -5,6 +5,7 @@ import { ENV } from '../config/env';
 import { Order, CartItem } from '../../src/types';
 import { UserRequest } from '../middlewares/user.middleware';
 import { createShipment, getShiprocketInvoiceUrl, syncShiprocketOrderStatus } from '../services/shiprocket.service';
+import { sendOrderConfirmationEmail } from '../services/order-email.service';
 import crypto from 'crypto';
 
 export const getOrders = async (req: UserRequest, res: Response, next: NextFunction) => {
@@ -143,12 +144,26 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       const itemPrice = dbProduct.discountPrice && dbProduct.discountPrice > 0 ? dbProduct.discountPrice : dbProduct.price;
       calculatedTotal += itemPrice * item.qty;
 
+      // Extract chosen color from request or fallback to product's default color or first variant
+      const chosenColour = (
+        item.colour ||
+        dbProduct.colour ||
+        (dbProduct.variants && dbProduct.variants.length > 0 ? dbProduct.variants[0].colour : '') ||
+        ''
+      ).trim();
+
+      let displayName = dbProduct.name.trim();
+      // Ensure color information goes with the title so admin & warehouse know exactly which color to pack
+      if (chosenColour && !displayName.toLowerCase().includes(chosenColour.toLowerCase())) {
+        displayName = `${displayName} (${chosenColour})`;
+      }
+
       validatedItems.push({
         id: dbProduct.id,
-        name: dbProduct.name,
+        name: displayName,
         price: itemPrice,
-        fabric: dbProduct.fabric,
-        colour: dbProduct.colour,
+        fabric: dbProduct.fabric || item.fabric || '',
+        colour: chosenColour,
         qty: item.qty,
         image: dbProduct.image,
       });
@@ -275,6 +290,10 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       for (const it of validatedItems) {
         await db.deductProductStock(it.id, it.qty);
       }
+      // Send confirmation email for immediately placed orders
+      sendOrderConfirmationEmail(newOrder).catch((e: any) => {
+        console.error(`[Order] Confirmation email dispatch error for ${newOrder.id}:`, e.message);
+      });
     }
     if (validCouponId) {
       await db.recordCouponUsage(validCouponId, userId, newOrder.id);
@@ -323,6 +342,11 @@ export const verifyRazorpayPayment = async (req: UserRequest, res: Response, nex
           await db.incrementCouponUsage(coupon.id);
         }
       }
+
+      // Send order confirmation email asynchronously
+      sendOrderConfirmationEmail(targetOrderId).catch((e: any) => {
+        console.error(`[Order] Confirmation email dispatch error for ${targetOrderId}:`, e.message);
+      });
 
       // Auto-create shipment on Shiprocket after payment confirmed
       try {

@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS orders (
     discount_amount DECIMAL(10,2) DEFAULT 0,
     delivery_fee DECIMAL(10,2) DEFAULT 0,
     customer_email VARCHAR(255),
+    email_placed_sent BOOLEAN DEFAULT FALSE,
+    email_shipped_sent BOOLEAN DEFAULT FALSE,
+    email_delivered_sent BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

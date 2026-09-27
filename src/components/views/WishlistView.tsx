@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, Heart, ShoppingBag, Home } from 'lucide-react';
 import { ActivePage, Product } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
+import { ProductCard } from '../ProductCard';
 
 interface WishlistViewProps {
   wishlist: number[];
@@ -25,67 +26,15 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
   const wishlistItems = productsList.filter((p) => wishlist.includes(p.id));
 
   const renderGridCard = (p: Product) => {
-    const isTrending = p.tags && p.tags.includes('trending');
-
     return (
-      <div
+      <ProductCard
         key={p.id}
-        onClick={() => onNavigate('product', String(p.id))}
-        className="grid-product-card bg-white rounded-2xl overflow-hidden shadow-xs border border-[#E8E0D5] cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all"
-      >
-        <div className="grid-card-img relative w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#F0E8DC]">
-          <SareeSwatch id={p.id} imageUrl={p.image} />
-          {isTrending && (
-            <div className="trending-badge absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase">
-              TRENDING
-            </div>
-          )}
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleWishlist(p.id);
-            }}
-            className="grid-wishlist absolute top-2 right-2 w-7.5 h-7.5 bg-white/90 rounded-full flex items-center justify-center text-sm z-10 active:scale-120 transition-transform cursor-pointer"
-          >
-            ♥
-          </div>
-        </div>
-        <div className="grid-card-info p-2.5 md:p-3.5">
-          <div className="grid-product-name font-sans text-sm md:text-base font-bold text-[#111111] leading-tight mb-1 line-clamp-2 min-h-[38px]">
-            {p.name}
-          </div>
-          <span className="grid-fabric-tag inline-block text-[10px] font-semibold text-[#222222] bg-[#FAF0E6] border border-[#F0C8A0]/60 px-2 py-0.5 rounded-md mb-2">
-            {p.fabric}
-          </span>
-          <div className="grid-rating text-[11px] text-amber-500 mb-1">
-            {p.reviews > 0 ? '★'.repeat(Math.round(p.rating || 0)) + '☆'.repeat(5 - Math.round(p.rating || 0)) : '☆☆☆☆☆'}
-            <span className="text-[#333333] font-semibold ml-1">({p.reviews || 0})</span>
-          </div>
-          <div className="grid-price text-base font-bold text-[#C4601A] mb-2.5 font-sans">
-            ₹{p.price.toLocaleString('en-IN')}
-          </div>
-          <div className="grid-card-btns flex flex-col gap-1.5">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(p.id);
-              }}
-              className="grid-cart-btn w-full border border-[#C4601A] text-[#C4601A] text-[11px] font-semibold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer"
-            >
-              Add to Cart
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onBuyNow(p.id, undefined, p);
-              }}
-              className="grid-buy-btn w-full bg-[#C4601A] text-white text-[11px] font-semibold py-1.5 rounded-lg hover:bg-[#FFF0E8] active:scale-98 transition-transform cursor-pointer"
-            >
-              Buy Now
-            </button>
-          </div>
-        </div>
-      </div>
+        product={p}
+        isWishlisted={true}
+        onNavigate={onNavigate}
+        onAddToCart={(id) => onAddToCart(id)}
+        onToggleWishlist={onToggleWishlist}
+      />
     );
   };
 

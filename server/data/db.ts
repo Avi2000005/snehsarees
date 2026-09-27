@@ -89,6 +89,10 @@ class DynamicDatabaseAdapter implements IDatabase {
   getReturnByOrderId(orderId: string) { return this.getActiveAdapter().getReturnByOrderId(orderId); }
   getAllReturns() { return this.getActiveAdapter().getAllReturns(); }
   updateReturnStatus(id: number, status: string, adminNote?: string) { return this.getActiveAdapter().updateReturnStatus(id, status, adminNote); }
+
+  // Email notifications tracking
+  markOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered') { return this.getActiveAdapter().markOrderEmailSent(orderId, emailType); }
+  isOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered') { return this.getActiveAdapter().isOrderEmailSent(orderId, emailType); }
 }
 
 export const db = new DynamicDatabaseAdapter();

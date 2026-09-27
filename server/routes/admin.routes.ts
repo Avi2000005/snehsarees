@@ -15,6 +15,7 @@ import {
   uploadBulkProductImages,
   bulkAssignProductImages,
   getAllOrders,
+  resendOrderEmail,
 } from '../controllers/admin.controller';
 import { getInquiries } from '../controllers/inquiry.controller';
 import { createCategory, updateCategory, deleteCategory, uploadCategoryImage } from '../controllers/category.controller';
@@ -49,6 +50,7 @@ router.post('/orders/:id/sync-shiprocket', syncOrderWithShiprocket);
 router.put('/orders/:id/status', updateOrderStatus);
 router.put('/orders/:id/location', updateOrderLocation);
 router.put('/orders/:id/tracking', updateOrderTracking);
+router.post('/orders/:id/resend-email', resendOrderEmail);
 
 // Wholesale inquiries lists & status modifications
 router.get('/inquiries', getInquiries);

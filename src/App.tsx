@@ -434,7 +434,18 @@ export default function App() {
     const parentProd = productsList.find((x) => x.id === id) || products.find((x) => x.id === id);
     if (!parentProd) return;
 
-    const chosenColour = colour || parentProd.colour;
+    const chosenColour = (
+      colour ||
+      parentProd.colour ||
+      (parentProd.variants && parentProd.variants.length > 0 ? parentProd.variants[0].colour : '') ||
+      ''
+    ).trim();
+
+    let itemName = parentProd.name.trim();
+    if (chosenColour && !itemName.toLowerCase().includes(chosenColour.toLowerCase())) {
+      itemName = `${itemName} (${chosenColour})`;
+    }
+
     const existingIdx = cart.findIndex((it) => it.id === id && it.colour === chosenColour);
 
     // Get active stock
@@ -455,7 +466,7 @@ export default function App() {
     } else {
       updatedCart.push({
         id,
-        name: parentProd.name,
+        name: itemName,
         price: parentProd.price,
         fabric: parentProd.fabric,
         colour: chosenColour,
@@ -551,13 +562,24 @@ export default function App() {
 
   // Buy Now: go straight to checkout with just this one product, skipping the cart
   const handleBuyNow = (id: number, colour?: string, directProduct?: Product) => {
-    const prod = directProduct || productsList.find((x) => x.id === id);
+    const prod = directProduct || productsList.find((x) => x.id === id) || products.find((x) => x.id === id);
     if (!prod) return;
-    const chosenColour = colour || prod.colour;
+    const chosenColour = (
+      colour ||
+      prod.colour ||
+      (prod.variants && prod.variants.length > 0 ? prod.variants[0].colour : '') ||
+      ''
+    ).trim();
+    let itemName = prod.name.trim();
+    if (chosenColour && !itemName.toLowerCase().includes(chosenColour.toLowerCase())) {
+      itemName = `${itemName} (${chosenColour})`;
+    }
     const price = prod.discountPrice && prod.discountPrice > 0 ? prod.discountPrice : prod.price;
-    const variant = prod.variants?.find((v) => v.colour.toLowerCase() === chosenColour.toLowerCase());
+    const variant = chosenColour
+      ? prod.variants?.find((v) => v.colour.toLowerCase() === chosenColour.toLowerCase())
+      : undefined;
     const imageUrl = variant?.image || prod.image;
-    setBuyNowCart([{ id: prod.id, name: prod.name, price, fabric: prod.fabric, colour: chosenColour, qty: 1, image: imageUrl }]);
+    setBuyNowCart([{ id: prod.id, name: itemName, price, fabric: prod.fabric, colour: chosenColour, qty: 1, image: imageUrl }]);
     handleNavigate('checkout');
   };
 

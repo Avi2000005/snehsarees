@@ -83,4 +83,8 @@ export interface IDatabase {
   getReturnByOrderId(orderId: string): Promise<ReturnRequest | null>;
   getAllReturns(): Promise<ReturnRequest[]>;
   updateReturnStatus(id: number, status: string, adminNote?: string): Promise<boolean>;
+
+  // Email notifications tracking
+  markOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean>;
+  isOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean>;
 }

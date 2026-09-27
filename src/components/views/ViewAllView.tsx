@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShoppingBag, SlidersHorizontal, ArrowUpDown, ChevronDown, Eye, Play, Heart, RefreshCw, Home, BookOpen, Sparkles, MapPin, Layers, ShieldCheck, Compass, Feather, Scroll, Sun, HeartHandshake } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, SlidersHorizontal, ArrowUpDown, ChevronDown, Eye, Play, Heart, RefreshCw, Home, BookOpen, Sparkles, MapPin, Layers, ShieldCheck, Compass, Feather, Scroll, Sun, HeartHandshake, Grid2X2, Rows2 } from 'lucide-react';
 import { ActivePage, Product, Category } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
+import { ProductCard } from '../ProductCard';
 import { API_URL } from '../../config';
 import saree3dBg from '../saree_heritage_3d_bg.png';
 
@@ -44,6 +45,22 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
 
   const [showSortModal, setShowSortModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+
+  // Dynamic View Toggle State: Present 2-col UI vs Wide Cards
+  const [isWideView, setIsWideView] = useState(() => {
+    try {
+      return localStorage.getItem('sneh_view_mode') === 'wide';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleWideView = (wide: boolean) => {
+    setIsWideView(wide);
+    try {
+      localStorage.setItem('sneh_view_mode', wide ? 'wide' : 'grid');
+    } catch {}
+  };
 
   // Dynamic filter state
   const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
@@ -201,96 +218,21 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
     setShowFilterModal(false);
   };
 
-  const renderGridCard = (p: Product) => {
-    const favorited = wishlist.includes(p.id);
-    const isTrending = p.tags && p.tags.includes('trending');
-    const isOutOfStock = p.stock === 0;
-    const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
-    const isLowStock = effectivePrice >= 2000 && p.stock !== undefined && p.stock > 0 && p.stock <= 3;
-
+  const renderGridCard = (p: Product, isWide: boolean = false) => {
     return (
-      <div
+      <ProductCard
         key={p.id}
-        onClick={() => !isOutOfStock && onNavigate('product', String(p.id))}
-        className={`grid-product-card bg-white rounded-xl overflow-hidden shadow-xs border border-[#E8E0D5] relative transition-all ${
-          isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-md hover:scale-[1.01]'
-        }`}
-      >
-        <div className="grid-card-img relative h-[190px] md:h-[228px] lg:h-[250px] bg-[#F0E8DC]">
-          <SareeSwatch id={p.id} imageUrl={p.image} />
-          {isTrending && (
-            <div className="trending-badge absolute top-2 left-2 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase">
-              TRENDING
-            </div>
-          )}
-          {isOutOfStock && (
-            <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center z-10">
-              <span className="bg-red-700 text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                OUT OF STOCK
-              </span>
-            </div>
-          )}
-          {isLowStock && !isOutOfStock && (
-            <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-md animate-pulse z-10">
-              Only {p.stock} Left!
-            </div>
-          )}
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleWishlist(p.id);
-            }}
-            className="grid-wishlist absolute top-2 right-2 w-7.5 h-7.5 bg-white/90 rounded-full flex items-center justify-center text-sm z-10 active:scale-120 transition-transform cursor-pointer"
-          >
-            {favorited ? '♥' : '♡'}
-          </div>
-        </div>
-        <div className="grid-card-info p-2.5 md:p-3.5">
-          <div className="grid-product-name font-sans text-sm md:text-base font-bold text-[#111111] leading-tight mb-1 line-clamp-2 min-h-[38px]">
-            {p.name}
-          </div>
-          <span className="grid-fabric-tag inline-block text-[10px] font-semibold text-[#222222] bg-[#FAF0E6] border border-[#F0C8A0]/60 px-2 py-0.5 rounded-md mb-2">
-            {p.fabric}
-          </span>
-          <div className="grid-rating text-[11px] text-amber-500 mb-1">
-            {p.reviews > 0 ? '★'.repeat(Math.round(p.rating || 0)) + '☆'.repeat(5 - Math.round(p.rating || 0)) : '☆☆☆☆☆'}
-            <span className="text-[#333333] font-semibold ml-1">({p.reviews || 0})</span>
-          </div>
-          <div className="grid-price text-base font-bold text-[#C4601A] mb-2.5 font-sans">
-            ₹{p.price.toLocaleString('en-IN')}
-          </div>
-          <div className="grid-card-btns flex flex-col gap-1.5">
-            <button
-              disabled={isOutOfStock}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(p.id);
-              }}
-              className={`grid-cart-btn w-full border text-[11px] font-bold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer shadow-3xs ${
-                isOutOfStock 
-                  ? 'border-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'border-[#C4601A] text-[#C4601A] hover:bg-[#C4601A]/5'
-              }`}
-            >
-              {isOutOfStock ? 'Sold Out' : 'Add to Cart'}
-            </button>
-            <button
-              disabled={isOutOfStock}
-              onClick={(e) => {
-                e.stopPropagation();
-                onBuyNow(p.id, undefined, p);
-              }}
-              className={`grid-buy-btn w-full text-white text-[11px] font-bold py-1.5 rounded-lg active:scale-98 transition-transform cursor-pointer shadow-2xs ${
-                isOutOfStock
-                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  : 'bg-[#C4601A] hover:bg-[#FFF0E8]'
-              }`}
-            >
-              {isOutOfStock ? 'Sold Out' : 'Buy Now'}
-            </button>
-          </div>
-        </div>
-      </div>
+        product={p}
+        isWishlisted={wishlist.includes(p.id)}
+        onNavigate={onNavigate}
+        onAddToCart={(id) => onAddToCart(id)}
+        onToggleWishlist={onToggleWishlist}
+        imageHeightClass={
+          isWide
+            ? 'h-[280px] sm:h-[320px] md:h-[360px] lg:h-[400px]'
+            : 'h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px]'
+        }
+      />
     );
   };
 
@@ -421,19 +363,51 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
 
         {/* Right side Products view */}
         <div className="va-main flex-1 min-w-0 pb-[80px] md:pb-[96px]">
-          {/* Sorter / Filter floating toolbar */}
-          <div className="sort-filter-bar sticky top-[56px] md:top-[60px] lg:top-[68px] bg-white/98 backdrop-blur-md border-b border-[#E8E0D5] flex gap-2.5 p-2.5 px-4 z-30 select-none shadow-2xs">
+          {/* Sorter / Filter / Layout View floating toolbar */}
+          <div className="sort-filter-bar sticky top-[56px] md:top-[60px] lg:top-[68px] bg-white/98 backdrop-blur-md border-b border-[#E8E0D5] flex items-center justify-between gap-1.5 md:gap-2.5 p-2 md:p-2.5 px-3 md:px-4 z-30 select-none shadow-2xs">
             <button
               onClick={() => setShowSortModal(true)}
-              className="sort-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-3.5 text-xs font-semibold text-[#4A4A4A] bg-white hover:border-[#C4601A] transition-colors cursor-pointer"
+              className="sort-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-2.5 md:px-3.5 text-xs font-semibold text-[#4A4A4A] bg-white hover:border-[#C4601A] transition-colors cursor-pointer shrink-0"
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
-              <span>Sort: {sortBy}</span>
+              <span className="hidden sm:inline">Sort: {sortBy}</span>
+              <span className="sm:hidden">Sort</span>
               <ChevronDown className="w-3 h-3 text-[#C4601A]" />
             </button>
+
+            {/* Dynamic View Toggle (Present UI 2-Col Grid vs Wide Cards) */}
+            <div className="layout-toggle flex items-center border border-[#E8E0D5] rounded-full p-0.5 bg-[#FAF6F0] shrink-0">
+              <button
+                type="button"
+                onClick={() => handleToggleWideView(false)}
+                className={`flex items-center gap-1 py-1 px-2.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  !isWideView
+                    ? 'bg-white text-[#C4601A] shadow-xs font-bold'
+                    : 'text-[#666666] hover:text-[#1A1A1A]'
+                }`}
+                title="Present UI (2-Column Grid)"
+              >
+                <Grid2X2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Grid</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleWideView(true)}
+                className={`flex items-center gap-1 py-1 px-2.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  isWideView
+                    ? 'bg-white text-[#C4601A] shadow-xs font-bold'
+                    : 'text-[#666666] hover:text-[#1A1A1A]'
+                }`}
+                title="Wide Product Cards"
+              >
+                <Rows2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Wide</span>
+              </button>
+            </div>
+
             <button
               onClick={() => setShowFilterModal(true)}
-              className="filter-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-3.5 text-xs font-semibold text-[#4A4A4A] bg-white hover:border-[#C4601A] transition-colors cursor-pointer ml-auto"
+              className="filter-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-2.5 md:px-3.5 text-xs font-semibold text-[#4A4A4A] bg-white hover:border-[#C4601A] transition-colors cursor-pointer shrink-0"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               Filter
@@ -517,8 +491,14 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                   {displayedList.map((p) => renderReelGridCard(p))}
                 </div>
               ) : (
-                <div className="product-grid grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-4 gap-3 md:gap-4.5">
-                  {displayedList.map((p) => renderGridCard(p))}
+                <div
+                  className={`product-grid grid p-3 sm:p-4 transition-all duration-300 ${
+                    isWideView
+                      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6'
+                      : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4.5'
+                  }`}
+                >
+                  {displayedList.map((p) => renderGridCard(p, isWideView))}
                 </div>
               )}
 
