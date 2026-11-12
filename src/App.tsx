@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { ActivePage, CartItem, Order, Product, UserProfile } from './types';
 import { products } from './data';
 
 // Component imports
 import { Drawer } from './components/Drawer';
-import { Chatbot } from './components/Chatbot';
 
-// View imports
+// Eager view imports (core customer browsing flow)
 import { LandingView } from './components/views/LandingView';
 import { HomeView } from './components/views/HomeView';
 import { SearchView } from './components/views/SearchView';
@@ -14,17 +13,21 @@ import { ViewAllView } from './components/views/ViewAllView';
 import { ProductDetailView } from './components/views/ProductDetailView';
 import { CartView } from './components/views/CartView';
 import { CheckoutView } from './components/views/CheckoutView';
-import { SuccessView } from './components/views/SuccessView';
-import { PendingPaymentView } from './components/views/PendingPaymentView';
 import { WishlistView } from './components/views/WishlistView';
-import { OrdersView } from './components/views/OrdersView';
-import { ProfileView } from './components/views/ProfileView';
-import { BulkView } from './components/views/BulkView';
-import { AuthView } from './components/views/AuthView';
-import { AdminDashboardView } from './components/views/AdminDashboardView';
+
+// Lazy view imports (loaded only when navigated to, preventing heavy XLSX & admin JS on landing)
+const AdminDashboardView = lazy(() => import('./components/views/AdminDashboardView').then(m => ({ default: m.AdminDashboardView })));
+const OrdersView = lazy(() => import('./components/views/OrdersView').then(m => ({ default: m.OrdersView })));
+const ProfileView = lazy(() => import('./components/views/ProfileView').then(m => ({ default: m.ProfileView })));
+const BulkView = lazy(() => import('./components/views/BulkView').then(m => ({ default: m.BulkView })));
+const AuthView = lazy(() => import('./components/views/AuthView').then(m => ({ default: m.AuthView })));
+const SuccessView = lazy(() => import('./components/views/SuccessView').then(m => ({ default: m.SuccessView })));
+const PendingPaymentView = lazy(() => import('./components/views/PendingPaymentView').then(m => ({ default: m.PendingPaymentView })));
+const Chatbot = lazy(() => import('./components/Chatbot').then(m => ({ default: m.Chatbot })));
+
 import { API_URL, BUSINESS_WHATSAPP } from './config';
-import bgImage from '@/assets/background.jpg';
-import bgMobileImage from '@/assets/background-mobile.jpg';
+import bgImage from '@/assets/background.webp';
+import bgMobileImage from '@/assets/background-mobile.webp';
 
 // Global Fetch Proxy to automatically send HTTP-only cookies on API calls
 const originalFetch = window.fetch;
@@ -884,10 +887,12 @@ export default function App() {
         </div>
       )}
 
-      {/* Dynamic contents */}
-      <div className="relative z-[1]">
-        {renderViewContent()}
-      </div>
+      {/* Dynamic contents with semantic landmark */}
+      <main id="main-content" role="main" className="relative z-[1]">
+        <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><div className="w-8 h-8 border-3 border-[#C4601A] border-t-transparent rounded-full animate-spin" /></div>}>
+          {renderViewContent()}
+        </Suspense>
+      </main>
 
       {/* Hamburger Menu Side panel */}
       <Drawer
@@ -924,13 +929,15 @@ export default function App() {
       </div>
 
       {/* Stateful Rule-Based Intelligent Chat Assistant popup */}
-      <Chatbot
-        isOpen={chatbotOpen}
-        onClose={() => setChatbotOpen(false)}
-        onNavigate={handleNavigate}
-        onSetCategory={setActiveHomeCategory}
-        showToast={showToast}
-      />
+      <Suspense fallback={null}>
+        <Chatbot
+          isOpen={chatbotOpen}
+          onClose={() => setChatbotOpen(false)}
+          onNavigate={handleNavigate}
+          onSetCategory={setActiveHomeCategory}
+          showToast={showToast}
+        />
+      </Suspense>
 
       {/* Dynamic System wide Toast Notification banner overlay */}
       {toastMsg && (

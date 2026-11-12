@@ -76,6 +76,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
           </div>
           <button
             onClick={onClose}
+            aria-label="Close categories menu"
             className="p-1.5 bg-white/15 hover:bg-white/25 rounded-full transition-colors cursor-pointer"
           >
             <X className="w-4 h-4 text-white" />

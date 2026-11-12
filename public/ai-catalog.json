@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "name": "Sneh Sarees",
+  "description": "Authentic Kota Doria handloom saree store from Kota, Rajasthan.",
+  "url": "https://www.snehsarees.in",
+  "contact": {
+    "email": "info@snehsarees.in",
+    "phone": "+919461037123"
+  },
+  "capabilities": [
+    {
+      "name": "Browse Products",
+      "description": "View Kota Doria handloom saree collections, materials, and pricing",
+      "endpoint": "https://www.snehsarees.in/#/viewall/all"
+    },
+    {
+      "name": "Bulk Orders",
+      "description": "Inquire about bulk saree orders for weddings and events",
+      "endpoint": "https://www.snehsarees.in/#/bulk"
+    }
+  ]
+}
+

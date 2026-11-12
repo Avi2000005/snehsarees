@@ -1,9 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Banknote, Home, Plus, X, ShieldCheck, Lock, Check, Loader2 } from 'lucide-react';
 import { CartItem, ActivePage, Order, UserProfile, UserAddress } from '../../types';
 import { API_URL } from '../../config';
 import { PolicyModal, PolicyTab } from '../PolicyModal';
 import { INDIAN_STATES, getDistrictsForState, lookupPincode } from '../../data/indiaLocations';
+import { pixelInitiateCheckout, pixelPurchase } from '../MetaPixel';
+
+const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && (window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+    const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(true));
+      existing.addEventListener('error', () => resolve(false));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 interface CheckoutViewProps {
   cart: CartItem[];
@@ -28,6 +50,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 }) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [policyModalTab, setPolicyModalTab] = useState<PolicyTab | null>(null);
+
+  useEffect(() => {
+    loadRazorpayScript();
+  }, []);
 
   // Find default address (or first if no default)
   const defaultAddr = user?.addresses?.find(a => a.isDefault) || user?.addresses?.[0];
@@ -388,6 +414,9 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     }
 
     setStep(2);
+    // Fire Meta Pixel InitiateCheckout (Option 2: tracks ad conversions at checkout stage)
+    const cartTotal = cart.reduce((sum, it) => sum + it.price * it.qty, 0);
+    pixelInitiateCheckout({ value: cartTotal, numItems: cart.reduce((s, it) => s + it.qty, 0) });
   };
 
 
@@ -418,6 +447,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to place order.');
       onOrderConfirm(data.order);
+      // Fire Meta Pixel Purchase event (Option 2: COD conversion tracking)
+      pixelPurchase({ orderId: data.order.id, value: data.order.total, numItems: cart.reduce((s, it) => s + it.qty, 0) });
       showToast('Order placed! Pay cash on delivery.');
       onNavigate('success');
     } catch (err: any) {
@@ -430,8 +461,13 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   // Place Razorpay Standard Checkout order
   const processRazorpayOrder = async () => {
     if (!window.Razorpay) {
-      showToast('Payment gateway is not loaded. Please refresh the page.');
-      return;
+      setIsProcessing(true);
+      const loaded = await loadRazorpayScript();
+      if (!loaded || !window.Razorpay) {
+        setIsProcessing(false);
+        showToast('Payment gateway is taking longer to load. Please check your connection and retry.');
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -514,6 +550,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               throw new Error(verifyData.error || 'Payment verification failed.');
             }
             onOrderConfirm(order);
+            // Fire Meta Pixel Purchase event (Option 2: Razorpay online payment conversion)
+            pixelPurchase({ orderId: order.id, value: order.total, numItems: cart.reduce((s, it) => s + it.qty, 0) });
             showToast('Payment successful! Order confirmed ✨');
             onNavigate('success');
           } catch (verifyErr: any) {

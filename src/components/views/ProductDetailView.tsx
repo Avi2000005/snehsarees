@@ -1,8 +1,111 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShoppingBag, Heart, RefreshCw, Star, Play, BookOpen, X, Globe, Home, ShoppingCart, Share2, Check } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Heart, RefreshCw, Star, Play, BookOpen, X, Globe, Home, ShoppingCart, Share2, Check, Instagram, Copy } from 'lucide-react';
 import { ActivePage, Product, Review, Category, UserProfile } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { API_URL, SITE_URL } from '../../config';
+import { pixelViewContent, pixelAddToCart } from '../MetaPixel';
+
+// Helper: inject/update dynamic SEO meta tags for the current product
+function updateProductSEO(p: Product) {
+  const productUrl = `${SITE_URL}/?product=${p.id}`;
+  const imageUrl = p.image || `${SITE_URL}/logo.jpg`;
+  const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
+  const title = `${p.name} | Sneh Sarees`;
+  const description = p.desc
+    ? `${p.desc.slice(0, 140)}... Shop on Sneh Sarees.`
+    : `Buy ${p.name} - authentic ${p.fabric || 'handloom'} saree from Sneh Sarees, Kota Rajasthan. ₹${effectivePrice.toLocaleString('en-IN')} with pan-India delivery.`;
+
+  // Page title
+  document.title = title;
+
+  // Helper to set/create a meta tag
+  const setMeta = (selector: string, attr: string, value: string) => {
+    let el = document.querySelector(selector) as HTMLMetaElement | null;
+    if (!el) {
+      el = document.createElement('meta');
+      document.head.appendChild(el);
+    }
+    el.setAttribute(attr, value);
+  };
+
+  setMeta('meta[name="description"]', 'content', description);
+  setMeta('meta[name="title"]', 'content', title);
+  setMeta('meta[property="og:title"]', 'content', title);
+  setMeta('meta[property="og:description"]', 'content', description);
+  setMeta('meta[property="og:url"]', 'content', productUrl);
+  setMeta('meta[property="og:image"]', 'content', imageUrl);
+  setMeta('meta[property="og:image:alt"]', 'content', `${p.name} - Sneh Sarees`);
+  setMeta('meta[property="og:type"]', 'content', 'product');
+  setMeta('meta[name="twitter:title"]', 'content', title);
+  setMeta('meta[name="twitter:description"]', 'content', description);
+  setMeta('meta[name="twitter:image"]', 'content', imageUrl);
+  setMeta('meta[name="twitter:url"]', 'content', productUrl);
+
+  // Canonical URL
+  let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!canonical) {
+    canonical = document.createElement('link');
+    canonical.rel = 'canonical';
+    document.head.appendChild(canonical);
+  }
+  canonical.href = productUrl;
+
+  // Product JSON-LD schema
+  const schemaId = 'product-jsonld';
+  let schemaEl = document.getElementById(schemaId);
+  if (!schemaEl) {
+    schemaEl = document.createElement('script');
+    schemaEl.id = schemaId;
+    (schemaEl as HTMLScriptElement).type = 'application/ld+json';
+    document.head.appendChild(schemaEl);
+  }
+  const schema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: p.name,
+    description: description,
+    image: imageUrl,
+    url: productUrl,
+    sku: p.code || String(p.id),
+    brand: { '@type': 'Brand', name: 'Sneh Sarees' },
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: 'INR',
+      price: effectivePrice,
+      itemCondition: 'https://schema.org/NewCondition',
+      availability: (p.stock === 0)
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+      seller: { '@type': 'Organization', name: 'Sneh Sarees' }
+    }
+  };
+  if (p.fabric) {
+    schema.material = p.fabric;
+  }
+  schemaEl.textContent = JSON.stringify(schema);
+}
+
+// Restore default SEO when leaving product page
+function restoreDefaultSEO() {
+  document.title = 'Sneh Sarees - Authentic Kota Doria Handloom Sarees | Kota, Rajasthan';
+  const setMeta = (selector: string, value: string) => {
+    const el = document.querySelector(selector) as HTMLMetaElement | null;
+    if (el) el.setAttribute('content', value);
+  };
+  setMeta('meta[name="description"]', 'Buy authentic Kota Doria handloom sarees directly from Kota, Rajasthan. Shop pure Zari, Cotton Silk & traditional Rajasthani sarees online with pan-India free delivery.');
+  setMeta('meta[property="og:title"]', 'Sneh Sarees - Authentic Kota Doria Handloom Sarees');
+  setMeta('meta[property="og:type"]', 'website');
+  setMeta('meta[property="og:url"]', SITE_URL + '/');
+  setMeta('meta[property="og:image"]', SITE_URL + '/logo.jpg');
+  setMeta('meta[name="twitter:title"]', 'Sneh Sarees - Authentic Kota Doria Handloom Sarees');
+  setMeta('meta[name="twitter:url"]', SITE_URL + '/');
+  setMeta('meta[name="twitter:image"]', SITE_URL + '/logo.jpg');
+  const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (canonical) canonical.href = SITE_URL + '/';
+  const schemaEl = document.getElementById('product-jsonld');
+  if (schemaEl) schemaEl.remove();
+}
 
 interface ProductDetailViewProps {
   productId: number;
@@ -39,6 +142,10 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
   const [recentlyViewedProducts, setRecentlyViewedProducts] = useState<Product[]>([]);
+
+  // Instagram "Shop Now" share state
+  const [showInstaModal, setShowInstaModal] = useState(false);
+  const [instaCopied, setInstaCopied] = useState(false);
 
   // Touch swipe tracking refs (populated values used after mediaItems is computed)
   const touchStartX = React.useRef<number>(0);
@@ -162,6 +269,19 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     fetchReviews();
   }, [productId]);
 
+  // Inject dynamic SEO meta tags when product is loaded; restore on unmount
+  useEffect(() => {
+    if (p) {
+      updateProductSEO(p);
+      // Fire Meta Pixel ViewContent (required for Instagram Catalog product matching)
+      const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
+      pixelViewContent({ id: p.id, name: p.name, price: effectivePrice, category: p.fabric || 'Sarees' });
+    }
+    return () => {
+      restoreDefaultSEO();
+    };
+  }, [p]);
+
 
   if (loading) {
     return (
@@ -226,11 +346,27 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     onAddToCart(p.id, selectedColour);
+    // Fire Meta Pixel AddToCart event (enables retargeting ads for cart abandonments)
+    const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
+    pixelAddToCart({ id: p.id, name: p.name, price: effectivePrice });
   };
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
     onBuyNow(p.id, selectedColour, p);
+  };
+
+  // Instagram "Shop Now" — copies direct product link for Instagram bio/caption/story
+  const handleInstaShare = async () => {
+    const productUrl = `${SITE_URL}/?product=${p.id}`;
+    try {
+      await navigator.clipboard.writeText(productUrl);
+      setInstaCopied(true);
+      setTimeout(() => setInstaCopied(false), 3000);
+    } catch {
+      // fallback — open modal anyway
+    }
+    setShowInstaModal(true);
   };
 
   const getEmbedUrl = (url: string): { type: 'youtube' | 'instagram' | 'direct'; url: string } => {
@@ -313,6 +449,28 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 Link copied!
               </span>
             )}
+          </button>
+          {/* Instagram Shop Now Button */}
+          <button
+            className="pd-insta-share p-1.5 hover:bg-pink-50 rounded-full cursor-pointer relative transition-colors"
+            onClick={handleInstaShare}
+            title="Share on Instagram / Get Shop Now link"
+            aria-label="Share on Instagram"
+          >
+            <svg className="w-[20px] h-[20px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#f09433"/>
+                  <stop offset="25%" stopColor="#e6683c"/>
+                  <stop offset="50%" stopColor="#dc2743"/>
+                  <stop offset="75%" stopColor="#cc2366"/>
+                  <stop offset="100%" stopColor="#bc1888"/>
+                </linearGradient>
+              </defs>
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#ig-grad)" strokeWidth="2" fill="none"/>
+              <circle cx="12" cy="12" r="4" stroke="url(#ig-grad)" strokeWidth="2" fill="none"/>
+              <circle cx="17.5" cy="6.5" r="1" fill="url(#ig-grad)"/>
+            </svg>
           </button>
           <button
             className="pd-wishlist text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full cursor-pointer"
@@ -888,6 +1046,120 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           <Heart className={`w-5.5 h-5.5 ${isWishlisted ? 'fill-red-500' : ''}`} />
         </button>
       </div>
+
+      {/* ── Instagram "Shop Now" Link Modal ────────────────────────── */}
+      {showInstaModal && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[99999]"
+          onClick={() => setShowInstaModal(false)}
+        >
+          <div
+            className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Instagram gradient header */}
+            <div className="relative bg-gradient-to-br from-[#f09433] via-[#dc2743] to-[#bc1888] p-5 text-white">
+              <button
+                onClick={() => setShowInstaModal(false)}
+                className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="white" strokeWidth="2" fill="none"/>
+                    <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="2" fill="none"/>
+                    <circle cx="17.5" cy="6.5" r="1" fill="white"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-base leading-tight">Add "Shop Now" on Instagram</h3>
+                  <p className="text-white/80 text-xs mt-0.5">Link this product from your post/reel/bio</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 flex flex-col gap-4">
+              {/* Product info */}
+              <div className="flex items-center gap-3 bg-[#FAF6F0] rounded-2xl p-3 border border-[#E8E0D5]">
+                {p.image && (
+                  <img src={p.image} alt={p.name} className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#E8E0D5]" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#1A1A1A] leading-snug line-clamp-2 font-serif">{p.name}</p>
+                  <p className="text-[#C4601A] font-extrabold text-sm mt-0.5">
+                    ₹{(p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price).toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Direct product link */}
+              <div>
+                <p className="text-xs font-bold text-[#333] uppercase tracking-wider mb-1.5">Direct Product Link</p>
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+                  <span className="text-[11px] text-gray-600 font-mono flex-1 truncate">
+                    {`${SITE_URL}/?product=${p.id}`}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(`${SITE_URL}/?product=${p.id}`);
+                        setInstaCopied(true);
+                        setTimeout(() => setInstaCopied(false), 3000);
+                      } catch {}
+                    }}
+                    className="shrink-0 bg-gradient-to-br from-[#f09433] via-[#dc2743] to-[#bc1888] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    {instaCopied ? <Check className="w-3 h-3" /> : <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>}
+                    {instaCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                {instaCopied && (
+                  <p className="text-emerald-600 text-[11px] font-semibold mt-1.5 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Link copied to clipboard!
+                  </p>
+                )}
+              </div>
+
+              {/* Step-by-step instructions */}
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-pink-100 p-4">
+                <p className="text-xs font-bold text-[#dc2743] uppercase tracking-wider mb-3">How to add "Shop Now" on Instagram</p>
+                <div className="flex flex-col gap-2.5">
+                  {[
+                    { step: '1', text: 'Copy the product link above' },
+                    { step: '2', text: 'Open Instagram → Create a new Post or Reel' },
+                    { step: '3', text: 'In the caption/description, write the product name and paste the link' },
+                    { step: '4', text: 'Or go to Edit Profile → Add link in Bio → paste there for permanent access' },
+                    { step: '5', text: 'For Stories: use the "Link" sticker and paste the product URL' },
+                  ].map(({ step, text }) => (
+                    <div key={step} className="flex items-start gap-2.5">
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-[#f09433] to-[#dc2743] text-white text-[10px] font-extrabold flex items-center justify-center">{step}</span>
+                      <p className="text-[11px] text-gray-700 leading-relaxed">{text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Open Instagram CTA */}
+              <a
+                href="https://www.instagram.com/_sneh_sarees_"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white font-bold text-sm py-3.5 rounded-xl text-center flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-all"
+                onClick={() => setShowInstaModal(false)}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="white" strokeWidth="2" fill="none"/>
+                  <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="2" fill="none"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="white"/>
+                </svg>
+                Open Instagram Profile
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

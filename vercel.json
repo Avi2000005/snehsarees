@@ -1,18 +1,1 @@
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist/client",
-  "rewrites": [
-    {
-      "source": "/admin.html",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "https://p01--snehsarees-api--yrw84d9nkxgs.code.run/api/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-}
+ 

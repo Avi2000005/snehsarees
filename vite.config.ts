@@ -16,6 +16,19 @@ export default defineConfig(() => {
         input: {
           main: path.resolve(__dirname, 'index.html'),
         },
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/xlsx')) {
+              return 'xlsx-vendor';
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'icons';
+            }
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+              return 'react-vendor';
+            }
+          },
+        },
       },
       outDir: 'dist/client',
     },

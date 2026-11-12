@@ -11,6 +11,7 @@ import reviewRoutes from './review.routes';
 import reelRoutes from './reel.routes';
 import returnRoutes from './return.routes';
 import webhookRoutes from './webhook.routes';
+import feedRoutes from './feed.routes';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/reviews', reviewRoutes);
 router.use('/reels', reelRoutes);
 router.use('/returns', returnRoutes);
 router.use('/webhooks', webhookRoutes);
+router.use('/feed', feedRoutes);
 
 export default router;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { SAREE_HISTORIES } from '../../data';
 import { ActivePage, UserProfile } from '../../types';
 import { Star, Landmark, Sun, Grid, Heart, Globe, Phone, Mail, MapPin, Instagram, Facebook, Youtube, ShieldCheck } from 'lucide-react';
-import logoUrl from '@/assets/logo.jpg';
+import logoUrl from '@/assets/logo.webp';
 import { PolicyModal, PolicyTab } from '../PolicyModal';
 
 interface LandingViewProps {
@@ -50,7 +50,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       <header className="sticky top-0 left-0 right-0 h-16 brand-gradient border-b border-[#F5E4BC]/30 flex items-center justify-between px-6 z-50 shadow-md">
         <div className="font-serif text-xl font-bold text-white tracking-wide cursor-pointer flex items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <div className="w-11 h-11 md:w-12 md:h-12 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
-            <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
+            <img src={logoUrl} width="48" height="48" alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
           <span>Sneh <span className="text-[#F5E4BC]">Sarees</span></span>
         </div>
@@ -374,9 +374,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       {/* Our Story */}
       <section id="our-story" className="py-12 md:py-16 px-6 md:px-12 max-w-[1100px] mx-auto bg-white/80 backdrop-blur-md rounded-2xl my-8 shadow-sm border border-[#E8E0D5]/80 relative z-10 overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#FFF0E8] to-transparent rounded-bl-full pointer-events-none opacity-60" />
-        <h3 className="text-xs font-bold tracking-[0.2em] text-[#C4601A] uppercase mb-2 block">
+        <span className="text-xs font-bold tracking-[0.2em] text-[#C4601A] uppercase mb-2 block">
           Our Story
-        </h3>
+        </span>
         <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-[#7A2F08] mb-6 leading-tight">
           Woven with sneh, worn with pride
         </h2>
@@ -395,9 +395,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       {/* Bulk Orders Banner */}
       <section className="py-12 px-8 md:px-12 max-w-[1100px] mx-auto brand-gradient-h rounded-2xl my-8 text-white text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-6 shadow-md relative overflow-hidden z-10">
         <div className="flex-1 relative z-10">
-          <h3 className="text-xs font-bold tracking-[0.2em] text-[#F5E4BC] uppercase mb-2">
+          <span className="text-xs font-bold tracking-[0.2em] text-[#F5E4BC] uppercase mb-2 block">
             Bulk Orders
-          </h3>
+          </span>
           <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold mb-3 leading-tight">
             Interested in Bulk Orders?
           </h2>
@@ -417,9 +417,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
 
       {/* Contact Us Section */}
       <section id="contact-us" className="py-12 md:py-16 max-w-[1100px] mx-auto px-6 md:px-12 bg-white/80 backdrop-blur-md rounded-2xl my-8 shadow-sm border border-[#E8E0D5]/80 relative z-10">
-        <h3 className="text-xs font-bold tracking-[0.2em] text-[#C4601A] uppercase mb-2 block">
+        <span className="text-xs font-bold tracking-[0.2em] text-[#C4601A] uppercase mb-2 block">
           Get In Touch
-        </h3>
+        </span>
         <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-[#7A2F08] mb-8 leading-tight">
           Contact Us
         </h2>
@@ -438,7 +438,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#222222] uppercase tracking-wider">Phone Number</h4>
+                    <h3 className="text-xs font-bold text-[#222222] uppercase tracking-wider">Phone Number</h3>
                     <a href="tel:+919461037123" className="text-sm md:text-base font-bold text-[#111111] hover:text-[#C4601A] transition-colors">+91 94610 37123</a>
                   </div>
                 </div>
@@ -448,7 +448,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
                     <Mail className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#222222] uppercase tracking-wider">Email Address</h4>
+                    <h3 className="text-xs font-bold text-[#222222] uppercase tracking-wider">Email Address</h3>
                     <a href="mailto:info@snehsarees.in" className="text-sm md:text-base font-bold text-[#111111] hover:text-[#C4601A] transition-colors">info@snehsarees.in</a>
                   </div>
                 </div>
@@ -458,7 +458,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#222222] uppercase tracking-wider">Location</h4>
+                    <h3 className="text-xs font-bold text-[#222222] uppercase tracking-wider">Location</h3>
                     <p className="text-sm md:text-base font-bold text-[#111111]">Kota, Rajasthan, India</p>
                   </div>
                 </div>
@@ -467,7 +467,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
 
             {/* Social Media Links */}
             <div className="pt-6 border-t border-[#E8E0D5]">
-              <h4 className="text-xs font-bold text-[#222222] uppercase tracking-wider mb-3">Connect With Us</h4>
+              <h3 className="text-xs font-bold text-[#222222] uppercase tracking-wider mb-3">Connect With Us</h3>
               <div className="flex gap-3">
                 <a
                   href="https://www.instagram.com/_sneh_sarees_?igsi=MWU0YzhuMDFzZGJhaQ=="
@@ -554,7 +554,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
 
             <button
               type="submit"
-              className="w-full brand-solid-bg text-white py-3.5 rounded-xl text-sm font-bold transition-all cursor-pointer mt-2 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-98"
+              className="w-full bg-[#A84A10] hover:bg-[#8D3305] text-white py-3.5 rounded-xl text-sm font-bold transition-all cursor-pointer mt-2 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-98"
             >
               Send Enquiry via WhatsApp
             </button>
