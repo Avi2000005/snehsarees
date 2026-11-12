@@ -9,6 +9,8 @@ import {
   Image as ImageIcon, Camera, Sparkles, Check, Archive, Globe, Star
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { RichTextEditor } from '../RichTextEditor';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 interface AdminDashboardViewProps {
   onNavigate: (page: ActivePage) => void;
@@ -616,7 +618,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       fabric: prodFabric,
       occasion: prodOccasion,
       colour: finalColour,
-      desc: prodDesc,
+      desc: prodDesc ? sanitizeHtml(prodDesc) : '',
       blouse: prodBlouse,
       image: prodImage,
       stock: parseInt(prodStock, 10) || 0,
@@ -3696,12 +3698,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A] mb-1">Description</label>
-                <textarea
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A] mb-1">
+                  Product Description (Rich Text Editor)
+                </label>
+                <RichTextEditor
                   value={prodDesc}
-                  onChange={(e) => setProdDesc(e.target.value)}
-                  placeholder="Describe the handloom work, border design, weaving style, and care instructions"
-                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A] min-h-[90px]"
+                  onChange={setProdDesc}
+                  placeholder="Describe the handloom weaving, fabric texture, zari border, motifs, and styling tips..."
                 />
               </div>
 

@@ -4,6 +4,7 @@ import { ENV } from '../config/env';
 import cloudinary from '../config/cloudinary';
 import { createShipment, syncShiprocketOrderStatus, syncActiveOrdersWithShiprocket } from '../services/shiprocket.service';
 import { sendOrderConfirmationEmail, sendOrderShippedEmail, sendOrderDeliveredEmail } from '../services/order-email.service';
+import { sanitizeProductDescriptionServer } from '../utils/sanitizeHtml';
 
 // Admin: Get ALL confirmed orders (exclude unpaid / pending orders)
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
@@ -36,7 +37,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       rating: rating ? parseFloat(rating) : 5.0,
       reviews: reviews ? parseInt(reviews, 10) : 0,
       blouse: Boolean(blouse),
-      desc: desc ? String(desc).trim() : '',
+      desc: desc ? sanitizeProductDescriptionServer(desc) : '',
       image: image ? String(image).trim() : '',
       stock: stock !== undefined && stock !== null && stock !== '' ? parseInt(stock, 10) : 10,
       categoryId: categoryId !== undefined && categoryId !== null && categoryId !== '' ? parseInt(categoryId, 10) : undefined,
@@ -164,7 +165,7 @@ export const createBulkProducts = async (req: Request, res: Response, next: Next
         rating: item.rating ? parseFloat(item.rating) : 5.0,
         reviews: item.reviews ? parseInt(item.reviews, 10) : 0,
         blouse,
-        desc: item.desc || item.description ? String(item.desc || item.description).trim() : '',
+        desc: item.desc || item.description ? sanitizeProductDescriptionServer(item.desc || item.description) : '',
         image: item.image || item.imageUrl ? String(item.image || item.imageUrl).trim() : '',
         stock,
         categoryId,
@@ -193,7 +194,12 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       return res.status(400).json({ error: 'Invalid product ID.' });
     }
 
-    const updated = await db.updateProduct(id, req.body);
+    const payload = { ...req.body };
+    if (payload.desc !== undefined && payload.desc !== null) {
+      payload.desc = sanitizeProductDescriptionServer(payload.desc);
+    }
+
+    const updated = await db.updateProduct(id, payload);
     if (!updated) {
       return res.status(404).json({ error: 'Product not found to update.' });
     }

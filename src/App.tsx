@@ -254,6 +254,85 @@ export default function App() {
       .catch(err => console.error('App products load error:', err));
   }, [page]);
 
+  // Dynamic SEO Manager for Search Engines (Google, Safari, Bing)
+  useEffect(() => {
+    let title = 'Best Sarees Online | Best Kota Doria Sarees for Women - Sneh Sarees';
+    let description = 'Buy the best sarees online at Sneh Sarees. Authentic Kota Doria sarees, Rajasthani handloom cotton sarees with zari border, lightweight daily & festive sarees for women with free shipping across India.';
+    const keywords = 'Best Sarees Online, Best Sarees for Women, Buy Sarees Online, Designer Sarees Online, Traditional Indian Sarees, Ethnic Wear Sarees, Premium Sarees for Women, Latest Saree Collection, Cotton Sarees Online, Kota Doria Sarees, Kota Doriya Sarees, Best Kota Doria Sarees, Cotton Kota Doria Saree, Kota Cotton Saree, Kota Doria Saree Online, Lightweight Sarees, Handloom Sarees, Rajasthani Kota Sarees, Elegant Sarees for Women, Sarees with Zari Border, Cotton Saree with Zari Border, Traditional Cotton Sarees, Festive Wear Sarees, Daily Wear Sarees, Sneh Sarees';
+    let canonicalUrl = 'https://www.snehsarees.in/';
+
+    if (page === 'landing') {
+      title = 'Best Sarees Online | Best Kota Doria Sarees for Women - Sneh Sarees';
+      description = 'Shop best sarees online at Sneh Sarees Kota. Discover authentic Kota Doria sarees, Rajasthani handloom cotton sarees with zari border, and premium ethnic wear for women.';
+      canonicalUrl = 'https://www.snehsarees.in/';
+    } else if (page === 'home') {
+      title = 'Buy Sarees Online | Authentic Rajasthani Kota Doria Sarees - Sneh Sarees';
+      description = 'Explore our latest saree collection. Authentic Rajasthani Kota Doria sarees, pure cotton sarees with zari border, and festive handloom sarees for women.';
+      canonicalUrl = 'https://www.snehsarees.in/#/home';
+    } else if (page === 'viewall') {
+      const cat = String(pageParam || 'all').toLowerCase();
+      if (cat === 'cotton') {
+        title = 'Cotton Sarees Online | Cotton Kota Doria Saree with Zari Border - Sneh Sarees';
+        description = 'Shop pure cotton sarees online. Handcrafted cotton Kota Doria sarees with zari border, breathable traditional cotton sarees, and lightweight daily wear sarees.';
+        canonicalUrl = 'https://www.snehsarees.in/?category=cotton';
+      } else if (cat === 'silk') {
+        title = 'Designer Sarees Online | Silk Kota Doria Sarees for Women - Sneh Sarees';
+        description = 'Buy designer sarees online. Handloom silk Kota Doria sarees with real zari border, gotta patti work, and festive wear sarees for women.';
+        canonicalUrl = 'https://www.snehsarees.in/?category=silk';
+      } else if (cat === 'kota-doria') {
+        title = 'Best Kota Doria Sarees Online | Authentic Rajasthani Handloom Sarees';
+        description = 'Discover the best Kota Doria sarees online directly from Kota, Rajasthan. Signature Khat weave, lightweight sarees, and traditional Rajasthani sarees.';
+        canonicalUrl = 'https://www.snehsarees.in/?category=kota-doria';
+      } else {
+        title = 'Latest Saree Collection | Buy Sarees Online for Women - Sneh Sarees';
+        description = 'Browse the latest saree collection at Sneh Sarees. Premium sarees for women, ethnic wear sarees, traditional Indian sarees, and elegant handloom sarees.';
+        canonicalUrl = 'https://www.snehsarees.in/?view=viewall';
+      }
+    } else if (page === 'bulk') {
+      title = 'Bulk Sarees Online | Wholesale Traditional Indian Sarees - Sneh Sarees';
+      description = 'Order authentic Kota Doria sarees in bulk for weddings, gifting, and corporate events. Direct from weavers in Kota, Rajasthan with pan-India delivery.';
+      canonicalUrl = 'https://www.snehsarees.in/?view=bulk';
+    } else if (page === 'search') {
+      title = 'Search Best Sarees Online | Sneh Sarees Kota';
+      description = 'Search our catalog for the best Kota Doria sarees, cotton sarees with zari border, handloom sarees, and traditional Indian sarees.';
+      canonicalUrl = 'https://www.snehsarees.in/?view=search';
+    } else if (page === 'product') {
+      // ProductDetailView manages its own specific product SEO
+      return;
+    }
+
+    document.title = title;
+
+    const setMeta = (sel: string, val: string) => {
+      let el = document.querySelector(sel);
+      if (!el) {
+        el = document.createElement('meta');
+        if (sel.includes('name=')) {
+          const match = sel.match(/name="([^"]+)"/);
+          if (match) el.setAttribute('name', match[1]);
+        } else if (sel.includes('property=')) {
+          const match = sel.match(/property="([^"]+)"/);
+          if (match) el.setAttribute('property', match[1]);
+        }
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', val);
+    };
+
+    setMeta('meta[name="description"]', description);
+    setMeta('meta[name="keywords"]', keywords);
+    setMeta('meta[property="og:title"]', title);
+    setMeta('meta[property="og:description"]', description);
+    setMeta('meta[property="og:url"]', canonicalUrl);
+    setMeta('meta[name="twitter:title"]', title);
+    setMeta('meta[name="twitter:description"]', description);
+
+    const canonicalEl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (canonicalEl) {
+      canonicalEl.href = canonicalUrl;
+    }
+  }, [page, pageParam]);
+
   // 1. Initial State Sync & Browser History popstate Listener
   useEffect(() => {
     // 1a. Sync initial browser history entry with the active route

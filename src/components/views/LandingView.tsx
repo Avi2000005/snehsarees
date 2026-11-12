@@ -392,6 +392,86 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
 
       <div className="saree-divider my-8 max-w-[1100px] mx-auto" />
 
+      {/* 
+        ══════════════════════════════════════════════════════════════════════
+        SEO CONTENT BLOCK (Visually Hidden from Users via .sr-only)
+        Maintains Google & browser search engine ranking, target keyword tags,
+        and semantic indexing while keeping the landing UI clean and uncluttered.
+        ══════════════════════════════════════════════════════════════════════
+      */}
+      <div className="sr-only" aria-hidden="true">
+        <section>
+          <h2>Best Sarees Online - Handcrafted Saree Collections for Women</h2>
+          <p>
+            From iconic pure Kota Doria Khat weaves to luminous silk sarees with zari border, explore India's most celebrated handlooms crafted with generational devotion.
+          </p>
+          <div>
+            <article>
+              <h3>Best Kota Doria Sarees</h3>
+              <p>Authentic Rajasthani Kota Doriya sarees woven on traditional pit looms. Weightless, semi-translucent, and effortlessly regal.</p>
+              <a href="/?category=kota-doria" tabIndex={-1}>Explore Kota Doria</a>
+            </article>
+            <article>
+              <h3>Cotton Sarees Online</h3>
+              <p>Pure cotton Kota Doria saree and traditional cotton sarees with zari border. Highly breathable, soft, and ideal for daily wear and office elegance.</p>
+              <a href="/?category=cotton" tabIndex={-1}>Shop Cotton Sarees</a>
+            </article>
+            <article>
+              <h3>Designer Silk Sarees</h3>
+              <p>Rich silk Kota Doria sarees embellished with pure gold zari borders and Rajasthani gotta patti embroidery for grand festive occasions.</p>
+              <a href="/?category=silk" tabIndex={-1}>View Silk Sarees</a>
+            </article>
+            <article>
+              <h3>Latest Saree Collection</h3>
+              <p>Discover our full catalogue of traditional Indian sarees, ethnic wear sarees, lightweight sarees, and exclusive new arrivals.</p>
+              <a href="/?view=viewall" tabIndex={-1}>Buy Sarees Online</a>
+            </article>
+          </div>
+        </section>
+
+        <section>
+          <h2>Why Women Love Sneh Sarees - The Gold Standard in Rajasthani Kota Doria Handlooms</h2>
+          <p>We work directly with master weaving families in Kota, Rajasthan. Every drape is an authentic testament to purity, comfort, and timeless beauty.</p>
+          <ul>
+            <li><strong>100% Authentic Handloom:</strong> Woven in Kota, Rajasthan with verified purity, original Khat check count, and master artisan pride.</li>
+            <li><strong>Featherlight &amp; Breathable:</strong> The lightest sarees in India. Stay cool, comfortable, and flawlessly draped from day to night.</li>
+            <li><strong>Sarees with Zari Border:</strong> Exquisite pure gold and silver zari borders woven with precision for subtle majesty and festive glow.</li>
+            <li><strong>Pan-India Free Shipping:</strong> Direct doorstep delivery across all pin codes in India with safe packaging and real-time tracking.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Frequently Asked Questions About Kota Doria Sarees</h2>
+          <div>
+            <h3>Where can I buy the best sarees online?</h3>
+            <p>Sneh Sarees (www.snehsarees.in) is your trusted online destination for authentic Kota Doria sarees directly from Kota, Rajasthan. We offer pure handloom cotton sarees with zari border, tissue silk sarees, and festive wear sarees with verified quality and free delivery across India.</p>
+          </div>
+          <div>
+            <h3>What are Kota Doria sarees and why are they considered the best lightweight sarees?</h3>
+            <p>Kota Doria sarees (also called Kota Doriya or Kota cotton sarees) are famed for their unique Khat square check weave. Combining fine cotton strength with silk lustre, they are the most breathable, lightweight, and elegant sarees for both daily wear and festive occasions.</p>
+          </div>
+          <div>
+            <h3>What is the difference between Cotton Kota Doria and Silk Kota Doria sarees?</h3>
+            <p>Cotton Kota Doria sarees are made with 100% fine cotton yarn, offering supreme breathability and crisp texture for everyday wear. Silk Kota Doria sarees combine cotton with mulberry silk or pure silk yarns, creating a luminous sheen and soft drape accented with rich zari borders for festive and wedding wear.</p>
+          </div>
+          <div>
+            <h3>Are cotton sarees with Zari border suitable for festive wear?</h3>
+            <p>Yes! Cotton sarees with genuine zari borders provide a royal, sophisticated festive look without the heavy weight of traditional brocade, making them a favorite for day weddings, festivals, and family celebrations.</p>
+          </div>
+          <div>
+            <h3>How should I care for my Kota Doria handloom saree?</h3>
+            <p>For pure silk and zari border Kota Doria sarees, dry cleaning is recommended to preserve the metallic sheen. For pure cotton Kota Doria sarees, gentle cold hand washing with mild detergent followed by shade drying will keep the fabric crisp and vibrant.</p>
+          </div>
+        </section>
+
+        <section>
+          <h3>Popular Saree Searches &amp; Handloom Tags</h3>
+          <p>
+            Best Sarees Online, Best Sarees for Women, Buy Sarees Online, Kota Doria Sarees, Kota Doriya Sarees, Best Kota Doria Sarees, Cotton Sarees Online, Cotton Kota Doria Saree, Kota Cotton Saree, Sarees with Zari Border, Cotton Saree with Zari Border, Designer Sarees Online, Rajasthani Kota Sarees, Lightweight Sarees, Handloom Sarees, Traditional Indian Sarees, Festive Wear Sarees, Daily Wear Sarees, Premium Sarees for Women, Latest Saree Collection
+          </p>
+        </section>
+      </div>
+
       {/* Bulk Orders Banner */}
       <section className="py-12 px-8 md:px-12 max-w-[1100px] mx-auto brand-gradient-h rounded-2xl my-8 text-white text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-6 shadow-md relative overflow-hidden z-10">
         <div className="flex-1 relative z-10">

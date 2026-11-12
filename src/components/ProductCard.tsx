@@ -36,7 +36,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       } ${className}`}
     >
       <div className={`product-card-img relative w-full ${imageHeightClass} bg-[#F0E8DC]`}>
-        <SareeSwatch id={p.id} imageUrl={p.image} />
+        <SareeSwatch
+          id={p.id}
+          imageUrl={p.image}
+          altText={`${p.name} - Best Kota Doria Handloom Saree with Zari Border`}
+        />
         {isTrending && (
           <div className="absolute top-2.5 left-2.5 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase shadow-xs">
             TRENDING

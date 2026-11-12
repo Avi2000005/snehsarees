@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Shield, FileText, Truck, RotateCcw, Ban, HelpCircle, CheckCircle2, AlertCircle, Phone, Mail, MapPin } from 'lucide-react';
 import { BUSINESS_WHATSAPP } from '../config';
 
-export type PolicyTab = 'privacy' | 'terms' | 'shipping' | 'cancellation' | 'faqs';
+export type PolicyTab = 'privacy' | 'terms' | 'shipping' | 'cancellation' | 'returns' | 'faqs';
 
 interface PolicyModalProps {
   isOpen: boolean;
@@ -46,6 +46,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               {activeTab === 'terms' && <FileText className="w-4.5 h-4.5" />}
               {activeTab === 'shipping' && <Truck className="w-4.5 h-4.5" />}
               {activeTab === 'cancellation' && <Ban className="w-4.5 h-4.5" />}
+              {activeTab === 'returns' && <RotateCcw className="w-4.5 h-4.5" />}
               {activeTab === 'faqs' && <HelpCircle className="w-4.5 h-4.5" />}
             </div>
             <div>
@@ -325,8 +326,8 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             </div>
           )}
 
-          {/* ═════════ 4. CANCELLATION & PAYMENTS ═════════ */}
-          {activeTab === 'cancellation' && (
+          {/* ═════════ 4. CANCELLATION & PAYMENTS / RETURNS ═════════ */}
+          {(activeTab === 'cancellation' || activeTab === 'returns') && (
             <div className="space-y-6 animate-fade-in">
               <div className="bg-[#FFF8F3] border border-[#F0C8A0] rounded-xl p-4">
                 <h3 className="font-serif text-base font-bold text-[#C4601A] mb-1">Cancellation &amp; Payment Policies</h3>

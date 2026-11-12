@@ -1,17 +1,54 @@
 {
   "schema_version": "1.0",
   "name": "Sneh Sarees",
-  "description": "Authentic Kota Doria handloom saree store from Kota, Rajasthan.",
+  "tagline": "Best Sarees Online - Authentic Kota Doria Handlooms",
+  "description": "Authentic Kota Doria and handloom saree store from Kota, Rajasthan. Specializing in best sarees online, cotton sarees with zari border, and festive silk sarees.",
   "url": "https://www.snehsarees.in",
   "contact": {
     "email": "info@snehsarees.in",
     "phone": "+919461037123"
   },
+  "keywords": [
+    "Best Sarees Online",
+    "Best Sarees for Women",
+    "Buy Sarees Online",
+    "Designer Sarees Online",
+    "Traditional Indian Sarees",
+    "Ethnic Wear Sarees",
+    "Premium Sarees for Women",
+    "Latest Saree Collection",
+    "Cotton Sarees Online",
+    "Kota Doria Sarees",
+    "Kota Doriya Sarees",
+    "Best Kota Doria Sarees",
+    "Cotton Kota Doria Saree",
+    "Kota Cotton Saree",
+    "Kota Doria Saree Online",
+    "Lightweight Sarees",
+    "Handloom Sarees",
+    "Rajasthani Kota Sarees",
+    "Elegant Sarees for Women",
+    "Sarees with Zari Border",
+    "Cotton Saree with Zari Border",
+    "Traditional Cotton Sarees",
+    "Festive Wear Sarees",
+    "Daily Wear Sarees"
+  ],
   "capabilities": [
     {
-      "name": "Browse Products",
+      "name": "Browse Best Sarees Online",
       "description": "View Kota Doria handloom saree collections, materials, and pricing",
       "endpoint": "https://www.snehsarees.in/#/viewall/all"
+    },
+    {
+      "name": "Cotton Sarees with Zari Border",
+      "description": "Shop breathable, lightweight cotton Kota Doria sarees with real zari border",
+      "endpoint": "https://www.snehsarees.in/?category=cotton"
+    },
+    {
+      "name": "Best Kota Doria Sarees",
+      "description": "Explore authentic Rajasthani Khat square weave Kota Doria sarees",
+      "endpoint": "https://www.snehsarees.in/?category=kota-doria"
     },
     {
       "name": "Bulk Orders",
@@ -20,4 +57,3 @@
     }
   ]
 }
-

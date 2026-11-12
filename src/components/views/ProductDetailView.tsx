@@ -4,16 +4,19 @@ import { ActivePage, Product, Review, Category, UserProfile } from '../../types'
 import { SareeSwatch } from '../SareeSwatch';
 import { API_URL, SITE_URL } from '../../config';
 import { pixelViewContent, pixelAddToCart } from '../MetaPixel';
+import { ProductDescription } from '../ProductDescription';
+import { stripHtmlToPlainText } from '../../utils/sanitizeHtml';
 
 // Helper: inject/update dynamic SEO meta tags for the current product
 function updateProductSEO(p: Product) {
   const productUrl = `${SITE_URL}/?product=${p.id}`;
   const imageUrl = p.image || `${SITE_URL}/logo.jpg`;
   const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
-  const title = `${p.name} | Sneh Sarees`;
-  const description = p.desc
-    ? `${p.desc.slice(0, 140)}... Shop on Sneh Sarees.`
-    : `Buy ${p.name} - authentic ${p.fabric || 'handloom'} saree from Sneh Sarees, Kota Rajasthan. ₹${effectivePrice.toLocaleString('en-IN')} with pan-India delivery.`;
+  const title = `${p.name} | Best Sarees Online - Sneh Sarees`;
+  const cleanDesc = stripHtmlToPlainText(p.desc);
+  const description = cleanDesc
+    ? `${cleanDesc.slice(0, 140)}... Buy authentic ${p.fabric || 'Kota Doria'} sarees online with zari border at Sneh Sarees.`
+    : `Buy ${p.name} online - authentic ${p.fabric || 'Kota Doria handloom'} saree from Sneh Sarees, Kota Rajasthan. ₹${effectivePrice.toLocaleString('en-IN')} with pan-India free delivery.`;
 
   // Page title
   document.title = title;
@@ -88,17 +91,17 @@ function updateProductSEO(p: Product) {
 
 // Restore default SEO when leaving product page
 function restoreDefaultSEO() {
-  document.title = 'Sneh Sarees - Authentic Kota Doria Handloom Sarees | Kota, Rajasthan';
+  document.title = 'Best Sarees Online | Best Kota Doria Sarees for Women - Sneh Sarees';
   const setMeta = (selector: string, value: string) => {
     const el = document.querySelector(selector) as HTMLMetaElement | null;
     if (el) el.setAttribute('content', value);
   };
-  setMeta('meta[name="description"]', 'Buy authentic Kota Doria handloom sarees directly from Kota, Rajasthan. Shop pure Zari, Cotton Silk & traditional Rajasthani sarees online with pan-India free delivery.');
-  setMeta('meta[property="og:title"]', 'Sneh Sarees - Authentic Kota Doria Handloom Sarees');
+  setMeta('meta[name="description"]', 'Buy the best sarees online at Sneh Sarees. Authentic Kota Doria sarees, Rajasthani handloom cotton sarees with zari border, lightweight daily & festive sarees for women with free shipping across India.');
+  setMeta('meta[property="og:title"]', 'Best Sarees Online | Best Kota Doria Sarees for Women - Sneh Sarees');
   setMeta('meta[property="og:type"]', 'website');
   setMeta('meta[property="og:url"]', SITE_URL + '/');
   setMeta('meta[property="og:image"]', SITE_URL + '/logo.jpg');
-  setMeta('meta[name="twitter:title"]', 'Sneh Sarees - Authentic Kota Doria Handloom Sarees');
+  setMeta('meta[name="twitter:title"]', 'Best Sarees Online | Best Kota Doria Sarees for Women - Sneh Sarees');
   setMeta('meta[name="twitter:url"]', SITE_URL + '/');
   setMeta('meta[name="twitter:image"]', SITE_URL + '/logo.jpg');
   const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
@@ -710,9 +713,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               <div className="pd-section-label text-xs font-bold text-[#555555] uppercase tracking-wider mb-2">
                 Description
               </div>
-              <p className="pd-description text-[#4A4A4A] text-sm md:text-base leading-relaxed mb-6 font-serif">
-                {p.desc}
-              </p>
+              <div className="mb-6">
+                <ProductDescription content={p.desc} />
+              </div>
             </>
           )}
         </div>

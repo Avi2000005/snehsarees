@@ -5,13 +5,20 @@ interface SareeSwatchProps {
   id: number;
   className?: string;
   imageUrl?: string;
+  altText?: string;
 }
 
-export const SareeSwatch: React.FC<SareeSwatchProps> = ({ id, className = "w-full h-full", imageUrl }) => {
+export const SareeSwatch: React.FC<SareeSwatchProps> = ({ id, className = "w-full h-full", imageUrl, altText }) => {
   if (imageUrl) {
     return (
       <div className={`${className} relative overflow-hidden`}>
-        <img src={imageUrl} alt="Saree Image" className="w-full h-full object-cover" />
+        <img
+          src={imageUrl}
+          alt={altText || 'Best Kota Doria Saree - Handloom Cotton Saree with Zari Border'}
+          title={altText || 'Best Kota Doria Saree'}
+          loading="lazy"
+          className="w-full h-full object-cover"
+        />
       </div>
     );
   }

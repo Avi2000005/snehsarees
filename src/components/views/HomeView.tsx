@@ -169,7 +169,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         <div className="nav-brand font-serif text-[19px] md:text-[22px] lg:text-[26.4px] font-bold text-[#C4601A] tracking-wider text-center flex-1 truncate flex items-center justify-center gap-2.5">
           <div className="w-[42px] h-[42px] md:w-[48px] md:h-[48px] lg:w-[54px] lg:h-[54px] rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
-            <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
+            <img src={logoUrl} alt="Sneh Sarees - Best Sarees Online & Kota Doria Handlooms" className="w-full h-full object-cover rounded-full" />
           </div>
           <span><span className="text-[#C4601A]">Sneh</span> <span className="text-[#E8920E]">Sarees</span></span>
         </div>
@@ -477,7 +477,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                     {/* High-Performance 3D Saree Fabric Background Artwork */}
                     <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 pointer-events-none select-none opacity-20 md:opacity-25 overflow-hidden">
-                      <img src={saree3dBg} alt="3D Saree Fabric Texture" className="w-full h-full object-cover object-right" />
+                      <img src={saree3dBg} alt="Best Kota Doria Saree Handloom Weave Texture - Sneh Sarees" className="w-full h-full object-cover object-right" />
                       <div className="absolute inset-0 bg-gradient-to-r from-[#FFF6EE] via-[#FDE8D7]/80 to-transparent" />
                     </div>
 
@@ -591,7 +591,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <div className="mb-6">
                     <div className="section-header flex justify-between items-center py-4 px-0">
                       <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#111111]">
-                        Our Saree Collection
+                        Best Sarees for Women Collection
                       </div>
                       <span className="text-xs text-[#333333] font-bold">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
                     </div>

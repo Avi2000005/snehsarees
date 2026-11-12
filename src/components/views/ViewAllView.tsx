@@ -244,7 +244,11 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
         className="reel-grid-card relative aspect-[9/16] rounded-xl overflow-hidden shadow-md hover:scale-[1.01] transition-transform cursor-pointer"
       >
         <div className="reel-grid-img w-full h-full bg-[#922B21]">
-          <SareeSwatch id={p.id + 2} imageUrl={p.image} />
+          <SareeSwatch
+            id={p.id + 2}
+            imageUrl={p.image}
+            altText={`${p.name} - Best Kota Doria Handloom Saree`}
+          />
         </div>
         <div className="reel-grid-overlay absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
         <div className="reel-grid-views absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.75 rounded-full flex items-center gap-1">
@@ -525,7 +529,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
 
                     {/* High-Performance 3D Saree Fabric Background Artwork */}
                     <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 pointer-events-none select-none opacity-20 md:opacity-25 overflow-hidden">
-                      <img src={saree3dBg} alt="3D Saree Fabric Texture" className="w-full h-full object-cover object-right" />
+                      <img src={saree3dBg} alt="Best Kota Doria Saree Handloom Weave Texture - Sneh Sarees" className="w-full h-full object-cover object-right" />
                       <div className="absolute inset-0 bg-gradient-to-r from-[#FFF6EE] via-[#FDE8D7]/80 to-transparent" />
                     </div>
 

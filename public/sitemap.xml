@@ -5,64 +5,153 @@
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
-  <!-- Homepage -->
+  <!-- Homepage / Best Sarees Online -->
   <url>
     <loc>https://www.snehsarees.in/</loc>
-    <lastmod>2026-10-29</lastmod>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
-      <image:title>Sneh Sarees - Authentic Kota Doria Handloom Sarees</image:title>
+      <image:title>Best Sarees Online - Sneh Sarees Authentic Kota Doria Handloom</image:title>
+      <image:caption>Authentic Kota Doria handloom sarees and Rajasthani cotton sarees with zari border from Kota, Rajasthan</image:caption>
     </image:image>
   </url>
 
-  <!-- All Sarees (Shop All) -->
+  <!-- Shop All Sarees / Latest Saree Collection -->
   <url>
     <loc>https://www.snehsarees.in/?view=viewall</loc>
-    <lastmod>2026-10-29</lastmod>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Latest Saree Collection - Best Sarees for Women</image:title>
+    </image:image>
   </url>
 
-  <!-- Category: Cotton -->
-  <url>
-    <loc>https://www.snehsarees.in/?category=cotton</loc>
-    <lastmod>2026-10-29</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- Category: Silk -->
-  <url>
-    <loc>https://www.snehsarees.in/?category=silk</loc>
-    <lastmod>2026-10-29</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- Category: Kota Doria -->
+  <!-- Category: Best Kota Doria Sarees -->
   <url>
     <loc>https://www.snehsarees.in/?category=kota-doria</loc>
-    <lastmod>2026-10-29</lastmod>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Best Kota Doria Sarees - Authentic Rajasthani Kota Sarees</image:title>
+      <image:caption>Handcrafted Kota Doriya sarees woven with traditional Khat square checks and pure zari border</image:caption>
+    </image:image>
   </url>
 
-  <!-- Bulk Orders -->
+  <!-- Category: Cotton Sarees Online -->
+  <url>
+    <loc>https://www.snehsarees.in/?category=cotton</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.92</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Cotton Sarees Online - Cotton Kota Doria Saree with Zari Border</image:title>
+      <image:caption>Lightweight, breathable pure cotton Kota Doria sarees and traditional cotton sarees for daily wear</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Category: Silk / Designer Sarees Online -->
+  <url>
+    <loc>https://www.snehsarees.in/?category=silk</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.92</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Designer Sarees Online - Silk Kota Doria Sarees with Zari Border</image:title>
+      <image:caption>Premium silk Kota Doria festive wear sarees with pure gold zari borders and Rajasthani gotta patti</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Bulk Orders / Wholesale Traditional Indian Sarees -->
   <url>
     <loc>https://www.snehsarees.in/?view=bulk</loc>
-    <lastmod>2026-10-29</lastmod>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Bulk Sarees Online - Wholesale Kota Doria Sarees</image:title>
+    </image:image>
   </url>
 
-  <!-- Search page -->
+  <!-- Search Saree Catalog -->
   <url>
     <loc>https://www.snehsarees.in/?view=search</loc>
-    <lastmod>2026-10-29</lastmod>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.60</priority>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- Featured Product: Kotadoria Pure Silk Zari Saree -->
+  <url>
+    <loc>https://www.snehsarees.in/?product=1</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Kotadoria Pure Silk Zari Saree - Best Kota Doria Sarees Online</image:title>
+      <image:caption>Authentic pure silk Kota Doria saree with signature Khat square grid and gold zari borders</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Featured Product: Kotadoria Tissue Silk Saree -->
+  <url>
+    <loc>https://www.snehsarees.in/?product=2</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Kotadoria Tissue Silk Saree - Designer Sarees Online</image:title>
+      <image:caption>Shimmering Kota Doria tissue silk saree with authentic zari check patterns</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Featured Product: Kotadoria Cotton Khat Saree with Zari Border -->
+  <url>
+    <loc>https://www.snehsarees.in/?product=3</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Kotadoria Cotton Khat Saree - Cotton Sarees Online</image:title>
+      <image:caption>Breathable pure cotton Kota Doria saree with zari border for lightweight daily wear</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Featured Product: Kotadoria Gotta Patti Work Saree -->
+  <url>
+    <loc>https://www.snehsarees.in/?product=4</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Kotadoria Gotta Patti Work Saree - Festive Wear Sarees</image:title>
+      <image:caption>Heritage Rajasthani Gotta Patti hand embroidery over fine translucent Kotadoria silk</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Featured Product: Kotadoria Handblock Print Saree -->
+  <url>
+    <loc>https://www.snehsarees.in/?product=5</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://www.snehsarees.in/logo.jpg</image:loc>
+      <image:title>Kotadoria Handblock Print Saree - Traditional Indian Sarees</image:title>
+      <image:caption>Artisan handblock printed pure cotton Kota Doria saree</image:caption>
+    </image:image>
   </url>
 
 </urlset>
