@@ -5,17 +5,17 @@ import { products } from './data';
 // Component imports
 import { Drawer } from './components/Drawer';
 
-// Eager view imports (core customer browsing flow)
+// Eager view imports (initial customer landing & shop view)
 import { LandingView } from './components/views/LandingView';
 import { HomeView } from './components/views/HomeView';
-import { SearchView } from './components/views/SearchView';
-import { ViewAllView } from './components/views/ViewAllView';
-import { ProductDetailView } from './components/views/ProductDetailView';
-import { CartView } from './components/views/CartView';
-import { CheckoutView } from './components/views/CheckoutView';
-import { WishlistView } from './components/views/WishlistView';
 
-// Lazy view imports (loaded only when navigated to, preventing heavy XLSX & admin JS on landing)
+// Lazy view imports (loaded only on demand to maximize initial mobile PageSpeed)
+const SearchView = lazy(() => import('./components/views/SearchView').then(m => ({ default: m.SearchView })));
+const ViewAllView = lazy(() => import('./components/views/ViewAllView').then(m => ({ default: m.ViewAllView })));
+const ProductDetailView = lazy(() => import('./components/views/ProductDetailView').then(m => ({ default: m.ProductDetailView })));
+const CartView = lazy(() => import('./components/views/CartView').then(m => ({ default: m.CartView })));
+const CheckoutView = lazy(() => import('./components/views/CheckoutView').then(m => ({ default: m.CheckoutView })));
+const WishlistView = lazy(() => import('./components/views/WishlistView').then(m => ({ default: m.WishlistView })));
 const AdminDashboardView = lazy(() => import('./components/views/AdminDashboardView').then(m => ({ default: m.AdminDashboardView })));
 const OrdersView = lazy(() => import('./components/views/OrdersView').then(m => ({ default: m.OrdersView })));
 const ProfileView = lazy(() => import('./components/views/ProfileView').then(m => ({ default: m.ProfileView })));

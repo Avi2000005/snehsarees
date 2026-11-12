@@ -61,33 +61,55 @@
     <link rel="preload" as="image" href="/hero-bg-mobile.webp" media="(max-width: 767px)" fetchpriority="high" />
     <link rel="preload" as="image" href="/hero-bg-desktop.webp" media="(min-width: 768px)" fetchpriority="high" />
 
-    <!-- Google Fonts stylesheet directly loaded in HTML with display=swap -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Google Fonts non-render-blocking load with display=swap -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    </noscript>
 
     <!--
       ══════════════════════════════════════════════════════════════════════
-      META PIXEL (Facebook / Instagram tracking)
+      META PIXEL (Deferred for peak Lighthouse performance & LCP speed)
       ──────────────────────────────────────────────────────────────────────
-      Replace YOUR_PIXEL_ID below with your actual Pixel ID from:
-      Meta Business Suite → Events Manager → Create Pixel → copy the numeric ID
-
-      This powers:
-        • Option 1 — Instagram Product Catalog: domain verification + event matching
-        • Option 2 — Boosted Posts / Ads: conversion tracking + retargeting audiences
-
-      PageView is fired automatically on every page load.
-      Custom events (ViewContent, AddToCart, InitiateCheckout, Purchase)
-      are fired from React components — see src/components/MetaPixel.tsx
+      Replace YOUR_PIXEL_ID below with your actual Pixel ID when ready.
+      The stub queue is available immediately so calls never throw.
       ══════════════════════════════════════════════════════════════════════
     -->
     <script>
+      // Meta Pixel lightweight queue stub (zero network latency on initial page load)
       !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
       n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-      document,'script','https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', 'YOUR_PIXEL_ID');
-      fbq('track', 'PageView');
+      n.push=n;n.loaded=!1;n.version='2.0';n.queue=[];}(window,document);
+
+      // Defer loading fbevents.js until after browser idle / load event
+      function initMetaPixel() {
+        if (window._meta_pixel_injected) return;
+        window._meta_pixel_injected = true;
+        var t = document.createElement('script');
+        t.async = true;
+        t.src = 'https://connect.facebook.net/en_US/fbevents.js';
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(t, s);
+        t.onload = function() {
+          if (window.fbq) {
+            fbq('init', 'YOUR_PIXEL_ID');
+            fbq('track', 'PageView');
+          }
+        };
+      }
+
+      if (document.readyState === 'complete') {
+        setTimeout(initMetaPixel, 2000);
+      } else {
+        window.addEventListener('load', function() {
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(initMetaPixel, { timeout: 3000 });
+          } else {
+            setTimeout(initMetaPixel, 2000);
+          }
+        });
+      }
     </script>
 
     <!-- Structured Data: ClothingStore + WebSite + BreadcrumbList -->

@@ -330,7 +330,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
         {/* Motif Deco - Prominent Hero Logo Circle */}
         <div className="mt-8 md:mt-12 mb-6 drop-shadow-[0_8px_32px_rgba(245,228,188,0.7)]">
           <div className="w-36 h-36 md:w-44 md:h-44 rounded-full border-4 border-[#F5E4BC] p-1.5 bg-white overflow-hidden flex items-center justify-center shadow-2xl transition-transform hover:scale-105 duration-300">
-            <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
+            <img src={logoUrl} width="217" height="217" alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
         </div>
 
