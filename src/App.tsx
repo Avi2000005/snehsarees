@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { ActivePage, CartItem, Order, Product, UserProfile } from './types';
 import { products } from './data';
+import { getCatalog, getCatalogSync } from './catalog-cache';
 
 // Component imports
 import { Drawer } from './components/Drawer';
@@ -241,18 +242,26 @@ export default function App() {
 
   // Home Filters & UI Controllers
   const [activeHomeCategory, setActiveHomeCategory] = useState<string>('all');
-  const [productsList, setProductsList] = useState<Product[]>([]);
+  // productsList is kept for cart resolution / buy-now lookups.
+  // Seeded immediately from catalog cache (populated by preloadCatalog in main.tsx),
+  // then kept in sync whenever the cache settles.
+  const [productsList, setProductsList] = useState<Product[]>(() => getCatalogSync().products);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastTimer, setToastTimer] = useState<NodeJS.Timeout | null>(null);
 
+  // Sync productsList from catalog cache once (no per-page refetch)
   useEffect(() => {
-    fetch(`${API_URL}/api/products`)
-      .then(res => res.json())
-      .then(data => setProductsList(data || []))
-      .catch(err => console.error('App products load error:', err));
-  }, [page]);
+    const cached = getCatalogSync().products;
+    if (cached.length > 0) {
+      setProductsList(cached);
+      return;
+    }
+    getCatalog().then(data => {
+      if (data.products.length > 0) setProductsList(data.products);
+    }).catch(() => {});
+  }, []);
 
   // Dynamic SEO Manager for Search Engines (Google, Safari, Bing)
   useEffect(() => {
@@ -968,7 +977,8 @@ export default function App() {
 
       {/* Dynamic contents with semantic landmark */}
       <main id="main-content" role="main" className="relative z-[1]">
-        <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><div className="w-8 h-8 border-3 border-[#C4601A] border-t-transparent rounded-full animate-spin" /></div>}>
+        {/* Lazy chunks are small; no visible fallback needed */}
+        <Suspense fallback={null}>
           {renderViewContent()}
         </Suspense>
       </main>

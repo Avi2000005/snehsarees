@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { ActivePage, Category } from '../../types';
-import { ArrowLeft, Globe, RefreshCw, Home } from 'lucide-react';
+import { ArrowLeft, Globe, Home } from 'lucide-react';
 import logoUrl from '@/assets/logo.jpg';
-import { API_URL } from '../../config';
+import { useCatalog } from '../../catalog-cache';
 
 interface KnowledgeViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -97,26 +97,11 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
     }
   };
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  const catalog = useCatalog();
+  const categories: Category[] = catalog.categories;
+  // Scroll to the highlighted category once catalog data is available
   useEffect(() => {
-    fetch(`${API_URL}/api/categories`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setCategories(data);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error fetching categories in knowledge view:', err);
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!loading && activeSlug) {
+    if (catalog.ready && activeSlug) {
       setTimeout(() => {
         const el = document.getElementById(`cat-${activeSlug}`);
         if (el) {
@@ -124,7 +109,7 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
         }
       }, 350);
     }
-  }, [loading, activeSlug]);
+  }, [catalog.ready, activeSlug]);
 
   return (
     <div className="bg-[#FAF6F0] min-h-screen">
@@ -208,14 +193,8 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
             </p>
           </div>
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-sm text-[#C4601A] font-semibold relative z-20">
-              <RefreshCw className="w-6 h-6 animate-spin text-[#C4601A]" />
-              <span>Loading Saree Heritage...</span>
-            </div>
-          ) : (
-            /* Content entries in a clean grid */
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-14 relative z-20 mt-4">
+          {/* Categories render immediately from catalog cache */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-14 relative z-20 mt-4">
               {categories.map((cat, idx) => {
                 const isActive = activeSlug === cat.slug;
                 return (
@@ -305,7 +284,6 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
                 );
               })}
             </div>
-          )}
         </div>
       </div>
     </div>

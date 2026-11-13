@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShoppingBag, SlidersHorizontal, ArrowUpDown, ChevronDown, Eye, Play, Heart, RefreshCw, Home, BookOpen, Sparkles, MapPin, Layers, ShieldCheck, Compass, Feather, Scroll, Sun, HeartHandshake, Grid2X2, Rows2 } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, SlidersHorizontal, ArrowUpDown, ChevronDown, Eye, Play, Heart, Home, BookOpen, Sparkles, MapPin, Layers, ShieldCheck, Compass, Feather, Scroll, Sun, HeartHandshake, Grid2X2, Rows2 } from 'lucide-react';
 import { ActivePage, Product, Category } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { ProductCard } from '../ProductCard';
-import { API_URL } from '../../config';
 import saree3dBg from '../saree_heritage_3d_bg.png';
+import { useCatalog } from '../../catalog-cache';
 
 interface ViewAllViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -29,9 +29,10 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
   wishlist,
   cartCount
 }) => {
-  const [productsList, setProductsList] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Pull from catalog cache — instant if already primed, re-renders once if not.
+  const catalog = useCatalog();
+  const productsList: Product[] = catalog.products;
+  const categories: Category[] = catalog.categories;
 
   // Section keys that are NOT category slugs
   const SECTION_KEYS = ['all', 'reels'];
@@ -100,20 +101,6 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
       }
     }, 50);
   };
-
-  useEffect(() => {
-    Promise.all([
-      fetch(`${API_URL}/api/products`).then(res => res.json()),
-      fetch(`${API_URL}/api/categories`).then(res => res.json())
-    ]).then(([prodData, catData]) => {
-      setProductsList(prodData || []);
-      setCategories(catData || []);
-      setLoading(false);
-    }).catch(err => {
-      console.error('ViewAllView load error:', err);
-      setLoading(false);
-    });
-  }, []);
 
   // Sync sidebar selection when activeType changes (e.g. navigating from drawer)
   useEffect(() => {
@@ -473,16 +460,9 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
             </div>
           )}
 
-          {/* Dynamic Sync state spinner */}
-          {loading && (
-            <div className="w-full py-20 flex items-center justify-center text-xs text-gray-400 gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-[#C4601A]" /> Loading products catalog...
-            </div>
-          )}
 
-          {/* Products List Rendering Layout */}
-          {!loading && (
-            <>
+          {/* Products render immediately from catalog cache; no spinner needed */}
+          <>
               {displayedList.length === 0 ? (
                 <div className="text-center py-20 px-6 font-serif">
                   <div className="text-[#888888] text-base mb-2">No products match your criteria</div>
@@ -635,7 +615,6 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                 </div>
               )}
             </>
-          )}
 
           {/* Load More Trigger */}
           {filteredList.length > displayedCount && (

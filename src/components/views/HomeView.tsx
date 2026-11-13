@@ -3,10 +3,10 @@ import { Menu, Search, ShoppingBag, Eye, Play, Sparkles, ChevronLeft, ChevronRig
 import { ActivePage, Product, Category, OfferBanner, Reel, Review, UserProfile } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { ProductCard } from '../ProductCard';
-import { API_URL } from '../../config';
 import logoUrl from '@/assets/logo.jpg';
 import saree3dBg from '../saree_heritage_3d_bg.png';
 import { PolicyModal, PolicyTab } from '../PolicyModal';
+import { useCatalog } from '../../catalog-cache';
 
 interface HomeViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -31,37 +31,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onSetCategory,
   user
 }) => {
-  const [productsList, setProductsList] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [banners, setBanners] = useState<OfferBanner[]>([]);
-  const [reels, setReels] = useState<Reel[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+  // Pull catalog data from the in-memory cache (primed at app start in main.tsx).
+  // `ready` is true instantly if the cache was already populated; otherwise the
+  // hook triggers a re-render once the fetch resolves — no spinner, no blocking.
+  const catalog = useCatalog();
+  const productsList: Product[] = catalog.products;
+  const categories: Category[] = catalog.categories;
+  const banners: OfferBanner[] = catalog.banners;
+  const reels: Reel[] = catalog.reels;
+  const reviews: Review[] = catalog.reviews;
+
   // Interactive UI state
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [policyModalTab, setPolicyModalTab] = useState<PolicyTab | null>(null);
   const [activeReel, setActiveReel] = useState<Reel | null>(null);
-
-  useEffect(() => {
-    Promise.all([
-      fetch(`${API_URL}/api/products`).then(res => res.json()),
-      fetch(`${API_URL}/api/categories`).then(res => res.json()),
-      fetch(`${API_URL}/api/banners`).then(res => res.json()),
-      fetch(`${API_URL}/api/reels`).then(res => res.json()),
-      fetch(`${API_URL}/api/reviews/recent`).then(res => res.json())
-    ]).then(([prodData, catData, bannerData, reelData, reviewData]) => {
-      setProductsList(prodData || []);
-      setCategories(catData || []);
-      setBanners(bannerData || []);
-      setReels(reelData || []);
-      setReviews(reviewData || []);
-      setLoading(false);
-    }).catch(err => {
-      console.error('Error loading dynamic Home data:', err);
-      setLoading(false);
-    });
-  }, []);
 
   // Auto-advance banner carousel every 5 seconds
   useEffect(() => {
@@ -412,16 +395,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         )}
 
-        {/* Loading Spinner */}
-        {loading && (
-          <div className="w-full py-20 flex items-center justify-center text-xs text-gray-500 gap-2">
-            <div className="w-4 h-4 border-2 border-[#C4601A] border-t-transparent rounded-full animate-spin" />
-            Syncing saree catalog...
-          </div>
-        )}
 
-        {!loading && (
-          <>
+        {/* Products render immediately from catalog cache; no spinner needed */}
+        <>
             {/* === SPECIFIC CATEGORY VIEW: show ALL products in that category === */}
             {activeHomeCategory !== 'all' && (
               <div className="mb-6">
@@ -644,7 +620,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </>
             )}
           </>
-        )}
       </div>
 
       {/* Reel Video Player Modal */}

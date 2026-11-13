@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShoppingBag, Heart, RefreshCw, Star, Play, BookOpen, X, Globe, Home, ShoppingCart, Share2, Check, Instagram, Copy } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Heart, Star, Play, BookOpen, X, Globe, Home, ShoppingCart, Share2, Check, Instagram, Copy } from 'lucide-react';
 import { ActivePage, Product, Review, Category, UserProfile } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { API_URL, SITE_URL } from '../../config';
 import { pixelViewContent, pixelAddToCart } from '../MetaPixel';
 import { ProductDescription } from '../ProductDescription';
 import { stripHtmlToPlainText } from '../../utils/sanitizeHtml';
+import { useProduct } from '../../catalog-cache';
 
 // Helper: inject/update dynamic SEO meta tags for the current product
 function updateProductSEO(p: Product) {
@@ -135,8 +136,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   token,
   user
 }) => {
-  const [p, setP] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  // useProduct: looks up catalog cache first, falls back to API fetch only for direct-link opens
+  const { product: p, loading } = useProduct(productId);
   const [selectedColour, setSelectedColour] = useState('');
   const [displayImage, setDisplayImage] = useState('');
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
@@ -193,84 +194,60 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       .catch((err) => console.error('Error loading reviews:', err));
   };
 
+  // When p resolves from useProduct (cache or fetch), set up derived state
   useEffect(() => {
-    setLoading(true);
     setActiveMediaIndex(0);
     setCategoryInfo(null);
-    fetch(`${API_URL}/api/products/${productId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data) => {
-        setP(data);
-        const initialColour = data.colour || (data.variants && data.variants[0]?.colour) || '';
-        setSelectedColour(initialColour);
-        setDisplayImage(data.image || (data.variants && data.variants[0]?.image) || '');
-        setLoading(false);
-        if (data.categoryId) {
-          fetch(`${API_URL}/api/categories`)
-            .then((r) => r.json())
-            .then((cats) => {
-              if (Array.isArray(cats)) {
-                const found = cats.find((c) => c.id === data.categoryId);
-                if (found) setCategoryInfo(found);
-              }
-            })
-            .catch((err) => console.error('Error fetching category:', err));
+    if (!p) return;
 
-          // Fetch suggested products from same category
-          fetch(`${API_URL}/api/products`)
-            .then((r) => r.json())
-            .then((allProducts: Product[]) => {
-              if (Array.isArray(allProducts)) {
-                const suggestions = allProducts
-                  .filter((pr) => pr.categoryId === data.categoryId && pr.id !== data.id)
-                  .slice(0, 8);
-                setSuggestedProducts(suggestions);
-              }
-            })
-            .catch((err) => console.error('Error fetching suggestions:', err));
-        }
-        // Save current product to recently viewed in localStorage
-        try {
-          const stored = localStorage.getItem('sneh_recently_viewed');
-          const ids: number[] = stored ? JSON.parse(stored) : [];
-          const filtered = ids.filter((id) => id !== data.id);
-          const updated = [data.id, ...filtered].slice(0, 12); // keep last 12
-          localStorage.setItem('sneh_recently_viewed', JSON.stringify(updated));
-        } catch {}
-      })
-      .catch(() => {
-        setP(null);
-        setLoading(false);
+    const initialColour = p.colour || (p.variants && p.variants[0]?.colour) || '';
+    setSelectedColour(initialColour);
+    setDisplayImage(p.image || (p.variants && p.variants[0]?.image) || '');
+
+    if (p.categoryId) {
+      // Resolve category and suggestions from catalog cache (no extra fetch needed)
+      import('../../catalog-cache').then(({ getCatalog }) => {
+        getCatalog().then(catalog => {
+          const found = catalog.categories.find(c => c.id === p.categoryId);
+          if (found) setCategoryInfo(found);
+          const suggestions = catalog.products
+            .filter(pr => pr.categoryId === p.categoryId && pr.id !== p.id)
+            .slice(0, 8);
+          setSuggestedProducts(suggestions);
+        });
       });
+    }
 
-    // Load recently viewed products from localStorage (excluding current)
+    // Save current product to recently viewed in localStorage
+    try {
+      const stored = localStorage.getItem('sneh_recently_viewed');
+      const ids: number[] = stored ? JSON.parse(stored) : [];
+      const filtered = ids.filter((id) => id !== p.id);
+      const updated = [p.id, ...filtered].slice(0, 12);
+      localStorage.setItem('sneh_recently_viewed', JSON.stringify(updated));
+    } catch {}
+
+    // Load recently viewed products from catalog cache
     try {
       const stored = localStorage.getItem('sneh_recently_viewed');
       const ids: number[] = stored ? JSON.parse(stored) : [];
       const otherIds = ids.filter((id) => id !== productId);
       if (otherIds.length > 0) {
-        fetch(`${API_URL}/api/products`)
-          .then((r) => r.json())
-          .then((allProducts: Product[]) => {
-            if (Array.isArray(allProducts)) {
-              // Preserve the recently-viewed order
-              const map = new Map(allProducts.map((pr) => [pr.id, pr]));
-              const recent = otherIds
-                .map((id) => map.get(id))
-                .filter((pr): pr is Product => !!pr)
-                .slice(0, 8);
-              setRecentlyViewedProducts(recent);
-            }
-          })
-          .catch(() => {});
+        import('../../catalog-cache').then(({ getCatalog }) => {
+          getCatalog().then(catalog => {
+            const map = new Map(catalog.products.map(pr => [pr.id, pr]));
+            const recent = otherIds
+              .map(id => map.get(id))
+              .filter((pr): pr is Product => !!pr)
+              .slice(0, 8);
+            setRecentlyViewedProducts(recent);
+          });
+        });
       }
     } catch {}
 
     fetchReviews();
-  }, [productId]);
+  }, [p, productId]);
 
   // Inject dynamic SEO meta tags when product is loaded; restore on unmount
   useEffect(() => {
@@ -286,11 +263,33 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   }, [p]);
 
 
+  // Render an inline skeleton that keeps the page chrome visible (no full-screen takeover)
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAF6F0] flex flex-col items-center justify-center text-xs text-gray-500 gap-2">
-        <RefreshCw className="w-5 h-5 text-[#C4601A] animate-spin" />
-        Syncing Saree details...
+      <div className="min-h-screen bg-[#FAF6F0]">
+        {/* Top navigation bar — always visible */}
+        <div className="fixed top-0 left-0 right-0 h-[56px] md:h-[64px] bg-white border-b border-[#E8E0D5] flex items-center px-4 z-50 shadow-xs max-w-[430px] md:max-w-full mx-auto">
+          <button onClick={onBack} className="w-10 h-10 rounded-full flex items-center justify-center active:bg-[#F0E8DC] transition-colors cursor-pointer shrink-0">
+            <ArrowLeft className="w-5 h-5 text-[#1A1A1A]" />
+          </button>
+          <div className="flex-1 ml-2 h-4 bg-[#E8E0D5] rounded animate-pulse w-32" />
+          <div className="flex gap-2 ml-auto">
+            <div className="w-10 h-10 rounded-full bg-[#E8E0D5] animate-pulse" />
+            <div className="w-10 h-10 rounded-full bg-[#E8E0D5] animate-pulse" />
+          </div>
+        </div>
+        {/* Content skeleton */}
+        <div className="pt-[60px] pb-[100px] max-w-[430px] md:max-w-[900px] mx-auto">
+          {/* Image placeholder — same aspect ratio as product images */}
+          <div className="w-full aspect-[3/4] bg-[#E8E0D5] animate-pulse" />
+          <div className="p-5 space-y-4">
+            <div className="h-5 bg-[#E8E0D5] rounded animate-pulse w-3/4" />
+            <div className="h-4 bg-[#E8E0D5] rounded animate-pulse w-1/2" />
+            <div className="h-8 bg-[#E8E0D5] rounded animate-pulse w-1/3" />
+            <div className="h-12 bg-[#E8E0D5] rounded-2xl animate-pulse" />
+            <div className="h-12 bg-[#E8E0D5] rounded-2xl animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
