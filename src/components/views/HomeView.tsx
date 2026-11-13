@@ -35,6 +35,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   // `ready` is true instantly if the cache was already populated; otherwise the
   // hook triggers a re-render once the fetch resolves — no spinner, no blocking.
   const catalog = useCatalog();
+  const { status, reload } = catalog;
   const productsList: Product[] = catalog.products;
   const categories: Category[] = catalog.categories;
   const banners: OfferBanner[] = catalog.banners;
@@ -125,7 +126,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     );
   };
 
-  const renderProductScrollCard = (p: Product, showTrendingBadge: boolean = false) => {
+  const renderProductScrollCard = (p: Product, index: number = 0, showTrendingBadge: boolean = false) => {
     return (
       <ProductCard
         key={p.id}
@@ -135,9 +136,36 @@ export const HomeView: React.FC<HomeViewProps> = ({
         onAddToCart={(id) => onAddToCart(id)}
         onToggleWishlist={onToggleWishlist}
         showTrendingBadge={showTrendingBadge}
+        priority={index < 4}
       />
     );
   };
+
+  const renderProductSkeletonGrid = (count: number = 4) => (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="w-full bg-white rounded-2xl overflow-hidden border border-[#E8E0D5] p-0 shadow-xs">
+          <div className="w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#E8E0D5]/50 animate-pulse" />
+          <div className="p-3 sm:p-4 space-y-2.5">
+            <div className="h-4 bg-[#E8E0D5]/60 rounded-md animate-pulse w-3/4" />
+            <div className="h-3 bg-[#E8E0D5]/40 rounded-md animate-pulse w-1/2" />
+            <div className="h-4 bg-[#E8E0D5]/50 rounded-md animate-pulse w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderCategorySkeletons = () => (
+    <>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 w-[72px] sm:w-20 md:w-24 select-none">
+          <div className="w-[68px] h-[68px] sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-[#E8E0D5]/50 animate-pulse border border-[#E8E0D5]" />
+          <div className="h-2.5 w-12 bg-[#E8E0D5]/60 rounded animate-pulse" />
+        </div>
+      ))}
+    </>
+  );
 
   return (
     <div id="page-home">
@@ -249,34 +277,38 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             </div>
 
-            {categories.map((c) => {
-              const active = activeHomeCategory === c.slug;
-              const hasImage = !!c.imageUrl;
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => onSetCategory(c.slug)}
-                  className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group w-[72px] sm:w-20 md:w-24 select-none"
-                >
+            {categories.length > 0 ? (
+              categories.map((c) => {
+                const active = activeHomeCategory === c.slug;
+                const hasImage = !!c.imageUrl;
+                return (
                   <div
-                    className={`cat-icon w-[68px] h-[68px] sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-xs border transition-all duration-200 overflow-hidden ${
-                      active
-                        ? hasImage
-                          ? 'border-[#C4601A] ring-2 ring-[#C4601A]/40 scale-95 shadow-sm'
-                          : 'bg-[#C4601A] border-[#C4601A] text-white scale-95 shadow-sm'
-                        : hasImage
-                          ? 'border-[#E8E0D5] hover:border-[#C4601A]/50 active:scale-95'
-                          : 'bg-white border-[#E8E0D5] hover:border-[#C4601A]/50 hover:bg-[#FAF6F0] active:scale-95'
-                    }`}
+                    key={c.id}
+                    onClick={() => onSetCategory(c.slug)}
+                    className="cat-item flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group w-[72px] sm:w-20 md:w-24 select-none"
                   >
-                    {renderCategoryIcon(c.slug, active, c.imageUrl)}
+                    <div
+                      className={`cat-icon w-[68px] h-[68px] sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center shadow-xs border transition-all duration-200 overflow-hidden ${
+                        active
+                          ? hasImage
+                            ? 'border-[#C4601A] ring-2 ring-[#C4601A]/40 scale-95 shadow-sm'
+                            : 'bg-[#C4601A] border-[#C4601A] text-white scale-95 shadow-sm'
+                          : hasImage
+                            ? 'border-[#E8E0D5] hover:border-[#C4601A]/50 active:scale-95'
+                            : 'bg-white border-[#E8E0D5] hover:border-[#C4601A]/50 hover:bg-[#FAF6F0] active:scale-95'
+                      }`}
+                    >
+                      {renderCategoryIcon(c.slug, active, c.imageUrl)}
+                    </div>
+                    <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-[72px] sm:max-w-20 md:max-w-24 line-clamp-2 px-0.5 break-words ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
+                      {c.name}
+                    </div>
                   </div>
-                  <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-[72px] sm:max-w-20 md:max-w-24 line-clamp-2 px-0.5 break-words ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
-                    {c.name}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : status === 'loading' ? (
+              renderCategorySkeletons()
+            ) : null}
 
           </div>
         </div>
@@ -421,7 +453,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 {filtered.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-6">
-                    {filtered.map((p) => renderProductScrollCard(p))}
+                    {filtered.map((p, idx) => renderProductScrollCard(p, idx))}
+                  </div>
+                ) : status === 'loading' ? (
+                  renderProductSkeletonGrid(4)
+                ) : status === 'error' ? (
+                  <div className="w-full py-12 flex flex-col items-center justify-center gap-2 text-center bg-white/50 rounded-2xl border border-[#E8E0D5]/50 p-6">
+                    <p className="text-xs text-[#888888] font-serif">Unable to load sarees.</p>
+                    <button onClick={() => reload()} className="text-xs font-bold text-[#C4601A] underline cursor-pointer">
+                      Tap to Retry
+                    </button>
                   </div>
                 ) : (
                   <div className="w-full py-14 flex flex-col items-center justify-center gap-3 text-center bg-white/50 rounded-2xl border border-[#E8E0D5]/50 p-6">
@@ -572,8 +613,22 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       <span className="text-xs text-[#333333] font-bold">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-6">
-                      {filtered.map((p) => renderProductScrollCard(p))}
+                      {filtered.map((p, idx) => renderProductScrollCard(p, idx))}
                     </div>
+                  </div>
+                ) : status === 'loading' ? (
+                  <div className="mb-6">
+                    <div className="section-header flex justify-between items-center py-4 px-0">
+                      <div className="h-6 w-48 bg-[#E8E0D5]/60 rounded-md animate-pulse" />
+                    </div>
+                    {renderProductSkeletonGrid(8)}
+                  </div>
+                ) : status === 'error' ? (
+                  <div className="w-full py-16 flex flex-col items-center justify-center gap-2 text-center">
+                    <p className="text-xs text-[#888888] font-serif">Unable to load saree collection.</p>
+                    <button onClick={() => reload()} className="text-xs font-bold text-[#C4601A] underline cursor-pointer">
+                      Tap to Retry
+                    </button>
                   </div>
                 ) : (
                   <div className="w-full py-16 text-center text-[#888888] font-serif text-sm">

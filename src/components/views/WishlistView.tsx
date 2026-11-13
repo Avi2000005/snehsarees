@@ -61,7 +61,20 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
       </div>
 
       <div className="page-content px-4 md:px-7 lg:px-12 max-w-[1320px] mx-auto pt-4 pb-32">
-        {wishlistItems.length === 0 ? (
+        {wishlist.length > 0 && productsList.length === 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            {Array.from({ length: wishlist.length }).map((_, i) => (
+              <div key={i} className="w-full bg-white rounded-2xl overflow-hidden border border-[#E8E0D5] p-0 shadow-xs">
+                <div className="w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#E8E0D5]/50 animate-pulse" />
+                <div className="p-3 sm:p-4 space-y-2.5">
+                  <div className="h-4 bg-[#E8E0D5]/60 rounded-md animate-pulse w-3/4" />
+                  <div className="h-3 bg-[#E8E0D5]/40 rounded-md animate-pulse w-1/2" />
+                  <div className="h-4 bg-[#E8E0D5]/50 rounded-md animate-pulse w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : wishlistItems.length === 0 ? (
           /* Wishlist Empty placeholder state */
           <div className="wishlist-empty text-center py-16 px-6 max-w-sm mx-auto">
             <div className="wishlist-empty-icon mb-4 flex justify-center text-primrose opacity-30">

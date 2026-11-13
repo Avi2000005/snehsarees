@@ -11,6 +11,7 @@ export interface ProductCardProps {
   showTrendingBadge?: boolean;
   className?: string;
   imageHeightClass?: string;
+  priority?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -21,7 +22,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   showTrendingBadge = false,
   className = '',
-  imageHeightClass = 'h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px]'
+  imageHeightClass = 'h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px]',
+  priority = false
 }) => {
   const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
   const isOutOfStock = p.stock === 0;
@@ -40,6 +42,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           id={p.id}
           imageUrl={p.image}
           altText={`${p.name} - Best Kota Doria Handloom Saree with Zari Border`}
+          priority={priority}
         />
         {isTrending && (
           <div className="absolute top-2.5 left-2.5 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase shadow-xs">

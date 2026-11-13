@@ -210,6 +210,7 @@ export default function App() {
 
   const [recentlyViewed, setRecentlyViewed] = useState<number[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -703,6 +704,7 @@ export default function App() {
 
   const fetchCustomerOrders = async () => {
     if (!token) return;
+    setOrdersLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/orders`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -715,6 +717,8 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error fetching customer orders:', err);
+    } finally {
+      setOrdersLoading(false);
     }
   };
 
@@ -858,6 +862,7 @@ export default function App() {
         return (
           <OrdersView
             orders={orders}
+            ordersLoading={ordersLoading}
             onNavigate={handleNavigate}
             onBack={handleBack}
             userToken={token || undefined}

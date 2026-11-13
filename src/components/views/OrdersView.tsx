@@ -6,6 +6,7 @@ import { API_URL, BUSINESS_WHATSAPP } from '../../config';
 
 interface OrdersViewProps {
   orders: Order[];
+  ordersLoading?: boolean;
   onNavigate: (page: ActivePage, param?: string) => void;
   onBack: () => void;
   userToken?: string;
@@ -60,7 +61,7 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: 'Rejected',
 };
 
-export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBack, userToken, showToast, onRefreshOrders, productsList, onLoginClick }) => {
+export const OrdersView: React.FC<OrdersViewProps> = ({ orders, ordersLoading = false, onNavigate, onBack, userToken, showToast, onRefreshOrders, productsList, onLoginClick }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
 
@@ -441,6 +442,16 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, onNavigate, onBa
             </div>
           </div>
 
+        ) : ordersLoading ? (
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl p-5 border border-[#E8E0D5] animate-pulse space-y-3">
+                <div className="h-4 bg-[#E8E0D5]/60 rounded w-1/3" />
+                <div className="h-3 bg-[#E8E0D5]/40 rounded w-1/2" />
+                <div className="h-16 bg-[#E8E0D5]/30 rounded-xl" />
+              </div>
+            ))}
+          </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-16 px-6 max-w-sm mx-auto">
             <div className="mb-4 flex justify-center text-primrose opacity-35">

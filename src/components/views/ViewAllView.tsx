@@ -31,6 +31,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
 }) => {
   // Pull from catalog cache — instant if already primed, re-renders once if not.
   const catalog = useCatalog();
+  const { status, reload } = catalog;
   const productsList: Product[] = catalog.products;
   const categories: Category[] = catalog.categories;
 
@@ -464,12 +465,40 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           {/* Products render immediately from catalog cache; no spinner needed */}
           <>
               {displayedList.length === 0 ? (
-                <div className="text-center py-20 px-6 font-serif">
-                  <div className="text-[#888888] text-base mb-2">No products match your criteria</div>
-                  <button onClick={handleResetFilters} className="text-[#C4601A] font-bold underline text-sm cursor-pointer">
-                    Reset Filters
-                  </button>
-                </div>
+                status === 'loading' ? (
+                  <div
+                    className={`product-grid grid p-3 sm:p-4 transition-all duration-300 ${
+                      isWideView
+                        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6'
+                        : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4.5'
+                    }`}
+                  >
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="w-full bg-white rounded-2xl overflow-hidden border border-[#E8E0D5] p-0 shadow-xs">
+                        <div className="w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#E8E0D5]/50 animate-pulse" />
+                        <div className="p-3 sm:p-4 space-y-2.5">
+                          <div className="h-4 bg-[#E8E0D5]/60 rounded-md animate-pulse w-3/4" />
+                          <div className="h-3 bg-[#E8E0D5]/40 rounded-md animate-pulse w-1/2" />
+                          <div className="h-4 bg-[#E8E0D5]/50 rounded-md animate-pulse w-1/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : status === 'error' ? (
+                  <div className="text-center py-20 px-6 font-serif">
+                    <div className="text-[#888888] text-base mb-2">Unable to load saree catalog</div>
+                    <button onClick={() => reload()} className="text-[#C4601A] font-bold underline text-sm cursor-pointer">
+                      Tap to Retry
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center py-20 px-6 font-serif">
+                    <div className="text-[#888888] text-base mb-2">No products match your criteria</div>
+                    <button onClick={handleResetFilters} className="text-[#C4601A] font-bold underline text-sm cursor-pointer">
+                      Reset Filters
+                    </button>
+                  </div>
+                )
               ) : activeType === 'reels' ? (
                 <div className="reel-grid grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-4 gap-3">
                   {displayedList.map((p) => renderReelGridCard(p))}

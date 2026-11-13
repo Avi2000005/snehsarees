@@ -6,6 +6,7 @@ import cloudinary from '../config/cloudinary';
 export const getCategories = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const list = await db.getCategories();
+    res.set('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=86400');
     res.json(list);
   } catch (err) {
     next(err);

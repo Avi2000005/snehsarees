@@ -3,7 +3,7 @@ import { ArrowLeft, Search, X, Heart, Home } from 'lucide-react';
 import { ActivePage, Product } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { ProductCard } from '../ProductCard';
-import { API_URL } from '../../config';
+import { useCatalog } from '../../catalog-cache';
 
 interface SearchViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -31,24 +31,12 @@ export const SearchView: React.FC<SearchViewProps> = ({
   onBack
 }) => {
   const [query, setQuery] = useState('');
-  const [productsList, setProductsList] = useState<Product[]>([]);
+  const catalog = useCatalog();
+  const productsList = catalog.products;
+  const categories = catalog.categories;
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [results, setResults] = useState<Product[]>([]);
   const [isSearched, setIsSearched] = useState(false);
-
-  const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/products`)
-      .then(res => res.json())
-      .then(data => setProductsList(data || []))
-      .catch(err => console.error('SearchView product load error:', err));
-
-    fetch(`${API_URL}/api/categories`)
-      .then(res => res.json())
-      .then(data => setCategories(data || []))
-      .catch(err => console.error('SearchView category load error:', err));
-  }, []);
 
   useEffect(() => {
     if (!query.trim()) {

@@ -1,16 +1,17 @@
 /**
  * catalog-cache.ts
  *
- * Module-level in-memory cache for the catalog data that every page needs
- * (products, categories, banners, reels, reviews).
- *
- * Fetches once on first access, then returns the cached result instantly on
- * every subsequent call — so views never have to show a loading spinner for
- * data that was already fetched during app bootstrap.
+ * High-performance module-level catalog cache with Stale-While-Revalidate (SWR).
+ * Seeds synchronously from window.__SNEH_INITIAL_CATALOG__ or authentic fallback data,
+ * ensuring that components render products & categories immediately on the very first
+ * paint with ZERO layout shift, ZERO spinner, and ZERO intermediate "No sarees found" messages.
  */
 
 import { API_URL } from './config';
+import { products as seedProducts } from './data';
 import type { Product, Category, OfferBanner, Reel, Review } from './types';
+
+export type CatalogStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export interface CatalogData {
   products: Product[];
@@ -20,141 +21,256 @@ export interface CatalogData {
   reviews: Review[];
 }
 
-let cachedCatalog: CatalogData | null = null;
-let catalogPromise: Promise<CatalogData> | null = null;
+export const SEED_CATEGORIES: Category[] = [
+  {
+    id: 1,
+    name: 'Kotadoria Silk',
+    slug: 'silk',
+    imageUrl: '',
+    description: 'Authentic Kota Doria sarees woven with fine mulberry silk and metallic zari yarns on signature Khat check grids.',
+    history: 'Kota Doria weaving in Rajasthan features the union of silk for luster and cotton for strength. The signature Khat grid creates a shimmering translucent drape cherished across royal Rajasthani celebrations.',
+    properties: 'Shimmering luster, lightweight Khat square grid, pure silk and zari blend, airy and regal.',
+    care: 'Dry clean recommended · store wrapped in soft cotton fabric · keep away from direct moisture.'
+  },
+  {
+    id: 2,
+    name: 'Kotadoria Cotton',
+    slug: 'cotton',
+    imageUrl: '',
+    description: 'Featherlight, breathable pure cotton Kota Doria sarees featuring traditional Khat check patterns.',
+    history: 'Crafted for centuries by master artisans in Kaithoon, Kota. Cotton Kota Doria is prized for its cooling properties and delicate geometric square weave.',
+    properties: 'Ultra-lightweight, highly breathable Khat checks, skin-friendly natural combed cotton.',
+    care: 'Gentle hand wash in cold water with mild detergent · dry in shade · light starch if desired.'
+  },
+  {
+    id: 3,
+    name: 'Kotadoria Zari',
+    slug: 'zari',
+    imageUrl: '',
+    description: 'Kota Doria sarees framed with intricate temple and floral gold zari borders.',
+    history: 'Woven on multi-treadle pit looms in Kota, adding rich metallic borders to breezy translucent Khat bodies.',
+    properties: 'Pure metallic gold/silver zari border, geometric square weave body, royal festive elegance.',
+    care: 'Dry clean only · store wrapped in muslin cloth.'
+  },
+  {
+    id: 4,
+    name: 'Kotadoria Handblock',
+    slug: 'handblock',
+    imageUrl: '',
+    description: 'Traditional Rajasthani Bagru and Dabu wooden block printing on authentic Kota Doria grid fabric.',
+    history: 'A celebration of Rajasthani craftsmanship pairing Kaithoon\'s Khat weaving with artisanal natural vegetable block stamping.',
+    properties: 'Eco-friendly vegetable dyes, intricate artisan motifs, soft breathable handfeel.',
+    care: 'Gentle hand wash separately in cold water · dry in shade.'
+  }
+];
 
-/** Fetch (or return cached) full catalog data. */
-export function getCatalog(): Promise<CatalogData> {
-  if (cachedCatalog) return Promise.resolve(cachedCatalog);
-  if (catalogPromise) return catalogPromise;
+export const SEED_BANNERS: OfferBanner[] = [
+  {
+    id: 1,
+    title: 'New Festive Collection Arrived',
+    badgeText: 'Special Offers',
+    ctaText: 'Explore Now',
+    ctaLink: 'deals',
+    bgFrom: '#C4601A',
+    bgTo: '#7A2F08',
+    isActive: true,
+    sortOrder: 1,
+    createdAt: new Date().toISOString()
+  }
+];
+
+function getInitialCatalog(): CatalogData {
+  if (typeof window !== 'undefined') {
+    const scriptEl = document.getElementById('__SNEH_INITIAL_CATALOG__');
+    if (scriptEl && scriptEl.textContent) {
+      try {
+        const parsed = JSON.parse(scriptEl.textContent);
+        if (parsed.products && parsed.products.length > 0) {
+          return parsed;
+        }
+      } catch {
+        // Fall through to seed defaults
+      }
+    }
+    if ((window as unknown as { __SNEH_INITIAL_CATALOG__?: CatalogData }).__SNEH_INITIAL_CATALOG__) {
+      const injected = (window as unknown as { __SNEH_INITIAL_CATALOG__: CatalogData }).__SNEH_INITIAL_CATALOG__;
+      if (injected.products && injected.products.length > 0) {
+        return injected;
+      }
+    }
+  }
+
+  return {
+    products: seedProducts,
+    categories: SEED_CATEGORIES,
+    banners: SEED_BANNERS,
+    reels: [],
+    reviews: []
+  };
+}
+
+let cachedCatalog: CatalogData = getInitialCatalog();
+let catalogPromise: Promise<CatalogData> | null = null;
+let currentStatus: CatalogStatus = cachedCatalog.products.length > 0 ? 'success' : 'loading';
+
+/** Fetch (or return cached) full catalog data with background revalidation. */
+export function getCatalog(forceRefresh: boolean = false): Promise<CatalogData> {
+  if (!forceRefresh && catalogPromise) return catalogPromise;
+
+  currentStatus = 'loading';
 
   catalogPromise = Promise.all([
-    fetch(`${API_URL}/api/products`).then(r => r.json()).catch(() => []),
-    fetch(`${API_URL}/api/categories`).then(r => r.json()).catch(() => []),
-    fetch(`${API_URL}/api/banners`).then(r => r.json()).catch(() => []),
-    fetch(`${API_URL}/api/reels`).then(r => r.json()).catch(() => []),
-    fetch(`${API_URL}/api/reviews/recent`).then(r => r.json()).catch(() => []),
+    fetch(`${API_URL}/api/products`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+    fetch(`${API_URL}/api/categories`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+    fetch(`${API_URL}/api/banners`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+    fetch(`${API_URL}/api/reels`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+    fetch(`${API_URL}/api/reviews/recent`).then(r => (r.ok ? r.json() : null)).catch(() => null),
   ]).then(([products, categories, banners, reels, reviews]) => {
-    const data: CatalogData = {
-      products: Array.isArray(products) ? products : [],
-      categories: Array.isArray(categories) ? categories : [],
-      banners: Array.isArray(banners) ? banners : [],
-      reels: Array.isArray(reels) ? reels : [],
-      reviews: Array.isArray(reviews) ? reviews : [],
+    const updated: CatalogData = {
+      products: Array.isArray(products) && products.length > 0 ? products : cachedCatalog.products,
+      categories: Array.isArray(categories) && categories.length > 0 ? categories : cachedCatalog.categories,
+      banners: Array.isArray(banners) && banners.length > 0 ? banners : cachedCatalog.banners,
+      reels: Array.isArray(reels) ? reels : cachedCatalog.reels,
+      reviews: Array.isArray(reviews) ? reviews : cachedCatalog.reviews,
     };
-    cachedCatalog = data;
+    cachedCatalog = updated;
+    currentStatus = 'success';
     catalogPromise = null;
-    return data;
+    return updated;
   }).catch(() => {
     catalogPromise = null;
-    const empty: CatalogData = { products: [], categories: [], banners: [], reels: [], reviews: [] };
-    return empty;
+    currentStatus = cachedCatalog.products.length > 0 ? 'success' : 'error';
+    return cachedCatalog;
   });
 
   return catalogPromise;
 }
 
-/** Return the cached catalog synchronously (empty arrays if not yet loaded). */
+/** Return the cached catalog synchronously. */
 export function getCatalogSync(): CatalogData {
-  return cachedCatalog ?? { products: [], categories: [], banners: [], reels: [], reviews: [] };
+  return cachedCatalog;
 }
 
-/** Invalidate the cache (call after admin makes changes). */
+/** Invalidate the cache (call after admin edits). */
 export function invalidateCatalogCache(): void {
-  cachedCatalog = null;
   catalogPromise = null;
+  getCatalog(true);
 }
 
-/**
- * Kick off the catalog fetch immediately so it races the app bootstrap.
- * Call this once from main.tsx before createRoot().render().
- */
-export function preloadCatalog(): void {
-  getCatalog();
+/** Preload catalog immediately. */
+export function preloadCatalog(): Promise<CatalogData> {
+  return getCatalog();
 }
 
-/**
- * React hook: returns catalog data, kicking off a fetch if needed.
- * Renders with cached data instantly if available; otherwise triggers a
- * re-render once data arrives.
- */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-export function useCatalog(): CatalogData & { ready: boolean } {
+export function useCatalog(): CatalogData & {
+  ready: boolean;
+  status: CatalogStatus;
+  reload: () => Promise<CatalogData>;
+} {
   const [data, setData] = useState<CatalogData>(getCatalogSync);
-  const [ready, setReady] = useState(cachedCatalog !== null);
+  const [status, setStatus] = useState<CatalogStatus>(() => currentStatus);
+
+  const reload = useCallback(() => {
+    setStatus('loading');
+    return getCatalog(true).then((res) => {
+      setData(res);
+      setStatus('success');
+      return res;
+    }).catch(() => {
+      setStatus('error');
+      return getCatalogSync();
+    });
+  }, []);
 
   useEffect(() => {
-    if (cachedCatalog) {
-      setData(cachedCatalog);
-      setReady(true);
-      return;
-    }
     let mounted = true;
-    getCatalog().then(d => {
+    getCatalog().then(freshData => {
       if (mounted) {
-        setData(d);
-        setReady(true);
+        setData(freshData);
+        setStatus('success');
+      }
+    }).catch(() => {
+      if (mounted) {
+        setStatus(cachedCatalog.products.length > 0 ? 'success' : 'error');
       }
     });
     return () => { mounted = false; };
   }, []);
 
-  return { ...data, ready };
+  return {
+    ...data,
+    ready: status === 'success' || data.products.length > 0,
+    status,
+    reload
+  };
 }
 
 /**
- * React hook: returns a single product from the catalog by id.
- * Falls back to a fresh API fetch if not found in catalog (direct URL open).
+ * Hook for fetching or resolving a single product.
  */
 export function useProduct(productId: number): {
   product: Product | null;
   loading: boolean;
+  status: CatalogStatus;
   error: boolean;
+  reload: () => void;
 } {
   const cached = getCatalogSync().products.find(p => p.id === productId) ?? null;
   const [product, setProduct] = useState<Product | null>(cached);
-  const [loading, setLoading] = useState(!cached);
-  const [error, setError] = useState(false);
+  const [status, setStatus] = useState<CatalogStatus>(cached ? 'success' : 'loading');
 
-  useEffect(() => {
-    // Check cache first (may now be populated from preload)
-    const fromCache = getCatalogSync().products.find(p => p.id === productId) ?? null;
-    if (fromCache) {
-      setProduct(fromCache);
-      setLoading(false);
-      return;
-    }
-
-    // Not in cache yet — wait for catalog then check again
+  const fetchSingleProduct = useCallback(() => {
+    setStatus('loading');
     let mounted = true;
-    setLoading(true);
-    setError(false);
 
-    getCatalog().then(catalog => {
+    // Check catalog first
+    getCatalog().then(cat => {
       if (!mounted) return;
-      const found = catalog.products.find(p => p.id === productId) ?? null;
+      const found = cat.products.find(p => p.id === productId);
       if (found) {
         setProduct(found);
-        setLoading(false);
+        setStatus('success');
       } else {
-        // Product not in bulk list (archived/unpublished) — try individual endpoint
-        return fetch(`${API_URL}/api/products/${productId}`)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then((data: Product) => {
-            if (mounted) { setProduct(data); setLoading(false); }
+        fetch(`${API_URL}/api/products/${productId}`)
+          .then(r => {
+            if (!r.ok) throw new Error('Not found');
+            return r.json();
+          })
+          .then((d: Product) => {
+            if (mounted) {
+              setProduct(d);
+              setStatus('success');
+            }
           })
           .catch(() => {
-            if (mounted) { setProduct(null); setLoading(false); setError(true); }
+            if (mounted) {
+              setProduct(null);
+              setStatus('error');
+            }
           });
       }
-    }).catch(() => {
-      if (mounted) { setProduct(null); setLoading(false); setError(true); }
     });
 
     return () => { mounted = false; };
   }, [productId]);
 
-  return { product, loading, error };
-}
+  useEffect(() => {
+    const fromSync = getCatalogSync().products.find(p => p.id === productId);
+    if (fromSync) {
+      setProduct(fromSync);
+      setStatus('success');
+      return;
+    }
+    return fetchSingleProduct();
+  }, [productId, fetchSingleProduct]);
 
+  return {
+    product,
+    loading: status === 'loading',
+    status,
+    error: status === 'error',
+    reload: fetchSingleProduct
+  };
+}

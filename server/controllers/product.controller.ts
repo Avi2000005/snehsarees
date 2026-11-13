@@ -81,6 +81,7 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
     }
 
     const discountedList = await applyActiveOfferDiscounts(list);
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     res.json(discountedList);
   } catch (err) {
     next(err);
@@ -112,6 +113,7 @@ export const getProductById = async (req: Request, res: Response, next: NextFunc
     }
 
     const discountedProducts = await applyActiveOfferDiscounts([product]);
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     res.json(discountedProducts[0]);
   } catch (err) {
     next(err);

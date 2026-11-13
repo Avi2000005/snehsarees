@@ -6,9 +6,16 @@ interface SareeSwatchProps {
   className?: string;
   imageUrl?: string;
   altText?: string;
+  priority?: boolean;
 }
 
-export const SareeSwatch: React.FC<SareeSwatchProps> = ({ id, className = "w-full h-full", imageUrl, altText }) => {
+export const SareeSwatch: React.FC<SareeSwatchProps> = ({
+  id,
+  className = "w-full h-full",
+  imageUrl,
+  altText,
+  priority = false
+}) => {
   if (imageUrl) {
     return (
       <div className={`${className} relative overflow-hidden`}>
@@ -16,7 +23,12 @@ export const SareeSwatch: React.FC<SareeSwatchProps> = ({ id, className = "w-ful
           src={imageUrl}
           alt={altText || 'Best Kota Doria Saree - Handloom Cotton Saree with Zari Border'}
           title={altText || 'Best Kota Doria Saree'}
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
+          // @ts-ignore
+          fetchpriority={priority ? 'high' : 'auto'}
+          decoding={priority ? 'sync' : 'async'}
+          width="400"
+          height="500"
           className="w-full h-full object-cover"
         />
       </div>

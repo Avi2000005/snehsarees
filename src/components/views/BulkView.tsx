@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ActivePage, Product } from '../../types';
 import { ArrowLeft, Send, CheckCircle, Home } from 'lucide-react';
+import { useCatalog } from '../../catalog-cache';
 import { API_URL } from '../../config';
 
 interface BulkViewProps {
@@ -17,21 +18,12 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const catalog = useCatalog();
+  const products = catalog.products;
   const [selectedSarees, setSelectedSarees] = useState<{ product: Product; quantity: number }[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showResults, setShowResults] = useState(false);
-
-  // Fetch products
-  React.useEffect(() => {
-    fetch(`${API_URL}/api/products`)
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data || []);
-      })
-      .catch((err) => console.error('Error fetching products in bulk view:', err));
-  }, []);
 
   // Filter search results
   const handleSearchChange = (query: string) => {

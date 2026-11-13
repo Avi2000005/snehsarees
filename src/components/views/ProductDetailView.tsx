@@ -535,7 +535,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             )
           ) : (
             <>
-              <SareeSwatch id={p.id} imageUrl={currentMedia.url} />
+              <SareeSwatch id={p.id} imageUrl={currentMedia.url} priority={true} />
               {/* Invisible overlay to reliably capture horizontal touch-swipe events */}
               <div
                 className="absolute inset-0 z-[5]"
