@@ -1,5 +1,50 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../data/db';
+import cloudinary from '../config/cloudinary';
+import { ENV } from '../config/env';
+
+// Helper to upload review photo to Cloudinary (or fallback)
+export const uploadReviewBufferToCloudinary = (fileBuffer: Buffer): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!ENV.CLOUDINARY_API_KEY) {
+      return resolve(`data:image/jpeg;base64,${fileBuffer.toString('base64')}`);
+    }
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'laxmi_store_reviews',
+        transformation: [{ width: 1400, height: 1800, crop: 'limit', quality: 'auto' }]
+      },
+      (error, result) => {
+        if (error || !result?.secure_url) {
+          console.warn('Cloudinary review upload failed, falling back to base64:', error?.message);
+          return resolve(`data:image/jpeg;base64,${fileBuffer.toString('base64')}`);
+        }
+        resolve(result.secure_url);
+      }
+    );
+    uploadStream.end(fileBuffer);
+  });
+};
+
+// Upload review images (up to 5 photos)
+export const uploadReviewImages = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: 'No image files uploaded.' });
+    }
+
+    const urls = await Promise.all(
+      files.map(async (file) => {
+        return await uploadReviewBufferToCloudinary(file.buffer);
+      })
+    );
+
+    res.json({ success: true, urls });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const getProductReviews = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -42,48 +87,69 @@ export const getUserReviews = async (req: Request, res: Response, next: NextFunc
   }
 };
 
-// POST /api/reviews — write a review (only for delivered orders)
+// POST /api/reviews — write a review (anyone can review, name asked and saved)
 export const createReview = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { productId, rating, body } = req.body;
+    const { productId, rating, body, userName, images } = req.body;
     const user = (req as any).user;
-    if (!user) return res.status(401).json({ error: 'You must be logged in to write a review.' });
 
     if (!productId || !rating) {
       return res.status(400).json({ error: 'Product ID and rating are required.' });
     }
 
+    // Name is required — anyone can submit by providing their name
+    let reviewerName = (typeof userName === 'string' && userName.trim()) || '';
+    if (!reviewerName && user && user.id) {
+      try {
+        const dbUser = await db.getUserById(user.id);
+        reviewerName = dbUser?.name || dbUser?.username || '';
+      } catch (err) {
+        // ignore
+      }
+    }
+    if (!reviewerName && user) {
+      reviewerName = user.phone || 'Verified Customer';
+    }
+
+    if (!reviewerName) {
+      return res.status(400).json({ error: 'Please enter your name to submit a review.' });
+    }
+
     const parsedRating = parseInt(rating);
-    if (parsedRating < 1 || parsedRating > 5) {
+    if (isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
       return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
     }
 
-    // Verify purchase from a DELIVERED order
+    // Check if the user is a verified buyer with a delivered order
     let isVerified = false;
-    try {
-      const userOrders = await db.getOrdersByUserId(user.id);
-      isVerified = userOrders.some(order =>
-        (order.status === 'delivered') &&
-        order.items.some(item => item.id === parseInt(productId))
-      );
-    } catch (err) {
-      console.error('Error verifying review purchase status:', err);
+    if (user && user.id) {
+      try {
+        const userOrders = await db.getOrdersByUserId(user.id);
+        isVerified = userOrders.some(order =>
+          (order.status === 'delivered') &&
+          order.items.some(item => item.id === parseInt(productId))
+        );
+      } catch (err) {
+        console.error('Error verifying review purchase status:', err);
+      }
     }
 
-    if (!isVerified) {
-      return res.status(403).json({ error: 'You can only review products from delivered orders.' });
-    }
+    // Clean images array
+    const reviewImages: string[] = Array.isArray(images)
+      ? images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
+      : [];
 
     const review = await db.createReview({
       productId: parseInt(productId),
-      userId: user.id,
-      userName: user.name || 'Anonymous Customer',
+      userId: user?.id || null,
+      userName: reviewerName,
       rating: parsedRating,
-      body: body || '',
-      isVerified: true
+      body: body ? String(body).trim() : '',
+      isVerified,
+      images: reviewImages
     });
 
-    // Recalculate product rating
+    // Recalculate product rating & reviews count
     try {
       const reviews = await db.getProductReviews(parseInt(productId));
       const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
@@ -103,7 +169,7 @@ export const createReview = async (req: Request, res: Response, next: NextFuncti
 export const updateReview = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = parseInt(req.params.id);
-    const { rating, body } = req.body;
+    const { rating, body, images } = req.body;
     const user = (req as any).user;
     if (!user) return res.status(401).json({ error: 'Sign in required.' });
 
@@ -120,6 +186,7 @@ export const updateReview = async (req: Request, res: Response, next: NextFuncti
     const updated = await db.updateReview(id, {
       rating: parsedRating,
       body: body !== undefined ? body : undefined,
+      images: Array.isArray(images) ? images : undefined,
     });
 
     if (!updated) return res.status(404).json({ error: 'Review not found.' });

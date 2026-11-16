@@ -93,6 +93,26 @@ class DynamicDatabaseAdapter implements IDatabase {
   // Email notifications tracking
   markOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered') { return this.getActiveAdapter().markOrderEmailSent(orderId, emailType); }
   isOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered') { return this.getActiveAdapter().isOrderEmailSent(orderId, emailType); }
+
+  // Store Offers
+  getActiveOffers() { return this.getActiveAdapter().getActiveOffers(); }
+  getAllOffers() { return this.getActiveAdapter().getAllOffers(); }
+  createOffer(offer: any) { return this.getActiveAdapter().createOffer(offer); }
+  updateOffer(id: number, data: any) { return this.getActiveAdapter().updateOffer(id, data); }
+  deleteOffer(id: number) { return this.getActiveAdapter().deleteOffer(id); }
+
+  // Store Settings
+  getStoreSettings() { return this.getActiveAdapter().getStoreSettings(); }
+  updateStoreSettings(settings: Record<string, string>) { return this.getActiveAdapter().updateStoreSettings(settings); }
+
+  // Store Policies
+  getPublishedPolicies() { return this.getActiveAdapter().getPublishedPolicies(); }
+  getPolicyBySlug(slug: string, includeUnpublished = false) { return this.getActiveAdapter().getPolicyBySlug(slug, includeUnpublished); }
+  getAllPolicies() { return this.getActiveAdapter().getAllPolicies(); }
+  getPolicyById(id: number) { return this.getActiveAdapter().getPolicyById(id); }
+  createPolicy(policy: any) { return this.getActiveAdapter().createPolicy(policy); }
+  updatePolicy(id: number, data: any) { return this.getActiveAdapter().updatePolicy(id, data); }
+  deletePolicy(id: number) { return this.getActiveAdapter().deletePolicy(id); }
 }
 
 export const db = new DynamicDatabaseAdapter();

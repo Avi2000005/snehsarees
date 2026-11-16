@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Copy, Home, MessageCircle, QrCode, ShoppingBag, Clock
 import { Order, ActivePage } from '../../types';
 import { BUSINESS_WHATSAPP, PAYMENT_QR_URL } from '../../config';
 import { SareeSwatch } from '../SareeSwatch';
+import { ProductThumbnail } from '../ProductThumbnail';
 
 interface PendingPaymentViewProps {
   order: Order | null;
@@ -40,7 +41,7 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
         <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4 text-amber-700">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-2">Order Not Found</h2>
+        <h2 className="font-sans text-2xl font-bold text-[#1A1A1A] mb-2">Order Not Found</h2>
         <p className="text-xs text-[#888888] max-w-sm mb-6">
           We could not find the active order details. You can review all your orders in your account.
         </p>
@@ -65,7 +66,7 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
         >
           <ArrowLeft className="w-[22px] h-[22px]" />
         </button>
-        <div className="font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
+        <div className="font-sans text-lg md:text-xl font-bold text-[#1A1A1A]">
           Complete Payment
         </div>
         <button
@@ -86,7 +87,7 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
           <span className="inline-block bg-white/20 text-white text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-2">
             Order Placed · Awaiting Payment Confirmation
           </span>
-          <h1 className="font-serif text-2xl md:text-3xl font-bold mb-1">
+          <h1 className="font-sans text-2xl md:text-3xl font-bold mb-1">
             Pay ₹{order.total.toLocaleString('en-IN')} via UPI
           </h1>
           <p className="text-xs text-amber-100 font-medium max-w-md mx-auto leading-relaxed">
@@ -124,7 +125,7 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
 
         {/* QR Code & Payment Action Card */}
         <div className="bg-white rounded-2xl p-6 border border-[#E8E0D5] shadow-xs flex flex-col items-center text-center space-y-4">
-          <div className="flex items-center gap-2 text-[#C4601A] font-serif font-bold text-base">
+          <div className="flex items-center gap-2 text-[#C4601A] font-sans font-bold text-base">
             <QrCode className="w-5 h-5" />
             <span>Scan UPI QR Code</span>
           </div>
@@ -191,18 +192,18 @@ export const PendingPaymentView: React.FC<PendingPaymentViewProps> = ({ order, o
 
         {/* Order Items Preview */}
         <div className="bg-white rounded-2xl p-5 border border-[#E8E0D5] shadow-xs space-y-3">
-          <h4 className="font-serif font-bold text-sm text-[#1A1A1A] flex items-center justify-between">
+          <h4 className="font-sans font-bold text-sm text-[#1A1A1A] flex items-center justify-between">
             <span>Ordered Items ({order.items.length})</span>
             <span className="text-xs font-sans text-[#888888]">Subtotal: ₹{order.total.toLocaleString('en-IN')}</span>
           </h4>
           <div className="divide-y divide-[#FAF6F0]">
             {order.items.map((it, idx) => (
               <div key={idx} className="py-2.5 flex items-center gap-3 first:pt-0 last:pb-0">
-                <div className="w-12 h-14 rounded-lg bg-[#FAF6F0] overflow-hidden shrink-0 border border-[#E8E0D5]">
-                  <SareeSwatch id={it.id} imageUrl={it.image} />
+                <div className="w-12 aspect-[4/5] rounded-lg bg-[#FAF6F0] overflow-hidden shrink-0 border border-[#E8E0D5]">
+                  <ProductThumbnail id={it.id} imageUrl={it.image} altText={it.name} className="w-full h-full" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-serif text-xs font-bold text-[#1A1A1A] truncate">{it.name}</p>
+                  <p className="font-sans text-xs font-bold text-[#1A1A1A] truncate">{it.name}</p>
                   <p className="text-[11px] text-[#888888]">Qty: {it.qty} · Colour: {it.colour}</p>
                 </div>
                 <div className="text-xs font-bold text-[#1A1A1A]">

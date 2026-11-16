@@ -3,6 +3,7 @@ import { ActivePage, Product } from '../../types';
 import { ArrowLeft, Send, CheckCircle, Home } from 'lucide-react';
 import { useCatalog } from '../../catalog-cache';
 import { API_URL } from '../../config';
+import { ProductThumbnail } from '../ProductThumbnail';
 
 interface BulkViewProps {
   onNavigate: (page: ActivePage) => void;
@@ -141,7 +142,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
         >
           <ArrowLeft className="w-5 h-5 text-[#1A1A1A]" />
         </button>
-        <span className="font-serif text-lg md:text-xl font-bold text-[#C4601A] ml-2 flex-1">
+        <span className="font-sans text-lg md:text-xl font-bold text-[#C4601A] ml-2 flex-1">
           Bulk & Wholesale
         </span>
         <button
@@ -162,7 +163,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
             </svg>
           </div>
 
-          <h2 className="font-serif text-2xl md:text-3xl font-bold mb-3 text-white tracking-wide">
+          <h2 className="font-sans text-2xl md:text-3xl font-bold mb-3 text-white tracking-wide">
             Bulk &amp; Family Orders
           </h2>
           <p className="text-white/85 text-xs md:text-sm leading-relaxed mb-4">
@@ -180,7 +181,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-10 h-10" />
             </div>
-            <h3 className="font-serif text-xl font-bold text-[#1A1A1A] mb-2">
+            <h3 className="font-sans text-xl font-bold text-[#1A1A1A] mb-2">
               Inquiry Sent!
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed mb-6">
@@ -204,7 +205,7 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
             onSubmit={handleSubmit}
             className="bg-white rounded-2xl p-6 md:p-8 border border-[#E8E0D5] shadow-xs space-y-5"
           >
-            <h3 className="font-serif text-lg md:text-xl font-bold text-[#111111] border-b border-[#FAF6F0] pb-3">
+            <h3 className="font-sans text-lg md:text-xl font-bold text-[#111111] border-b border-[#FAF6F0] pb-3">
               Request a Custom Quote
             </h3>
 
@@ -277,8 +278,10 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
                         onClick={() => handleSelectSaree(p)}
                         className="p-3 flex items-center gap-3 hover:bg-[#FAF6F0] cursor-pointer text-xs transition-colors"
                       >
-                        <div className="w-8 h-10 bg-gray-100 rounded border overflow-hidden shrink-0">
-                          {p.image && <img src={p.image} className="w-full h-full object-cover" />}
+                        <div className="w-9 aspect-[4/5] bg-[#FAF6F0] rounded border border-[#E8E0D5] overflow-hidden shrink-0">
+                          {p.image ? (
+                            <ProductThumbnail imageUrl={p.image} altText={p.name} className="w-full h-full" />
+                          ) : null}
                         </div>
                         <div className="flex-1">
                           <span className="font-bold text-[#1a1a1a] block truncate">{p.name}</span>
@@ -306,10 +309,10 @@ export const BulkView: React.FC<BulkViewProps> = ({ onNavigate, onBack, showToas
                   {selectedSarees.map((item) => (
                     <div key={item.product.id} className="flex gap-3 items-center bg-white p-3.5 rounded-xl border border-[#E8E0D5]">
                       {/* Saree Thumbnail */}
-                      <div className="w-10 h-13 rounded-lg overflow-hidden bg-[#FAF6F0] shrink-0 border border-[#E8E0D5]">
-                        {item.product.image && (
-                          <img src={item.product.image} className="w-full h-full object-cover" />
-                        )}
+                      <div className="w-12 aspect-[4/5] rounded-lg overflow-hidden bg-[#FAF6F0] shrink-0 border border-[#E8E0D5]">
+                        {item.product.image ? (
+                          <ProductThumbnail imageUrl={item.product.image} altText={item.product.name} className="w-full h-full" />
+                        ) : null}
                       </div>
 
                       {/* Saree Info */}

@@ -19,11 +19,13 @@ import {
 } from '../controllers/admin.controller';
 import { getInquiries } from '../controllers/inquiry.controller';
 import { createCategory, updateCategory, deleteCategory, uploadCategoryImage } from '../controllers/category.controller';
-import { getAllBanners, createBanner, updateBanner, deleteBanner } from '../controllers/offer.controller';
+import { getAllBanners, createBanner, updateBanner, deleteBanner, getAllOffers, createOffer, updateOffer, deleteOffer } from '../controllers/offer.controller';
 import { getCoupons, createCoupon, deleteCoupon } from '../controllers/coupon.controller';
+import { getStoreSettings, updateStoreSettings } from '../controllers/settings.controller';
 import { getAllReviews, deleteReview } from '../controllers/review.controller';
 import { getAllReels, createReel, updateReel, deleteReel } from '../controllers/reel.controller';
 import { getAllReturns, updateReturnStatus } from '../controllers/return.controller';
+import { getAllPoliciesAdmin, createPolicyAdmin, updatePolicyAdmin, deletePolicyAdmin } from '../controllers/policy.controller';
 import multer from 'multer';
 
 const storage = multer.memoryStorage();
@@ -68,6 +70,17 @@ router.post('/banners', createBanner);
 router.put('/banners/:id', updateBanner);
 router.delete('/banners/:id', deleteBanner);
 
+// Store Offers CRUD
+router.get('/offers', getAllOffers);
+router.post('/offers', createOffer);
+router.put('/offers/:id', updateOffer);
+router.delete('/offers/:id', deleteOffer);
+
+// Store Settings
+router.get('/settings', getStoreSettings);
+router.put('/settings', updateStoreSettings);
+router.post('/settings', updateStoreSettings);
+
 // Coupons CRUD
 router.get('/coupons', getCoupons);
 router.post('/coupons', createCoupon);
@@ -86,5 +99,11 @@ router.delete('/reels/:id', deleteReel);
 // Returns Management
 router.get('/returns', getAllReturns);
 router.put('/returns/:id', updateReturnStatus);
+
+// Policies Management
+router.get('/policies', getAllPoliciesAdmin);
+router.post('/policies', createPolicyAdmin);
+router.put('/policies/:id', updatePolicyAdmin);
+router.delete('/policies/:id', deletePolicyAdmin);
 
 export default router;

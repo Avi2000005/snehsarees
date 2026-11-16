@@ -1,5 +1,5 @@
 import { IDatabase } from './db.interface';
-import { Product, Order, CartItem, Category, OfferBanner, Coupon, Review, Reel, ReturnRequest } from '../../src/types';
+import { Product, Order, CartItem, Category, OfferBanner, Coupon, Review, Reel, ReturnRequest, StoreOffer, StoreSettings, Policy } from '../../src/types';
 import { Inquiry } from '../models/inquiry.model';
 import { User } from '../models/user.model';
 import { pool } from '../config/database';
@@ -22,9 +22,19 @@ function mapDbRowToProduct(row: any): Product {
     blouse: row.blouse || false,
     desc: row.description || '',
     image: row.image || '',
+    imageWidth: row.image_width !== undefined && row.image_width !== null ? parseInt(row.image_width, 10) : undefined,
+    imageHeight: row.image_height !== undefined && row.image_height !== null ? parseInt(row.image_height, 10) : undefined,
+    galleryImagesMeta: row.gallery_images_meta ? (typeof row.gallery_images_meta === 'string' ? JSON.parse(row.gallery_images_meta) : row.gallery_images_meta) : undefined,
     stock: row.stock !== undefined ? parseInt(row.stock, 10) : 0,
     categoryId: row.category_id !== null && row.category_id !== undefined ? parseInt(row.category_id, 10) : undefined,
     variants: row.variants ? (typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants) : [],
+    galleryImages: Array.isArray(row.gallery_images)
+      ? row.gallery_images
+      : (row.gallery_images && typeof row.gallery_images === 'string'
+          ? (row.gallery_images.startsWith('{')
+              ? row.gallery_images.replace(/^\{|\}$/g, '').split(',').map((s: string) => s.trim().replace(/^"|"$/g, '')).filter(Boolean)
+              : JSON.parse(row.gallery_images))
+          : []),
     reelUrl: row.reel_url || undefined,
     code: row.code || (Array.isArray(row.tags) ? row.tags.find((t: string) => t && t.startsWith('code:'))?.replace('code:', '') : undefined),
     isArchived: row.is_archived === true || (Array.isArray(row.tags) && row.tags.includes('archived'))
@@ -57,8 +67,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
     const query = `
       INSERT INTO products (
         name, price, fabric, occasion, colour, tags, 
-        is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url, is_archived
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url, is_archived, gallery_images, image_width, image_height, gallery_images_meta
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
       RETURNING *
     `;
     const tags = Array.isArray(product.tags) ? [...product.tags] : [];
@@ -84,7 +94,11 @@ export class PostgresDatabaseAdapter implements IDatabase {
       JSON.stringify(product.variants || []),
       product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : null,
       product.reelUrl || null,
-      product.isArchived === true
+      product.isArchived === true,
+      Array.isArray(product.galleryImages) ? product.galleryImages : [],
+      product.imageWidth !== undefined ? product.imageWidth : null,
+      product.imageHeight !== undefined ? product.imageHeight : null,
+      JSON.stringify(product.galleryImagesMeta || [])
     ];
     const result = await client.query(query, values);
     return mapDbRowToProduct(result.rows[0]);
@@ -100,8 +114,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
       const query = `
         INSERT INTO products (
           name, price, fabric, occasion, colour, tags, 
-          is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url, is_archived
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+          is_reel, views, rating, reviews, blouse, description, image, stock, category_id, variants, discount_price, reel_url, is_archived, gallery_images
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         RETURNING *
       `;
       for (const product of products) {
@@ -128,7 +142,8 @@ export class PostgresDatabaseAdapter implements IDatabase {
           JSON.stringify(product.variants || []),
           product.discountPrice !== undefined && !isNaN(product.discountPrice) ? product.discountPrice : null,
           product.reelUrl || null,
-          product.isArchived === true
+          product.isArchived === true,
+          Array.isArray(product.galleryImages) ? product.galleryImages : []
         ];
         const res = await client.query(query, values);
         if (res.rows[0]) {
@@ -170,7 +185,11 @@ export class PostgresDatabaseAdapter implements IDatabase {
       variants: 'variants',
       discountPrice: 'discount_price',
       reelUrl: 'reel_url',
-      isArchived: 'is_archived'
+      isArchived: 'is_archived',
+      galleryImages: 'gallery_images',
+      imageWidth: 'image_width',
+      imageHeight: 'image_height',
+      galleryImagesMeta: 'gallery_images_meta'
     };
 
     for (const [key, value] of Object.entries(product)) {
@@ -187,6 +206,10 @@ export class PostgresDatabaseAdapter implements IDatabase {
       } else if (mapping[key] !== undefined && value !== undefined) {
         fields.push(`${mapping[key]} = $${idx}`);
         if (key === 'variants') {
+          values.push(JSON.stringify(value || []));
+        } else if (key === 'galleryImages') {
+          values.push(Array.isArray(value) ? value : []);
+        } else if (key === 'galleryImagesMeta') {
           values.push(JSON.stringify(value || []));
         } else {
           values.push(value);
@@ -842,6 +865,18 @@ export class PostgresDatabaseAdapter implements IDatabase {
 
   // ─── Reviews ─────────────────────────────────────────────────────────────────
   private mapReview(row: any): Review {
+    let images: string[] = [];
+    if (Array.isArray(row.images)) {
+      images = row.images;
+    } else if (typeof row.images === 'string') {
+      try {
+        const parsed = JSON.parse(row.images);
+        images = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        images = [];
+      }
+    }
+
     return {
       id: row.id,
       productId: row.product_id,
@@ -853,13 +888,14 @@ export class PostgresDatabaseAdapter implements IDatabase {
       isVerified: row.is_verified,
       createdAt: row.created_at,
       productName: row.product_name,
+      images,
     };
   }
 
   async getProductReviews(productId: number): Promise<Review[]> {
     const client = this.getPool();
     const result = await client.query(
-      'SELECT r.*, p.name as product_name, u.username as user_username FROM reviews r LEFT JOIN products p ON r.product_id=p.id LEFT JOIN users u ON r.user_id=u.id WHERE r.product_id=$1 ORDER BY r.created_at DESC',
+      'SELECT r.*, p.name as product_name, u.username as user_username FROM reviews r LEFT JOIN products p ON r.product_id=p.id LEFT JOIN users u ON r.user_id=u.id WHERE r.product_id=$1 ORDER BY r.rating DESC, r.created_at DESC',
       [productId]
     );
     return result.rows.map(this.mapReview.bind(this));
@@ -868,7 +904,7 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getRecentReviews(limit = 8): Promise<Review[]> {
     const client = this.getPool();
     const result = await client.query(
-      'SELECT r.*, p.name as product_name, u.username as user_username FROM reviews r LEFT JOIN products p ON r.product_id=p.id LEFT JOIN users u ON r.user_id=u.id ORDER BY r.created_at DESC LIMIT $1',
+      'SELECT r.*, p.name as product_name, u.username as user_username FROM reviews r LEFT JOIN products p ON r.product_id=p.id LEFT JOIN users u ON r.user_id=u.id ORDER BY r.rating DESC, r.created_at DESC LIMIT $1',
       [limit]
     );
     return result.rows.map(this.mapReview.bind(this));
@@ -877,16 +913,17 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async getAllReviews(): Promise<Review[]> {
     const client = this.getPool();
     const result = await client.query(
-      'SELECT r.*, p.name as product_name, u.username as user_username FROM reviews r LEFT JOIN products p ON r.product_id=p.id LEFT JOIN users u ON r.user_id=u.id ORDER BY r.created_at DESC'
+      'SELECT r.*, p.name as product_name, u.username as user_username FROM reviews r LEFT JOIN products p ON r.product_id=p.id LEFT JOIN users u ON r.user_id=u.id ORDER BY r.rating DESC, r.created_at DESC'
     );
     return result.rows.map(this.mapReview.bind(this));
   }
 
   async createReview(r: Omit<Review, 'id' | 'createdAt'>): Promise<Review> {
     const client = this.getPool();
+    const imagesList = Array.isArray(r.images) ? r.images : [];
     const result = await client.query(
-      `INSERT INTO reviews (product_id, user_id, user_name, rating, body, is_verified) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [r.productId, r.userId||null, r.userName, r.rating, r.body||null, r.isVerified||false]
+      `INSERT INTO reviews (product_id, user_id, user_name, rating, body, is_verified, images) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [r.productId, r.userId || null, r.userName, r.rating, r.body || null, r.isVerified || false, imagesList]
     );
     return this.mapReview(result.rows[0]);
   }
@@ -897,13 +934,14 @@ export class PostgresDatabaseAdapter implements IDatabase {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async updateReview(id: number, data: { rating?: number; body?: string }): Promise<Review | null> {
+  async updateReview(id: number, data: { rating?: number; body?: string; images?: string[] }): Promise<Review | null> {
     const client = this.getPool();
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
     if (data.rating !== undefined) { fields.push(`rating=$${idx++}`); values.push(data.rating); }
     if (data.body !== undefined) { fields.push(`body=$${idx++}`); values.push(data.body); }
+    if (data.images !== undefined) { fields.push(`images=$${idx++}`); values.push(data.images); }
     if (!fields.length) return null;
     values.push(id);
     const result = await client.query(
@@ -1068,4 +1106,200 @@ export class PostgresDatabaseAdapter implements IDatabase {
     );
     return (result.rowCount ?? 0) > 0;
   }
+
+  // ─── Store Offers ─────────────────────────────────────────────────────────────
+  private mapOffer(row: any): StoreOffer {
+    return {
+      id: row.id,
+      title: row.title,
+      code: row.code || undefined,
+      conditions: row.conditions || undefined,
+      isActive: row.is_active,
+      sortOrder: row.sort_order || 0,
+      expiresAt: row.expires_at || undefined,
+      createdAt: row.created_at,
+    };
+  }
+
+  async getActiveOffers(): Promise<StoreOffer[]> {
+    const client = this.getPool();
+    const result = await client.query(
+      `SELECT * FROM offers WHERE is_active = TRUE AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY sort_order ASC, created_at DESC`
+    );
+    return result.rows.map(row => this.mapOffer(row));
+  }
+
+  async getAllOffers(): Promise<StoreOffer[]> {
+    const client = this.getPool();
+    const result = await client.query(`SELECT * FROM offers ORDER BY sort_order ASC, created_at DESC`);
+    return result.rows.map(row => this.mapOffer(row));
+  }
+
+  async createOffer(o: Omit<StoreOffer, 'id' | 'createdAt'>): Promise<StoreOffer> {
+    const client = this.getPool();
+    const result = await client.query(
+      `INSERT INTO offers (title, code, conditions, is_active, sort_order, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [o.title, o.code || null, o.conditions || null, o.isActive !== false, o.sortOrder || 0, o.expiresAt || null]
+    );
+    return this.mapOffer(result.rows[0]);
+  }
+
+  async updateOffer(id: number, data: Partial<StoreOffer>): Promise<StoreOffer | null> {
+    const client = this.getPool();
+    const current = await client.query('SELECT * FROM offers WHERE id=$1', [id]);
+    if (!current.rows[0]) return null;
+    const cur = current.rows[0];
+    const result = await client.query(
+      `UPDATE offers SET title=$1, code=$2, conditions=$3, is_active=$4, sort_order=$5, expires_at=$6 WHERE id=$7 RETURNING *`,
+      [
+        data.title !== undefined ? data.title : cur.title,
+        data.code !== undefined ? (data.code || null) : cur.code,
+        data.conditions !== undefined ? (data.conditions || null) : cur.conditions,
+        data.isActive !== undefined ? data.isActive : cur.is_active,
+        data.sortOrder !== undefined ? data.sortOrder : cur.sort_order,
+        data.expiresAt !== undefined ? (data.expiresAt || null) : cur.expires_at,
+        id
+      ]
+    );
+    return result.rows[0] ? this.mapOffer(result.rows[0]) : null;
+  }
+
+  async deleteOffer(id: number): Promise<boolean> {
+    const client = this.getPool();
+    const result = await client.query('DELETE FROM offers WHERE id=$1', [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // ─── Store Settings ───────────────────────────────────────────────────────────
+  async getStoreSettings(): Promise<Record<string, string>> {
+    const client = this.getPool();
+    const result = await client.query('SELECT key, value FROM store_settings');
+    const settings: Record<string, string> = {};
+    for (const row of result.rows) {
+      if (row.key && row.value !== null && row.value !== undefined) {
+        settings[row.key] = row.value;
+      }
+    }
+    return settings;
+  }
+
+  async updateStoreSettings(settings: Record<string, string>): Promise<Record<string, string>> {
+    const client = this.getPool();
+    for (const [key, val] of Object.entries(settings)) {
+      if (key) {
+        await client.query(
+          `INSERT INTO store_settings (key, value, updated_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+          [key, val !== undefined ? String(val) : '']
+        );
+      }
+    }
+    return this.getStoreSettings();
+  }
+
+  // Store Policies
+  async getPublishedPolicies(): Promise<Policy[]> {
+    const client = this.getPool();
+    const result = await client.query(
+      'SELECT id, slug, title, content, is_published, created_at, updated_at FROM policies WHERE is_published = TRUE ORDER BY id ASC'
+    );
+    return result.rows.map(mapDbRowToPolicy);
+  }
+
+  async getPolicyBySlug(slug: string, includeUnpublished = false): Promise<Policy | null> {
+    const client = this.getPool();
+    const cleanSlug = (slug || '').trim().toLowerCase();
+    const query = includeUnpublished
+      ? 'SELECT id, slug, title, content, is_published, created_at, updated_at FROM policies WHERE LOWER(slug) = LOWER($1) LIMIT 1'
+      : 'SELECT id, slug, title, content, is_published, created_at, updated_at FROM policies WHERE LOWER(slug) = LOWER($1) AND is_published = TRUE LIMIT 1';
+    const result = await client.query(query, [cleanSlug]);
+    if (result.rows.length === 0) return null;
+    return mapDbRowToPolicy(result.rows[0]);
+  }
+
+  async getAllPolicies(): Promise<Policy[]> {
+    const client = this.getPool();
+    const result = await client.query(
+      'SELECT id, slug, title, content, is_published, created_at, updated_at FROM policies ORDER BY id ASC'
+    );
+    return result.rows.map(mapDbRowToPolicy);
+  }
+
+  async getPolicyById(id: number): Promise<Policy | null> {
+    const client = this.getPool();
+    const result = await client.query(
+      'SELECT id, slug, title, content, is_published, created_at, updated_at FROM policies WHERE id = $1 LIMIT 1',
+      [id]
+    );
+    if (result.rows.length === 0) return null;
+    return mapDbRowToPolicy(result.rows[0]);
+  }
+
+  async createPolicy(policy: Omit<Policy, 'id' | 'updated_at' | 'created_at'>): Promise<Policy> {
+    const client = this.getPool();
+    const cleanSlug = (policy.slug || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const isPublished = policy.is_published !== undefined ? !!policy.is_published : true;
+    const result = await client.query(
+      `INSERT INTO policies (slug, title, content, is_published, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       RETURNING id, slug, title, content, is_published, created_at, updated_at`,
+      [cleanSlug, (policy.title || '').trim(), policy.content || '', isPublished]
+    );
+    return mapDbRowToPolicy(result.rows[0]);
+  }
+
+  async updatePolicy(id: number, policyData: Partial<Omit<Policy, 'id'>>): Promise<Policy | null> {
+    const client = this.getPool();
+    const existing = await this.getPolicyById(id);
+    if (!existing) return null;
+
+    let cleanSlug = existing.slug;
+    if (policyData.slug !== undefined) {
+      cleanSlug = (policyData.slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    const title = policyData.title !== undefined ? policyData.title.trim() : existing.title;
+    const content = policyData.content !== undefined ? policyData.content : existing.content;
+    const isPublished = policyData.is_published !== undefined ? !!policyData.is_published : existing.is_published;
+
+    const result = await client.query(
+      `UPDATE policies
+       SET slug = $1, title = $2, content = $3, is_published = $4, updated_at = NOW()
+       WHERE id = $5
+       RETURNING id, slug, title, content, is_published, created_at, updated_at`,
+      [cleanSlug, title, content, isPublished, id]
+    );
+
+    if (result.rows.length === 0) return null;
+    return mapDbRowToPolicy(result.rows[0]);
+  }
+
+  async deletePolicy(id: number): Promise<boolean> {
+    const client = this.getPool();
+    const result = await client.query('DELETE FROM policies WHERE id = $1', [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
+}
+
+function mapDbRowToPolicy(row: any): Policy {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    content: row.content,
+    is_published: !!row.is_published,
+    created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+  };
 }

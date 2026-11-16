@@ -1,3 +1,13 @@
+export interface ProductVariant {
+  colour: string;
+  image: string;
+  price?: number;
+  discountPrice?: number;
+  stock?: number;
+  width?: number;
+  height?: number;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -14,9 +24,13 @@ export interface Product {
   blouse: boolean;
   desc: string;
   image?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  galleryImagesMeta?: Array<{ url: string; width?: number; height?: number }>;
   stock?: number;
   categoryId?: number;
-  variants?: { colour: string; image: string }[];
+  variants?: ProductVariant[];
+  galleryImages?: string[];
   reelUrl?: string;
   code?: string;
   isArchived?: boolean;
@@ -119,6 +133,7 @@ export interface Review {
   isVerified: boolean;
   createdAt: string;
   productName?: string;
+  images?: string[];
 }
 
 export interface Reel {
@@ -131,6 +146,38 @@ export interface Reel {
   sortOrder: number;
   createdAt: string;
   product?: Product;
+}
+
+export interface StoreOffer {
+  id: number;
+  title: string;
+  code?: string;
+  conditions?: string;
+  isActive: boolean;
+  sortOrder: number;
+  expiresAt?: string;
+  createdAt: string;
+}
+
+export interface StoreSettings {
+  country_of_origin?: string;
+  business_name?: string;
+  address?: string;
+  pincode?: string;
+  email?: string;
+  gstin?: string;
+  free_shipping_above?: string;
+  [key: string]: string | undefined;
+}
+
+export interface Policy {
+  id: number;
+  slug: string;
+  title: string;
+  content: string;
+  is_published: boolean;
+  updated_at: string;
+  created_at?: string;
 }
 
 export interface ChatReply {
@@ -154,7 +201,10 @@ export type ActivePage =
   | 'profile'
   | 'bulk'
   | 'auth'
-  | 'admin';
+  | 'admin'
+  | 'policies'
+  | 'shipping-policy'
+  | 'return-policy';
 export type ReturnStatus = 'requested' | 'approved' | 'picked_up' | 'refunded' | 'rejected';
 export type ReturnReason = 'damaged' | 'wrong_item' | 'not_as_described' | 'changed_mind' | 'size_issue' | 'other';
 export type ReturnResolution = 'refund' | 'exchange';

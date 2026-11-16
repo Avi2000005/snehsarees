@@ -169,9 +169,14 @@ function renderEmailFooter(): string {
         <p style="margin:0 0 10px;font-size:13px;color:#666666;font-weight:600;">
           Sneh Sarees · Kota Heritage Silks & Handlooms
         </p>
-        <p style="margin:0 0 12px;font-size:12px;color:#888888;line-height:1.6;">
+        <p style="margin:0 0 10px;font-size:12px;color:#888888;line-height:1.6;">
           Have questions or need assistance with your order?<br/>
           Write to us at <a href="mailto:info@snehsarees.in" style="color:#C4601A;text-decoration:none;font-weight:600;">info@snehsarees.in</a> or visit our online store.
+        </p>
+        <p style="margin:0 0 12px;font-size:11px;color:#888888;">
+          <a href="${siteUrl}/#/policies/shipping-policy" style="color:#C4601A;text-decoration:none;">Shipping Policy</a> &bull;
+          <a href="${siteUrl}/#/policies/return-policy" style="color:#C4601A;text-decoration:none;">Return Policy</a> &bull;
+          <a href="${siteUrl}/#/policies/privacy-policy" style="color:#C4601A;text-decoration:none;">Privacy Policy</a>
         </p>
         <p style="margin:0;font-size:11px;color:#AAAAAA;">
           &copy; ${year} <a href="${siteUrl}" style="color:#C4601A;text-decoration:none;font-weight:600;">Sneh Sarees</a>. All rights reserved.
@@ -826,7 +831,7 @@ export async function sendOrderDeliveredEmail(orderOrId: string | Order, force =
               </div>
 
               <p style="margin:24px 0 0;font-size:12px;color:#888888;line-height:1.6;text-align:center;">
-                If you have any feedback or require assistance with exchange or return, please write to us within 7 days at <a href="mailto:info@snehsarees.in" style="color:#C4601A;text-decoration:none;font-weight:600;">info@snehsarees.in</a>.
+                If you have any feedback or require assistance with exchange or return, please review our <a href="${siteUrl}/#/policies/return-policy" style="color:#C4601A;text-decoration:none;font-weight:600;">Return Policy</a> or write to us within 7 days at <a href="mailto:info@snehsarees.in" style="color:#C4601A;text-decoration:none;font-weight:600;">info@snehsarees.in</a>.
               </p>
             </td>
           </tr>

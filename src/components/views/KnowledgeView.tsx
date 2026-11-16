@@ -125,7 +125,7 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
           <div className="w-10 h-10 md:w-11 md:h-11 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
             <img src={logoUrl} alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
-          <span className="font-serif text-lg md:text-xl font-bold text-[#C4601A] truncate">
+          <span className="font-sans text-lg md:text-xl font-bold text-[#C4601A] truncate">
             Saree Knowledge Center
           </span>
         </div>
@@ -185,10 +185,10 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
 
           {/* Banner inside parchment scroll */}
           <div className="relative z-20 border-b border-[#C9B28F]/60 pb-6">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-2 text-[#C4601A] text-center tracking-wide">
+            <h2 className="font-sans text-3xl md:text-4xl font-bold mb-2 text-[#C4601A] text-center tracking-wide">
               Saree Parichay Guide
             </h2>
-            <p className="text-[#4E342E] text-xs md:text-sm leading-relaxed text-center font-serif italic max-w-[650px] mx-auto">
+            <p className="text-[#4E342E] text-xs md:text-sm leading-relaxed text-center font-sans italic max-w-[650px] mx-auto">
               Explore the magic of traditional Indian weaves. Discover regional history, craftsmanship, and the heritage behind every threads of our collections.
             </p>
           </div>
@@ -210,7 +210,7 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
                       {/* Top Header Row of the Post */}
                       <div className="flex justify-between items-center text-[10px] md:text-xs font-bold tracking-widest text-[#8D7F60] uppercase border-b border-[#C9B28F]/40 pb-2.5 shrink-0">
                         <div>{`0${idx + 1}/0${categories.length}`}</div>
-                        <div className="font-serif tracking-wide text-[#C4601A]">Sneh Sarees Heritage</div>
+                        <div className="font-sans tracking-wide text-[#C4601A]">Sneh Sarees Heritage</div>
                       </div>
 
                       {/* Main content area */}
@@ -239,7 +239,7 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
                         <div className="flex-1 flex flex-col justify-between gap-3">
                           <div>
                             {/* Index & Title */}
-                            <h3 className="font-serif text-2xl md:text-3xl font-semibold text-[#C4601A] mb-1.5 leading-tight text-center sm:text-left">
+                            <h3 className="font-sans text-2xl md:text-3xl font-semibold text-[#C4601A] mb-1.5 leading-tight text-center sm:text-left">
                               {cat.name}
                             </h3>
                             {/* Origin */}
@@ -247,7 +247,7 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
                               Kota Doria &amp; Traditional Saree Collection
                             </p>
                             {/* Description */}
-                            <p className="text-[#3E2723] text-xs md:text-sm leading-relaxed font-serif text-center sm:text-left select-text whitespace-pre-wrap">
+                            <p className="text-[#3E2723] text-xs md:text-sm leading-relaxed font-sans text-center sm:text-left select-text whitespace-pre-wrap">
                               {cat.description || "Authentic saree collection. Admin can edit this category to add details on fabrics, textures, and care."}
                             </p>
 
@@ -271,7 +271,7 @@ export const KnowledgeView: React.FC<KnowledgeViewProps> = ({ onNavigate, onBack
 
                     {/* Bottom Row: Occasions Section - Dashed Double line instead of rounded box */}
                     <div className="mt-1 border-t border-[#C9B28F]/40 pt-3">
-                      <h4 className="font-serif italic text-xs md:text-sm text-[#C4601A] mb-2 text-center sm:text-left">
+                      <h4 className="font-sans italic text-xs md:text-sm text-[#C4601A] mb-2 text-center sm:text-left">
                         Care Instruction
                       </h4>
                       <div className="border-t border-b border-dashed border-[#D2C2A4] py-2.5 px-3 text-center">

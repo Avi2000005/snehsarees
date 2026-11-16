@@ -61,7 +61,7 @@ function AdminApp() {
   }
 
   return (
-    <div className="relative font-sans antialiased text-[#1A1A1A] w-full bg-ivory min-h-screen">
+    <div className="relative font-sans antialiased text-black w-full bg-ivory min-h-screen">
       <AdminDashboardView
         onNavigate={() => { window.location.href = '/'; }}
         onBack={() => { window.location.href = '/'; }}

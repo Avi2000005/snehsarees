@@ -153,7 +153,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({
           </div>
         </div>
         <button
-          className="chatbot-close text-white/80 hover:text-white font-serif text-2xl leading-none"
+          className="chatbot-close text-white/80 hover:text-white font-sans text-2xl leading-none"
           onClick={onClose}
         >
           ×

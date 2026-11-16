@@ -10,6 +10,28 @@ export const getCoupons = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+export const getActiveCoupons = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const list = await db.getCoupons();
+    const active = list
+      .filter(c => c.isActive && (!c.expiresAt || new Date(c.expiresAt) > new Date()) && (c.usageLimit === undefined || c.usageLimit === null || c.usedCount < c.usageLimit))
+      .map(c => ({
+        id: c.id,
+        code: c.code,
+        description: c.description,
+        discountType: c.discountType,
+        discountValue: c.discountValue,
+        minOrderValue: c.minOrderValue,
+        maxDiscountCap: c.maxDiscountCap,
+        applicableCategoryId: c.applicableCategoryId,
+        expiresAt: c.expiresAt
+      }));
+    res.json(active);
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const createCoupon = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code, description, discountType, discountValue, minOrderValue, maxDiscountCap, usageLimit, perUserLimit, applicableCategoryId, isActive, expiresAt } = req.body;

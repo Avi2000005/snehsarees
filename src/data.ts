@@ -166,15 +166,15 @@ export const CHATBOT_RESPONSES: Record<string, ChatReply> = {
     replies: ['WhatsApp Us', 'Back to Menu']
   },
   delivery: {
-    msg: 'We deliver across India in 5–7 business days. Delivery is FREE for orders ₹2,000 & above. A flat ₹100 delivery charge applies for orders below ₹2,000. Secure online payment via Razorpay is supported.',
+    msg: 'We offer express delivery across India. Free shipping is complimentary on all orders of ₹2,000 & above (flat ₹100 for orders under ₹2,000). Orders dispatch in 1–3 business days with live courier tracking. See our Shipping Policy for full terms.',
     replies: ['Back to Menu']
   },
   returns: {
-    msg: 'As every saree is thoroughly quality-checked before dispatch, we currently do not accept returns or exchanges after delivery. However, you can cancel any order free of cost before courier dispatch with a 100% instant refund. For help, feel free to WhatsApp us!',
+    msg: 'Sneh Sarees offers a 7-day return and exchange policy on eligible sarees. You can easily initiate a return via My Orders or message our WhatsApp support within 7 days of delivery. For complete guidelines, view our Return & Refund Policy.',
     replies: ['WhatsApp Us', 'Back to Menu']
   },
   cancellation: {
-    msg: 'Orders can be cancelled free of charge anytime prior to courier dispatch with a 100% instant refund. Once dispatched or delivered, orders cannot be cancelled or returned.',
+    msg: 'Orders can be cancelled free of charge anytime prior to courier dispatch with a 100% instant refund. Once delivered, you can request an exchange or return within 7 days as per our Return Policy.',
     replies: ['Back to Menu']
   },
   contact: {

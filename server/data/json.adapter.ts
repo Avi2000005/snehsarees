@@ -1,5 +1,5 @@
 import { IDatabase } from './db.interface';
-import { Product, Order, Category, ReturnRequest } from '../../src/types';
+import { Product, Order, Category, ReturnRequest, StoreOffer, StoreSettings, Policy } from '../../src/types';
 import { Inquiry } from '../models/inquiry.model';
 import { User } from '../models/user.model';
 import * as fs from 'fs/promises';
@@ -18,6 +18,8 @@ interface DbStructure {
   users: User[];
   categories: Category[];
   returns?: ReturnRequest[];
+  settings?: Record<string, string>;
+  policies?: Policy[];
 }
 
 export class JsonDatabaseAdapter implements IDatabase {
@@ -28,9 +30,10 @@ export class JsonDatabaseAdapter implements IDatabase {
       if (!parsed.users) parsed.users = [];
       if (!parsed.categories) parsed.categories = [];
       if (!parsed.returns) parsed.returns = [];
+      if (!parsed.policies) parsed.policies = [];
       return parsed;
     } catch (err) {
-      return { products: [], orders: [], inquiries: [], users: [], categories: [], returns: [] };
+      return { products: [], orders: [], inquiries: [], users: [], categories: [], returns: [], policies: [] };
     }
   }
 
@@ -67,9 +70,13 @@ export class JsonDatabaseAdapter implements IDatabase {
       blouse: product.blouse || false,
       desc: product.desc || '',
       image: product.image || '',
+      imageWidth: product.imageWidth,
+      imageHeight: product.imageHeight,
+      galleryImagesMeta: product.galleryImagesMeta,
       stock: product.stock !== undefined && !isNaN(product.stock) ? product.stock : 0,
       categoryId: product.categoryId !== undefined ? product.categoryId : undefined,
       variants: product.variants || [],
+      galleryImages: product.galleryImages || [],
       reelUrl: product.reelUrl || undefined,
       code: product.code || undefined,
       isArchived: product.isArchived ?? false,
@@ -105,6 +112,7 @@ export class JsonDatabaseAdapter implements IDatabase {
         stock: product.stock !== undefined && !isNaN(product.stock) ? product.stock : 0,
         categoryId: product.categoryId !== undefined ? product.categoryId : undefined,
         variants: product.variants || [],
+        galleryImages: product.galleryImages || [],
         reelUrl: product.reelUrl || undefined,
         code: product.code || undefined,
         isArchived: product.isArchived ?? false,
@@ -453,8 +461,8 @@ export class JsonDatabaseAdapter implements IDatabase {
   async getProductReviews(productId: number): Promise<any[]> { return []; }
   async getRecentReviews(limit?: number): Promise<any[]> { return []; }
   async getAllReviews(): Promise<any[]> { return []; }
-  async createReview(review: any): Promise<any> { return { ...review, id: Date.now() }; }
-  async updateReview(id: number, data: { rating?: number; body?: string }): Promise<any | null> { return null; }
+  async createReview(review: any): Promise<any> { return { ...review, id: Date.now(), createdAt: new Date().toISOString(), images: review.images || [] }; }
+  async updateReview(id: number, data: { rating?: number; body?: string; images?: string[] }): Promise<any | null> { return null; }
   async deleteReview(id: number): Promise<boolean> { return true; }
   async getReviewsByUserId(userId: number): Promise<any[]> { return []; }
 
@@ -522,6 +530,135 @@ export class JsonDatabaseAdapter implements IDatabase {
       db.returns[index].adminNote = adminNote;
     }
     db.returns[index].updatedAt = new Date().toISOString();
+    await this.writeDb(db);
+    return true;
+  }
+
+  // Store Offers
+  async getActiveOffers(): Promise<StoreOffer[]> { return []; }
+  async getAllOffers(): Promise<StoreOffer[]> { return []; }
+  async createOffer(offer: any): Promise<StoreOffer> {
+    return { id: 1, title: offer.title, isActive: true, sortOrder: 0, createdAt: new Date().toISOString() };
+  }
+  async updateOffer(id: number, data: any): Promise<StoreOffer | null> { return null; }
+  async deleteOffer(id: number): Promise<boolean> { return true; }
+
+  // Store Settings
+  async getStoreSettings(): Promise<Record<string, string>> {
+    const db = await this.readDb();
+    return db.settings || {};
+  }
+  async updateStoreSettings(settings: Record<string, string>): Promise<Record<string, string>> {
+    const db = await this.readDb();
+    db.settings = { ...(db.settings || {}), ...settings };
+    await this.writeDb(db);
+    return db.settings;
+  }
+
+  // Store Policies
+  async getPublishedPolicies(): Promise<Policy[]> {
+    const db = await this.readDb();
+    const policies = (db.policies || []).filter(p => p.is_published);
+    return policies.sort((a, b) => a.id - b.id);
+  }
+
+  async getPolicyBySlug(slug: string, includeUnpublished = false): Promise<Policy | null> {
+    const db = await this.readDb();
+    const cleanSlug = (slug || '').trim().toLowerCase();
+    const policy = (db.policies || []).find(p => p.slug.toLowerCase() === cleanSlug);
+    if (!policy) return null;
+    if (!includeUnpublished && !policy.is_published) return null;
+    return policy;
+  }
+
+  async getAllPolicies(): Promise<Policy[]> {
+    const db = await this.readDb();
+    return [...(db.policies || [])].sort((a, b) => a.id - b.id);
+  }
+
+  async getPolicyById(id: number): Promise<Policy | null> {
+    const db = await this.readDb();
+    const policy = (db.policies || []).find(p => p.id === id);
+    return policy || null;
+  }
+
+  async createPolicy(policy: Omit<Policy, 'id' | 'updated_at' | 'created_at'>): Promise<Policy> {
+    const db = await this.readDb();
+    if (!db.policies) db.policies = [];
+
+    const cleanSlug = (policy.slug || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const existing = db.policies.find(p => p.slug.toLowerCase() === cleanSlug);
+    if (existing) {
+      throw new Error(`Policy with slug '${cleanSlug}' already exists.`);
+    }
+
+    const nextId = db.policies.reduce((max, p) => (p.id > max ? p.id : max), 0) + 1;
+    const now = new Date().toISOString();
+
+    const newPolicy: Policy = {
+      id: nextId,
+      slug: cleanSlug,
+      title: (policy.title || '').trim(),
+      content: policy.content || '',
+      is_published: policy.is_published !== undefined ? !!policy.is_published : true,
+      created_at: now,
+      updated_at: now,
+    };
+
+    db.policies.push(newPolicy);
+    await this.writeDb(db);
+    return newPolicy;
+  }
+
+  async updatePolicy(id: number, policyData: Partial<Omit<Policy, 'id'>>): Promise<Policy | null> {
+    const db = await this.readDb();
+    if (!db.policies) db.policies = [];
+
+    const index = db.policies.findIndex(p => p.id === id);
+    if (index === -1) return null;
+
+    const existing = db.policies[index];
+
+    let cleanSlug = existing.slug;
+    if (policyData.slug !== undefined) {
+      cleanSlug = (policyData.slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      // Check conflict with other policies
+      const conflict = db.policies.find(p => p.id !== id && p.slug.toLowerCase() === cleanSlug);
+      if (conflict) {
+        throw new Error(`Policy with slug '${cleanSlug}' already exists.`);
+      }
+    }
+
+    const updated: Policy = {
+      ...existing,
+      slug: cleanSlug,
+      title: policyData.title !== undefined ? policyData.title.trim() : existing.title,
+      content: policyData.content !== undefined ? policyData.content : existing.content,
+      is_published: policyData.is_published !== undefined ? !!policyData.is_published : existing.is_published,
+      updated_at: new Date().toISOString(),
+    };
+
+    db.policies[index] = updated;
+    await this.writeDb(db);
+    return updated;
+  }
+
+  async deletePolicy(id: number): Promise<boolean> {
+    const db = await this.readDb();
+    if (!db.policies) return false;
+    const initialLen = db.policies.length;
+    db.policies = db.policies.filter(p => p.id !== id);
+    if (db.policies.length === initialLen) return false;
     await this.writeDb(db);
     return true;
   }

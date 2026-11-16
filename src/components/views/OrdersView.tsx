@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, ShoppingBag, Calendar, CheckCircle2, Truck, Package, ExternalLink, Copy, RotateCcw, ChevronDown, Home, XCircle, Star, Edit3, Trash2, RefreshCw, Clock, QrCode, MessageCircle, FileDown } from 'lucide-react';
 import { Order, ActivePage, ReturnRequest, ReturnReason, ReturnResolution, Review, Product } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
+import { ProductThumbnail } from '../ProductThumbnail';
 import { API_URL, BUSINESS_WHATSAPP } from '../../config';
 
 interface OrdersViewProps {
@@ -287,7 +288,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, ordersLoading = 
         >
           <ArrowLeft className="w-[22px] h-[22px]" />
         </button>
-        <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
+        <div className="va-title font-sans text-lg md:text-xl font-bold text-black">
           My Orders
         </div>
         <div className="flex items-center gap-1.5">
@@ -318,7 +319,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, ordersLoading = 
             {/* Guest Order Tracker */}
             <div className="bg-white rounded-xl border border-[#E8E0D5] shadow-xs overflow-hidden">
               <div className="bg-gradient-to-r from-[#C4601A] to-[#E8920E] px-5 py-4">
-                <h2 className="font-serif text-white font-bold text-lg">Track Your Order</h2>
+                <h2 className="font-sans text-white font-bold text-lg">Track Your Order</h2>
                 <p className="text-white/80 text-xs mt-0.5">Enter your Order ID and phone number to see your order status</p>
               </div>
               <form onSubmit={handleGuestTrack} className="p-5 flex flex-col gap-3">
@@ -430,8 +431,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, ordersLoading = 
                 <ShoppingBag className="w-6 h-6 text-[#C4601A]" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-[#1A1A1A] text-base mb-1">Have an account?</h3>
-                <p className="text-xs text-[#888888] leading-relaxed">Login to view your complete order history, manage returns, and write reviews.</p>
+                <h3 className="font-sans font-bold text-black text-base mb-1">Have an account?</h3>
+                <p className="text-xs text-black leading-relaxed">Login to view your complete order history, manage returns, and write reviews.</p>
               </div>
               <button
                 onClick={onLoginClick}
@@ -457,10 +458,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, ordersLoading = 
             <div className="mb-4 flex justify-center text-primrose opacity-35">
               <ShoppingBag className="w-14 h-14" strokeWidth={1.2} />
             </div>
-            <h2 className="font-serif text-2xl font-semibold text-[#1A1A1A] mb-2 leading-tight">
+            <h2 className="font-sans text-2xl font-semibold text-black mb-2 leading-tight">
               No orders found
             </h2>
-            <p className="text-xs text-[#888888] leading-relaxed mb-6">
+            <p className="text-xs text-black leading-relaxed mb-6">
               You haven't placed any saree orders yet. Your purchases will appear here.
             </p>
             <button
@@ -615,12 +616,12 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, ordersLoading = 
                         return (
                           <div key={itemIdx} className="bg-[#FAF6F0]/60 p-3 rounded-xl border border-[#E8E0D5]/60 flex flex-col gap-2">
                             <div className="flex gap-3 items-center">
-                              <div className="w-10 h-13 rounded-md overflow-hidden bg-[#FAF6F0] shrink-0 border border-[#E8E0D5]">
-                                <SareeSwatch id={it.id} imageUrl={itemImage} />
+                              <div className="w-12 aspect-[4/5] rounded-md overflow-hidden bg-[#FAF6F0] shrink-0 border border-[#E8E0D5]">
+                                <ProductThumbnail id={it.id} imageUrl={itemImage} altText={it.name} className="w-full h-full" />
                               </div>
                             <div className="flex-1 flex flex-col justify-center text-xs">
-                              <span className="font-serif font-bold text-gray-800 leading-tight">{it.name}</span>
-                              <span className="text-[11px] text-[#888888] mt-1">Colour: {it.colour} · Qty: {it.qty}</span>
+                              <span className="font-sans font-bold text-black leading-tight">{it.name}</span>
+                              <span className="text-[11px] text-black/80 mt-1">Colour: {it.colour} · Qty: {it.qty}</span>
                             </div>
                             <div className="self-center font-bold text-xs text-right font-sans">
                               ₹{(it.price * it.qty).toLocaleString('en-IN')}
@@ -848,7 +849,16 @@ export const OrdersView: React.FC<OrdersViewProps> = ({ orders, ordersLoading = 
                     </div>
                   )}
 
-                  {/* Return Section reserved for Version 2 */}
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-[#888888] border-t border-[#E8E0D5]/50 mt-2">
+                    <span>Questions about returns or delivery?</span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('policies', 'return-policy')}
+                      className="text-[#C4601A] font-semibold underline hover:opacity-80 cursor-pointer"
+                    >
+                      Return Policy
+                    </button>
+                  </div>
                 </div>
               );
             })}

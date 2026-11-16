@@ -227,7 +227,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
         >
           <ArrowLeft className="w-5 h-5 text-[#1A1A1A]" />
         </button>
-        <span className="font-serif text-lg md:text-xl font-bold text-[#C4601A] ml-2 flex-1">
+        <span className="font-sans text-lg md:text-xl font-bold text-[#C4601A] ml-2 flex-1">
           {headerTitle}
         </span>
         <button
@@ -255,7 +255,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               <img src="/logo.jpg" alt="Sneh Sarees" className="w-full h-full object-cover" />
             )}
           </div>
-          <h2 className="font-serif text-3xl font-bold text-[#C4601A] tracking-wide mb-1">Sneh Sarees</h2>
+          <h2 className="font-sans text-3xl font-bold text-[#C4601A] tracking-wide mb-1">Sneh Sarees</h2>
           <p className="text-xs text-[#222222] font-semibold">Authentic Kota Doria Sarees &amp; Traditional Drapes</p>
         </div>
 

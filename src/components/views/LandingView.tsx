@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SAREE_HISTORIES } from '../../data';
 import { ActivePage, UserProfile } from '../../types';
 import { Star, Landmark, Sun, Grid, Heart, Globe, Phone, Mail, MapPin, Instagram, Facebook, Youtube, ShieldCheck } from 'lucide-react';
 import logoUrl from '@/assets/logo.webp';
-import { PolicyModal, PolicyTab } from '../PolicyModal';
+import { API_URL } from '../../config';
 
 interface LandingViewProps {
   onNavigate: (page: ActivePage, param?: string) => void;
@@ -17,7 +17,16 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
     message: ''
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [policyModalTab, setPolicyModalTab] = useState<PolicyTab | null>(null);
+  const [publishedPolicies, setPublishedPolicies] = useState<{ id: number; slug: string; title: string }[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/policies`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setPublishedPolicies(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +57,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
     <div className="min-h-screen">
       {/* Sticky Header Navigation Bar */}
       <header className="sticky top-0 left-0 right-0 h-16 brand-gradient border-b border-[#F5E4BC]/30 flex items-center justify-between px-6 z-50 shadow-md">
-        <div className="font-serif text-xl font-bold text-white tracking-wide cursor-pointer flex items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        <div className="font-sans text-xl font-bold text-white tracking-wide cursor-pointer flex items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <div className="w-11 h-11 md:w-12 md:h-12 rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
             <img src={logoUrl} width="48" height="48" alt="Sneh Sarees Logo" className="w-full h-full object-cover rounded-full" />
           </div>
@@ -334,13 +343,13 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
           </div>
         </div>
 
-        <h1 className="font-serif text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-wide leading-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+        <h1 className="font-sans text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-wide leading-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
           Sneh <span className="text-[#F5E4BC] drop-shadow-[0_0_20px_rgba(245,228,188,0.7)] font-normal italic">Sarees</span>
         </h1>
 
         {/* Beautiful Tagline Container */}
         <div className="w-full max-w-[92%] md:max-w-[760px] bg-black/25 backdrop-blur-md border border-[#F5E4BC]/35 rounded-2xl px-6 md:px-10 py-5 mb-10 shadow-[0_12px_36px_rgba(0,0,0,0.35)] text-center relative z-10 transition-all hover:border-[#F5E4BC]/60">
-          <p className="font-serif text-xl md:text-2xl lg:text-3xl font-semibold text-[#F5E4BC] tracking-wide leading-relaxed drop-shadow-md">
+          <p className="font-sans text-xl md:text-2xl lg:text-3xl font-semibold text-[#F5E4BC] tracking-wide leading-relaxed drop-shadow-md">
             “Quality You Can See, Prices You'll Love”
           </p>
           <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-[#F5E4BC]/60 to-transparent mx-auto my-2.5" />
@@ -377,14 +386,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
         <span className="text-xs font-bold tracking-[0.2em] text-[#C4601A] uppercase mb-2 block">
           Our Story
         </span>
-        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-[#7A2F08] mb-6 leading-tight">
+        <h2 className="font-sans text-3xl md:text-4xl lg:text-5xl font-bold text-[#7A2F08] mb-6 leading-tight">
           Woven with sneh, worn with pride
         </h2>
         <div className="space-y-4 max-w-[840px]">
           <p className="text-[#111111] font-sans text-sm md:text-base leading-relaxed">
             It all starts with thousands of threads, cotton and silk woven together just to make a beautiful fabric smooth like silk and breathable like cotton. Kota Doria becomes a symbol of grace, as it begins with a quiet labor of love.
           </p>
-          <p className="text-sm md:text-base leading-relaxed font-serif italic text-[#7A2F08] text-lg font-semibold">
+          <p className="text-sm md:text-base leading-relaxed font-sans italic text-[#7A2F08] text-lg font-semibold">
             "Behind all the elegant borders, intricate motifs, and shimmering zari what emerges is more than just a fabric — it is a timeless story of heritage, devotion, and artistry."
           </p>
         </div>
@@ -478,7 +487,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
           <span className="text-xs font-bold tracking-[0.2em] text-[#F5E4BC] uppercase mb-2 block">
             Bulk Orders
           </span>
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold mb-3 leading-tight">
+          <h2 className="font-sans text-2xl md:text-3xl lg:text-4xl font-bold mb-3 leading-tight">
             Interested in Bulk Orders?
           </h2>
           <p className="text-white text-sm md:text-base max-w-[580px] leading-relaxed font-sans">
@@ -500,7 +509,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
         <span className="text-xs font-bold tracking-[0.2em] text-[#C4601A] uppercase mb-2 block">
           Get In Touch
         </span>
-        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-[#7A2F08] mb-8 leading-tight">
+        <h2 className="font-sans text-3xl md:text-4xl lg:text-5xl font-bold text-[#7A2F08] mb-8 leading-tight">
           Contact Us
         </h2>
 
@@ -648,30 +657,37 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
       <footer className="brand-gradient pt-12 pb-8 px-6 md:px-12 text-center text-white border-t border-[#F5E4BC]/20">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-white/15">
           <div className="text-center md:text-left">
-            <div className="font-serif text-3xl font-bold mb-1 tracking-wide">Sneh <span className="text-[#F5E4BC]">Sarees</span></div>
+            <div className="font-sans text-3xl font-bold mb-1 tracking-wide">Sneh <span className="text-[#F5E4BC]">Sarees</span></div>
             <p className="text-xs text-white/80 max-w-sm">
               Authentic Kota Doria (Kotadoria) sarees from our family store in Kota, Rajasthan — trusted quality at honest prices.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs font-semibold text-white/90">
-            <button onClick={() => setPolicyModalTab('privacy')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
-              Privacy Policy
-            </button>
-            <button onClick={() => setPolicyModalTab('terms')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
-              Terms of Service
-            </button>
-            <button onClick={() => setPolicyModalTab('shipping')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
-              Shipping &amp; Delivery
-            </button>
-            <button onClick={() => setPolicyModalTab('returns')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
-              Return &amp; Refund
-            </button>
-            <button onClick={() => setPolicyModalTab('cancellation')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
-              Cancellation &amp; Payment
-            </button>
-            <button onClick={() => setPolicyModalTab('faqs')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
-              FAQs
-            </button>
+            {publishedPolicies.map((pol) => (
+              <button
+                key={pol.id}
+                onClick={() => onNavigate('policies', pol.slug)}
+                className="hover:text-[#F5E4BC] transition-colors cursor-pointer"
+              >
+                {pol.title}
+              </button>
+            ))}
+            {publishedPolicies.length === 0 && (
+              <>
+                <button onClick={() => onNavigate('policies', 'shipping-policy')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+                  Shipping &amp; Delivery
+                </button>
+                <button onClick={() => onNavigate('policies', 'return-policy')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+                  Return &amp; Refund
+                </button>
+                <button onClick={() => onNavigate('policies', 'privacy-policy')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+                  Privacy Policy
+                </button>
+                <button onClick={() => onNavigate('policies', 'terms-and-conditions')} className="hover:text-[#F5E4BC] transition-colors cursor-pointer">
+                  Terms of Service
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -684,12 +700,6 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigate, user }) =>
           </p>
         </div>
       </footer>
-
-      <PolicyModal
-        isOpen={!!policyModalTab}
-        initialTab={policyModalTab || 'privacy'}
-        onClose={() => setPolicyModalTab(null)}
-      />
     </div>
   );
 };

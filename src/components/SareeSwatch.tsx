@@ -18,7 +18,7 @@ export const SareeSwatch: React.FC<SareeSwatchProps> = ({
 }) => {
   if (imageUrl) {
     return (
-      <div className={`${className} relative overflow-hidden`}>
+      <div className={`${className} relative overflow-hidden bg-[#FAF6F0] flex items-center justify-center`}>
         <img
           src={imageUrl}
           alt={altText || 'Best Kota Doria Saree - Handloom Cotton Saree with Zari Border'}
@@ -29,7 +29,7 @@ export const SareeSwatch: React.FC<SareeSwatchProps> = ({
           decoding={priority ? 'sync' : 'async'}
           width="400"
           height="500"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain object-center block"
         />
       </div>
     );

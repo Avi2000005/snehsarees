@@ -1,4 +1,4 @@
-import { Product, Order, Category, OfferBanner, Coupon, Review, Reel, ReturnRequest } from '../../src/types';
+import { Product, Order, Category, OfferBanner, Coupon, Review, Reel, ReturnRequest, StoreOffer, StoreSettings, Policy } from '../../src/types';
 import { Inquiry } from '../models/inquiry.model';
 import { User } from '../models/user.model';
 
@@ -66,7 +66,7 @@ export interface IDatabase {
   getRecentReviews(limit?: number): Promise<Review[]>;
   getAllReviews(): Promise<Review[]>;
   createReview(review: Omit<Review, 'id' | 'createdAt'>): Promise<Review>;
-  updateReview(id: number, data: { rating?: number; body?: string }): Promise<Review | null>;
+  updateReview(id: number, data: { rating?: number; body?: string; images?: string[] }): Promise<Review | null>;
   deleteReview(id: number): Promise<boolean>;
   getReviewsByUserId(userId: number): Promise<Review[]>;
 
@@ -87,4 +87,24 @@ export interface IDatabase {
   // Email notifications tracking
   markOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean>;
   isOrderEmailSent(orderId: string, emailType: 'placed' | 'shipped' | 'delivered'): Promise<boolean>;
+
+  // Store Offers
+  getActiveOffers(): Promise<StoreOffer[]>;
+  getAllOffers(): Promise<StoreOffer[]>;
+  createOffer(offer: Omit<StoreOffer, 'id' | 'createdAt'>): Promise<StoreOffer>;
+  updateOffer(id: number, data: Partial<StoreOffer>): Promise<StoreOffer | null>;
+  deleteOffer(id: number): Promise<boolean>;
+
+  // Store Settings
+  getStoreSettings(): Promise<Record<string, string>>;
+  updateStoreSettings(settings: Record<string, string>): Promise<Record<string, string>>;
+
+  // Store Policies
+  getPublishedPolicies(): Promise<Policy[]>;
+  getPolicyBySlug(slug: string, includeUnpublished?: boolean): Promise<Policy | null>;
+  getAllPolicies(): Promise<Policy[]>;
+  getPolicyById(id: number): Promise<Policy | null>;
+  createPolicy(policy: Omit<Policy, 'id' | 'updated_at' | 'created_at'>): Promise<Policy>;
+  updatePolicy(id: number, policy: Partial<Omit<Policy, 'id'>>): Promise<Policy | null>;
+  deletePolicy(id: number): Promise<boolean>;
 }

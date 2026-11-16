@@ -215,11 +215,6 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
         onNavigate={onNavigate}
         onAddToCart={(id) => onAddToCart(id)}
         onToggleWishlist={onToggleWishlist}
-        imageHeightClass={
-          isWide
-            ? 'h-[280px] sm:h-[320px] md:h-[360px] lg:h-[400px]'
-            : 'h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px]'
-        }
       />
     );
   };
@@ -246,7 +241,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           <Play className="w-4 h-4 fill-white text-white shrink-0" />
         </div>
         <div className="reel-grid-info absolute bottom-0 left-0 right-0 p-3">
-          <div className="reel-grid-name font-serif text-sm font-semibold text-white leading-tight mb-1">
+          <div className="reel-grid-name font-sans text-sm font-semibold text-white leading-tight mb-1">
             {p.name}
           </div>
           <div className="reel-grid-price text-xs font-bold text-[#FFF8EC] mb-2 font-sans">
@@ -288,21 +283,21 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
       <div className="va-top-bar sticky top-0 bg-white border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-40 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <div className="flex items-center gap-1.5">
           <button
-            className="va-back text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
+            className="va-back text-black p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
             onClick={onBack}
             title="Go Back"
           >
             <ArrowLeft className="w-[22px] h-[22px]" />
           </button>
           <button
-            className="text-[#1A1A1A] p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
+            className="text-black p-1.5 hover:bg-[#FAF6F0] rounded-full transition-colors cursor-pointer"
             onClick={() => onNavigate('home')}
             title="Return to Home Section"
           >
             <Home className="w-[22px] h-[22px]" />
           </button>
         </div>
-        <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A] truncate max-w-[55%]">
+        <div className="va-title font-sans text-lg md:text-xl font-bold text-black truncate max-w-[55%]">
           {getSectionTitle()}
         </div>
         <div className="w-9 h-9" />
@@ -336,14 +331,14 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                   }`}
                 >
                   {hasImage ? (
-                    <img src={item.imageUrl} alt={item.label} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                    <img src={item.imageUrl} alt={item.label} className="w-full h-full object-contain bg-[#FAF6F0] transition-transform duration-300 hover:scale-105" />
                   ) : (
                     <span className="text-base">{item.icon}</span>
                   )}
                 </div>
                 <div
                   className={`va-sidebar-label text-[10px] md:text-xs font-semibold leading-tight capitalize ${
-                    active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A]'
+                    active ? 'text-[#C4601A] font-bold' : 'text-black'
                   }`}
                 >
                   {item.label}
@@ -359,7 +354,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           <div className="sort-filter-bar sticky top-[56px] md:top-[60px] lg:top-[68px] bg-white/98 backdrop-blur-md border-b border-[#E8E0D5] flex items-center justify-between gap-1.5 md:gap-2.5 p-2 md:p-2.5 px-3 md:px-4 z-30 select-none shadow-2xs">
             <button
               onClick={() => setShowSortModal(true)}
-              className="sort-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-2.5 md:px-3.5 text-xs font-semibold text-[#4A4A4A] bg-white hover:border-[#C4601A] transition-colors cursor-pointer shrink-0"
+              className="sort-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-2.5 md:px-3.5 text-xs font-semibold text-black bg-white hover:border-[#C4601A] transition-colors cursor-pointer shrink-0"
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Sort: {sortBy}</span>
@@ -375,7 +370,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                 className={`flex items-center gap-1 py-1 px-2.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   !isWideView
                     ? 'bg-white text-[#C4601A] shadow-xs font-bold'
-                    : 'text-[#666666] hover:text-[#1A1A1A]'
+                    : 'text-black/80 hover:text-black'
                 }`}
                 title="Present UI (2-Column Grid)"
               >
@@ -388,7 +383,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                 className={`flex items-center gap-1 py-1 px-2.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   isWideView
                     ? 'bg-white text-[#C4601A] shadow-xs font-bold'
-                    : 'text-[#666666] hover:text-[#1A1A1A]'
+                    : 'text-black/80 hover:text-black'
                 }`}
                 title="Wide Product Cards"
               >
@@ -399,7 +394,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
 
             <button
               onClick={() => setShowFilterModal(true)}
-              className="filter-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-2.5 md:px-3.5 text-xs font-semibold text-[#4A4A4A] bg-white hover:border-[#C4601A] transition-colors cursor-pointer shrink-0"
+              className="filter-pill flex items-center gap-1.5 border border-[#E8E0D5] rounded-full py-1.5 px-2.5 md:px-3.5 text-xs font-semibold text-black bg-white hover:border-[#C4601A] transition-colors cursor-pointer shrink-0"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               Filter
@@ -448,7 +443,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           {/* Saree Heritage Sub-header Bar (Only if category selected) */}
           {selectedCategoryGroup !== 'all' && heritage && (
             <div className="bg-[#FAF6F0] px-4 py-2 border-b border-[#E8E0D5] flex items-center justify-between select-none">
-              <span className="font-serif text-[13px] font-bold text-[#1A1A1A] capitalize">
+              <span className="font-sans text-[13px] font-bold text-black capitalize">
                 {categories.find(c => c.slug === selectedCategoryGroup)?.name || selectedCategoryGroup} Heritage
               </span>
               <button
@@ -475,7 +470,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                   >
                     {Array.from({ length: 8 }).map((_, i) => (
                       <div key={i} className="w-full bg-white rounded-2xl overflow-hidden border border-[#E8E0D5] p-0 shadow-xs">
-                        <div className="w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#E8E0D5]/50 animate-pulse" />
+                        <div className="w-full aspect-[4/5] bg-[#E8E0D5]/50 animate-pulse" />
                         <div className="p-3 sm:p-4 space-y-2.5">
                           <div className="h-4 bg-[#E8E0D5]/60 rounded-md animate-pulse w-3/4" />
                           <div className="h-3 bg-[#E8E0D5]/40 rounded-md animate-pulse w-1/2" />
@@ -485,15 +480,15 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                     ))}
                   </div>
                 ) : status === 'error' ? (
-                  <div className="text-center py-20 px-6 font-serif">
-                    <div className="text-[#888888] text-base mb-2">Unable to load saree catalog</div>
+                  <div className="text-center py-20 px-6 font-sans">
+                    <div className="text-black text-base mb-2">Unable to load saree catalog</div>
                     <button onClick={() => reload()} className="text-[#C4601A] font-bold underline text-sm cursor-pointer">
                       Tap to Retry
                     </button>
                   </div>
                 ) : (
-                  <div className="text-center py-20 px-6 font-serif">
-                    <div className="text-[#888888] text-base mb-2">No products match your criteria</div>
+                  <div className="text-center py-20 px-6 font-sans">
+                    <div className="text-black text-base mb-2">No products match your criteria</div>
                     <button onClick={handleResetFilters} className="text-[#C4601A] font-bold underline text-sm cursor-pointer">
                       Reset Filters
                     </button>
@@ -553,7 +548,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                       </div>
 
                       {/* Editorial Title */}
-                      <h3 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-[#7A2F08] mb-2 leading-tight">
+                      <h3 className="font-sans text-2xl md:text-3xl lg:text-4xl font-bold text-[#7A2F08] mb-2 leading-tight">
                         {heritage.title}
                       </h3>
 
@@ -567,8 +562,8 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                             <Compass className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider">Region of Origin</span>
-                            <span className="text-xs md:text-sm font-bold text-[#1A1A1A]">{heritage.origin}</span>
+                            <span className="text-[9px] uppercase font-bold text-black block tracking-wider">Region of Origin</span>
+                            <span className="text-xs md:text-sm font-bold text-black">{heritage.origin}</span>
                           </div>
                         </div>
 
@@ -577,8 +572,8 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                             <Feather className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider">Weave Technique</span>
-                            <span className="text-xs md:text-sm font-bold text-[#1A1A1A]">{heritage.craft}</span>
+                            <span className="text-[9px] uppercase font-bold text-black block tracking-wider">Weave Technique</span>
+                            <span className="text-xs md:text-sm font-bold text-black">{heritage.craft}</span>
                           </div>
                         </div>
                       </div>
@@ -586,7 +581,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                       {/* Pull-quote Intro Description */}
                       {heritage.details && (
                         <div className="border-l-3 border-[#C4601A] pl-4 py-2.5 my-6 bg-[#FFF0E8]/70 backdrop-blur-xs rounded-r-xl border-t border-b border-r border-[#F0C8A0]/40">
-                          <p className="text-sm md:text-base text-[#7A2F08] font-serif italic leading-relaxed">
+                          <p className="text-sm md:text-base text-[#7A2F08] font-sans italic leading-relaxed">
                             "{heritage.details}"
                           </p>
                         </div>
@@ -603,7 +598,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                                 Chronology & History
                               </span>
                             </div>
-                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed font-serif">
+                            <p className="text-xs md:text-sm text-black leading-relaxed font-sans">
                               {heritage.history}
                             </p>
                           </div>
@@ -618,7 +613,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                                 Saree Properties & Weaving
                               </span>
                             </div>
-                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed">
+                            <p className="text-xs md:text-sm text-black leading-relaxed font-sans">
                               {heritage.properties}
                             </p>
                           </div>
@@ -633,7 +628,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                                 Saree Care & Preservation
                               </span>
                             </div>
-                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed">
+                            <p className="text-xs md:text-sm text-black leading-relaxed font-sans">
                               {heritage.care}
                             </p>
                           </div>
@@ -669,14 +664,14 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="filter-modal-handle w-10 h-1 bg-[#E8E0D5] rounded-full mx-auto mb-4" />
-          <h3 className="filter-modal-title font-serif text-xl md:text-2xl font-bold mb-4">
+          <h3 className="filter-modal-title font-sans text-xl md:text-2xl font-bold text-black mb-4">
             Filter Sarees
           </h3>
 
           {/* Occasion */}
           {Array.from(new Set(productsList.map(p => p.occasion).filter(Boolean))).length > 0 && (
             <div className="filter-group mb-5">
-              <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
+              <h4 className="filter-group-label text-[11px] font-bold text-black uppercase tracking-wider mb-2.5">
                 Occasion
               </h4>
               <div className="filter-options flex flex-wrap gap-1.5">
@@ -687,7 +682,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                     className={`filter-option rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer transition-all ${
                       selectedOccasion === occ
                         ? 'bg-[#C4601A] text-white border-primrose'
-                        : 'bg-white text-[#4A4A4A] border border-[#E8E0D5] hover:border-[#C4601A]'
+                        : 'bg-white text-black border border-[#E8E0D5] hover:border-[#C4601A]'
                     }`}
                   >
                     {occ}
@@ -700,7 +695,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           {/* Fabric */}
           {Array.from(new Set(productsList.map(p => p.fabric).filter(Boolean))).length > 0 && (
             <div className="filter-group mb-5">
-              <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
+              <h4 className="filter-group-label text-[11px] font-bold text-black uppercase tracking-wider mb-2.5">
                 Fabric
               </h4>
               <div className="filter-options flex flex-wrap gap-1.5">
@@ -711,7 +706,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                     className={`filter-option rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer transition-all ${
                       selectedFabric === fab
                         ? 'bg-[#C4601A] text-white border-primrose'
-                        : 'bg-white text-[#4A4A4A] border border-[#E8E0D5] hover:border-[#C4601A]'
+                        : 'bg-white text-black border border-[#E8E0D5] hover:border-[#C4601A]'
                     }`}
                   >
                     {fab}
@@ -723,7 +718,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
 
           {/* Price Range */}
           <div className="filter-group mb-5">
-            <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
+            <h4 className="filter-group-label text-[11px] font-bold text-black uppercase tracking-wider mb-2.5">
               Price Range
             </h4>
             <div className="filter-options flex flex-col gap-1.5">
@@ -731,10 +726,10 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                 <button
                   key={price}
                   onClick={() => setSelectedPriceRange(selectedPriceRange === price ? null : price)}
-                  className={`filter-option w-full rounded-xl p-3 text-xs font-semibold text-left cursor-pointer transition-all border ${
+                  className={`filter-option w-full rounded-xl p-3 text-xs font-semibold text-left cursor-pointer transition-all border font-sans ${
                     selectedPriceRange === price
                       ? 'bg-[#C4601A] text-white border-primrose'
-                      : 'bg-white text-[#4A4A4A] border-[#E8E0D5] hover:border-[#C4601A]'
+                      : 'bg-white text-black border-[#E8E0D5] hover:border-[#C4601A]'
                   }`}
                 >
                   {price}
@@ -745,7 +740,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
 
           {/* Colour */}
           <div className="filter-group mb-6">
-            <h4 className="filter-group-label text-[11px] font-bold text-[#888888] uppercase tracking-wider mb-2.5">
+            <h4 className="filter-group-label text-[11px] font-bold text-black uppercase tracking-wider mb-2.5">
               Colour Way
             </h4>
             <div className="filter-options flex flex-wrap gap-1.5">
@@ -756,7 +751,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
                   className={`filter-option rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer transition-all ${
                     selectedColour === col
                       ? 'bg-[#C4601A] text-white border-primrose'
-                      : 'bg-white text-[#4A4A4A] border border-[#E8E0D5] hover:border-[#C4601A]'
+                      : 'bg-white text-black border border-[#E8E0D5] hover:border-[#C4601A]'
                   }`}
                 >
                   {col}
@@ -769,7 +764,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           <div className="filter-dialog-btns flex gap-3">
             <button
               onClick={handleResetFilters}
-              className="flex-1 border border-[#E8E0D5] py-3.5 rounded-xl text-xs font-bold text-[#4A4A4A] hover:bg-[#FAF6F0] transition-colors cursor-pointer"
+              className="flex-1 border border-[#E8E0D5] py-3.5 rounded-xl text-xs font-bold text-black hover:bg-[#FAF6F0] transition-colors cursor-pointer"
             >
               Reset
             </button>
@@ -795,7 +790,7 @@ export const ViewAllView: React.FC<ViewAllViewProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sort-modal-handle w-10 h-1 bg-[#E8E0D5] rounded-full mx-auto mb-4" />
-          <h3 className="sort-modal-title font-serif text-xl md:text-2xl font-bold mb-4 text-center">
+          <h3 className="sort-modal-title font-sans text-xl md:text-2xl font-bold mb-4 text-center text-black">
             Sort Sarees By
           </h3>
           <div className="flex flex-col gap-2">

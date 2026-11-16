@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ArrowLeft, User, ShoppingBag, LogIn, LogOut, Lock, Shield, FileText, HelpCircle, X, Home, MapPin, Edit3, Trash2, KeyRound, CheckCircle, Mail, Phone, Plus, Check, Truck, RotateCcw, Ban, Loader2 } from 'lucide-react';
 import { ActivePage, UserProfile, UserAddress } from '../../types';
 import { API_URL } from '../../config';
-import { PolicyModal, PolicyTab } from '../PolicyModal';
 import { INDIAN_STATES, getDistrictsForState, lookupPincode } from '../../data/indiaLocations';
 
 interface ProfileViewProps {
@@ -26,7 +25,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onLogout,
   token,
 }) => {
-  const [activeModal, setActiveModal] = useState<PolicyTab | null>(null);
   const [subView, setSubView] = useState<SubView>('main');
 
   // Edit Profile Form State
@@ -326,7 +324,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         >
           <ArrowLeft className="w-[22px] h-[22px]" />
         </button>
-        <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
+        <div className="va-title font-sans text-lg md:text-xl font-bold text-[#1A1A1A]">
           {subView === 'main' && 'My Profile'}
           {subView === 'edit-profile' && 'Edit Account'}
           {subView === 'addresses' && 'Saved Addresses'}
@@ -354,7 +352,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
             {user ? (
               <>
-                <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-1">
+                <h2 className="font-sans text-2xl font-bold text-[#1A1A1A] mb-1">
                   {user.name}
                 </h2>
                 <p className="text-xs text-[#888888] mb-6">
@@ -439,7 +437,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     Store Policies &amp; Legal Center
                   </div>
                   <button
-                    onClick={() => setActiveModal('privacy')}
+                    onClick={() => onNavigate('policies', 'privacy-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
@@ -449,17 +447,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </button>
 
                   <button
-                    onClick={() => setActiveModal('terms')}
+                    onClick={() => onNavigate('policies', 'terms-and-conditions')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-[#C4601A]" /> Terms of Service
+                      <FileText className="w-4 h-4 text-[#C4601A]" /> Terms &amp; Conditions
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
 
                   <button
-                    onClick={() => setActiveModal('shipping')}
+                    onClick={() => onNavigate('policies', 'shipping-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
@@ -468,23 +466,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <span className="text-[#888888]">→</span>
                   </button>
 
-
                   <button
-                    onClick={() => setActiveModal('cancellation')}
+                    onClick={() => onNavigate('policies', 'return-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <Ban className="w-4 h-4 text-[#C4601A]" /> Cancellation &amp; Payments
+                      <RotateCcw className="w-4 h-4 text-[#C4601A]" /> Return &amp; Refund Policy
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
 
                   <button
-                    onClick={() => setActiveModal('faqs')}
+                    onClick={() => onNavigate('policies', 'cancellation-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <HelpCircle className="w-4 h-4 text-[#C4601A]" /> FAQs &amp; Help
+                      <Ban className="w-4 h-4 text-[#C4601A]" /> Cancellation &amp; Payments
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
@@ -499,7 +496,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </>
             ) : (
               <>
-                <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-1">
+                <h2 className="font-sans text-2xl font-bold text-[#1A1A1A] mb-1">
                   Guest User
                 </h2>
                 <p className="text-xs text-[#888888] mb-6">
@@ -519,7 +516,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     Store Policies &amp; Legal Center
                   </div>
                   <button
-                    onClick={() => setActiveModal('privacy')}
+                    onClick={() => onNavigate('policies', 'privacy-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
@@ -529,17 +526,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </button>
 
                   <button
-                    onClick={() => setActiveModal('terms')}
+                    onClick={() => onNavigate('policies', 'terms-and-conditions')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-[#C4601A]" /> Terms of Service
+                      <FileText className="w-4 h-4 text-[#C4601A]" /> Terms &amp; Conditions
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
 
                   <button
-                    onClick={() => setActiveModal('shipping')}
+                    onClick={() => onNavigate('policies', 'shipping-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
@@ -548,23 +545,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <span className="text-[#888888]">→</span>
                   </button>
 
-
                   <button
-                    onClick={() => setActiveModal('cancellation')}
+                    onClick={() => onNavigate('policies', 'return-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <Ban className="w-4 h-4 text-[#C4601A]" /> Cancellation &amp; Payments
+                      <RotateCcw className="w-4 h-4 text-[#C4601A]" /> Return &amp; Refund Policy
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
 
                   <button
-                    onClick={() => setActiveModal('faqs')}
+                    onClick={() => onNavigate('policies', 'cancellation-policy')}
                     className="w-full text-left p-3.5 px-5 flex items-center justify-between hover:bg-[#FAF6F0] text-xs md:text-sm text-[#1A1A1A] font-semibold cursor-pointer"
                   >
                     <span className="flex items-center gap-3">
-                      <HelpCircle className="w-4 h-4 text-[#C4601A]" /> FAQs &amp; Help
+                      <Ban className="w-4 h-4 text-[#C4601A]" /> Cancellation &amp; Payments
                     </span>
                     <span className="text-[#888888]">→</span>
                   </button>
@@ -840,7 +836,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* ─── DELETE ACCOUNT VIEW ─── */}
         {subView === 'delete-account' && user && (
           <div className="bg-white rounded-2xl p-6 border border-red-200 shadow-xs max-w-[400px] mx-auto">
-            <h3 className="font-serif text-lg font-bold text-red-600 mb-2">Delete Your Account Permanently?</h3>
+            <h3 className="font-sans text-lg font-bold text-red-600 mb-2">Delete Your Account Permanently?</h3>
             <p className="text-xs text-gray-600 leading-relaxed mb-4">
               This action is irreversible. All of your saved addresses, wishlist, and profile information will be deleted forever.
             </p>
@@ -886,7 +882,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="relative w-full max-w-[450px] bg-white rounded-2xl border border-[#E8E0D5] shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-[#E8E0D5] bg-[#FAF6F0] flex justify-between items-center">
-              <h2 className="font-serif text-lg font-bold text-[#C4601A]">
+              <h2 className="font-sans text-lg font-bold text-[#C4601A]">
                 {editingAddressId ? 'Edit Address' : 'Add New Address'}
               </h2>
               <button
@@ -1108,13 +1104,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* Standard Store Policies Modal */}
-      <PolicyModal
-        isOpen={!!activeModal}
-        initialTab={activeModal || 'privacy'}
-        onClose={() => setActiveModal(null)}
-      />
     </div>
   );
 };

@@ -24,6 +24,7 @@ const BulkView = lazy(() => import('./components/views/BulkView').then(m => ({ d
 const AuthView = lazy(() => import('./components/views/AuthView').then(m => ({ default: m.AuthView })));
 const SuccessView = lazy(() => import('./components/views/SuccessView').then(m => ({ default: m.SuccessView })));
 const PendingPaymentView = lazy(() => import('./components/views/PendingPaymentView').then(m => ({ default: m.PendingPaymentView })));
+const PolicyPageView = lazy(() => import('./components/views/PolicyPageView').then(m => ({ default: m.PolicyPageView })));
 const Chatbot = lazy(() => import('./components/Chatbot').then(m => ({ default: m.Chatbot })));
 
 import { API_URL, BUSINESS_WHATSAPP } from './config';
@@ -87,6 +88,12 @@ export const getPageUrl = (page: ActivePage, param?: string | number): string =>
       return '#/success';
     case 'pending_payment':
       return '#/pending_payment';
+    case 'policies':
+      return param ? `#/policies/${param}` : '#/policies/shipping-policy';
+    case 'shipping-policy':
+      return '#/policies/shipping-policy';
+    case 'return-policy':
+      return '#/policies/return-policy';
     default:
       return '#/home';
   }
@@ -132,6 +139,27 @@ export const parseHash = (hash: string): { page: ActivePage; param?: string | nu
       return { page: 'success' };
     case 'pending_payment':
       return { page: 'pending_payment' };
+    case 'policies':
+    case 'policy':
+      return { page: 'policies', param: rawParam || 'shipping-policy' };
+    case 'shipping-policy':
+    case 'shipping':
+      return { page: 'policies', param: 'shipping-policy' };
+    case 'return-policy':
+    case 'returns-policy':
+    case 'returns':
+    case 'refund-return-policy':
+      return { page: 'policies', param: 'return-policy' };
+    case 'privacy-policy':
+    case 'privacy':
+      return { page: 'policies', param: 'privacy-policy' };
+    case 'terms-and-conditions':
+    case 'terms':
+    case 'terms-of-service':
+      return { page: 'policies', param: 'terms-and-conditions' };
+    case 'cancellation-policy':
+    case 'cancellation':
+      return { page: 'policies', param: 'cancellation-policy' };
     default:
       return { page: 'home' };
   }
@@ -153,13 +181,17 @@ const getInitialNavigation = (): { page: ActivePage; param?: string | number } =
     if (catParam) {
       return { page: 'viewall', param: catParam };
     }
+    const policySlugParam = params.get('policy') || params.get('policies');
+    if (policySlugParam) {
+      return { page: 'policies', param: policySlugParam };
+    }
     if (
       viewParam &&
-      ['landing', 'home', 'viewall', 'bulk', 'profile', 'cart', 'orders', 'wishlist', 'search', 'auth', 'admin'].includes(
+      ['landing', 'home', 'viewall', 'bulk', 'profile', 'cart', 'orders', 'wishlist', 'search', 'auth', 'admin', 'policies', 'shipping-policy', 'return-policy'].includes(
         viewParam
       )
     ) {
-      return { page: viewParam as ActivePage };
+      return { page: viewParam === 'policies' ? 'policies' : (viewParam as ActivePage) };
     }
 
     if (window.location.hash) {
@@ -410,7 +442,11 @@ export default function App() {
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
   }, []);
 
   // 2. Read Auth Token
@@ -522,7 +558,7 @@ export default function App() {
     setToastTimer(timer);
   };
 
-  const handleAddToCart = (id: number, colour?: string) => {
+  const handleAddToCart = (id: number, colour?: string, qtyToAdd: number = 1) => {
     const parentProd = productsList.find((x) => x.id === id) || products.find((x) => x.id === id);
     if (!parentProd) return;
 
@@ -543,8 +579,9 @@ export default function App() {
     // Get active stock
     const currentStock = parentProd.stock !== undefined ? parentProd.stock : 10;
     const existingQty = existingIdx > -1 ? cart[existingIdx].qty : 0;
+    const amountToAdd = qtyToAdd && qtyToAdd > 0 ? qtyToAdd : 1;
 
-    if (existingQty >= currentStock) {
+    if (existingQty + amountToAdd > currentStock) {
       showToast(`Cannot add: only ${currentStock} item(s) available in stock.`);
       return;
     }
@@ -553,7 +590,7 @@ export default function App() {
     if (existingIdx > -1) {
       updatedCart[existingIdx] = {
         ...updatedCart[existingIdx],
-        qty: updatedCart[existingIdx].qty + 1
+        qty: updatedCart[existingIdx].qty + amountToAdd
       };
     } else {
       updatedCart.push({
@@ -562,7 +599,7 @@ export default function App() {
         price: parentProd.price,
         fabric: parentProd.fabric,
         colour: chosenColour,
-        qty: 1
+        qty: amountToAdd
       });
     }
 
@@ -653,7 +690,7 @@ export default function App() {
   };
 
   // Buy Now: go straight to checkout with just this one product, skipping the cart
-  const handleBuyNow = (id: number, colour?: string, directProduct?: Product) => {
+  const handleBuyNow = (id: number, colour?: string, directProduct?: Product, qty: number = 1) => {
     const prod = directProduct || productsList.find((x) => x.id === id) || products.find((x) => x.id === id);
     if (!prod) return;
     const chosenColour = (
@@ -671,7 +708,7 @@ export default function App() {
       ? prod.variants?.find((v) => v.colour.toLowerCase() === chosenColour.toLowerCase())
       : undefined;
     const imageUrl = variant?.image || prod.image;
-    setBuyNowCart([{ id: prod.id, name: itemName, price, fabric: prod.fabric, colour: chosenColour, qty: 1, image: imageUrl }]);
+    setBuyNowCart([{ id: prod.id, name: itemName, price, fabric: prod.fabric, colour: chosenColour, qty: qty > 0 ? qty : 1, image: imageUrl }]);
     handleNavigate('checkout');
   };
 
@@ -902,6 +939,17 @@ export default function App() {
       case 'bulk':
         return <BulkView onNavigate={handleNavigate} onBack={handleBack} showToast={showToast} />;
 
+      case 'policies':
+      case 'shipping-policy':
+      case 'return-policy':
+        return (
+          <PolicyPageView
+            slug={String(pageParam || (page === 'return-policy' ? 'return-policy' : 'shipping-policy'))}
+            onNavigate={handleNavigate}
+            onBack={handleBack}
+          />
+        );
+
       case 'admin':
         // Security gate: only the store owner email may see the admin page at all
         if (!user || user.email?.toLowerCase() !== 'info@snehsarees.in') {
@@ -924,7 +972,7 @@ export default function App() {
   };
 
   return (
-    <div className={`relative font-sans antialiased text-[#1A1A1A] max-w-[430px] md:max-w-full mx-auto min-h-screen ${page === 'landing' ? 'bg-ivory' : ''}`}>
+    <div className={`relative font-sans antialiased text-black max-w-[430px] md:max-w-full mx-auto min-h-screen ${page === 'landing' ? 'bg-ivory' : ''}`}>
       {/* Background for shopping website (all pages except landing) */}
       {page !== 'landing' ? (
         <div className="fixed inset-0 pointer-events-none z-0">
@@ -1051,7 +1099,7 @@ export default function App() {
         <div className="bottom-nav fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-full h-[64px] md:h-[60px] lg:h-[60px] bg-white/95 backdrop-blur-md border-t border-[#E8E0D5] flex items-center z-20 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
           <button
             onClick={() => handleNavigate('home')}
-            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'home' ? 'text-[#C4601A]' : 'text-[#888888] hover:text-[#C4601A]'
+            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'home' ? 'text-[#C4601A]' : 'text-black/80 hover:text-[#C4601A]'
               } transition-colors cursor-pointer`}
           >
             <Home className={`w-5.5 h-5.5 ${page === 'home' ? 'text-[#C4601A]' : ''}`} />
@@ -1059,7 +1107,7 @@ export default function App() {
           </button>
           <button
             onClick={() => handleNavigate('wishlist')}
-            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'wishlist' ? 'text-[#C4601A]' : 'text-[#888888] hover:text-[#C4601A]'
+            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'wishlist' ? 'text-[#C4601A]' : 'text-black/80 hover:text-[#C4601A]'
               } transition-colors cursor-pointer`}
           >
             <Heart className={`w-5.5 h-5.5 ${page === 'wishlist' ? 'text-[#C4601A] fill-[#C4601A]' : ''}`} />
@@ -1067,7 +1115,7 @@ export default function App() {
           </button>
           <button
             onClick={() => handleNavigate('orders')}
-            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'orders' ? 'text-[#C4601A]' : 'text-[#888888] hover:text-[#C4601A]'
+            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'orders' ? 'text-[#C4601A]' : 'text-black/80 hover:text-[#C4601A]'
               } transition-colors cursor-pointer`}
           >
             <ShoppingBag className={`w-5.5 h-5.5 ${page === 'orders' ? 'text-[#C4601A]' : ''}`} />
@@ -1075,7 +1123,7 @@ export default function App() {
           </button>
           <button
             onClick={() => handleNavigate('cart')}
-            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'cart' ? 'text-[#C4601A]' : 'text-[#888888] hover:text-[#C4601A]'
+            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'cart' ? 'text-[#C4601A]' : 'text-black/80 hover:text-[#C4601A]'
               } transition-colors cursor-pointer relative`}
           >
             <div className="relative">
@@ -1090,7 +1138,7 @@ export default function App() {
           </button>
           <button
             onClick={() => handleNavigate('bulk')}
-            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'bulk' ? 'text-[#C4601A]' : 'text-[#888888] hover:text-[#C4601A]'
+            className={`bottom-nav-item flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${page === 'bulk' ? 'text-[#C4601A]' : 'text-black/80 hover:text-[#C4601A]'
               } transition-colors cursor-pointer`}
           >
             <Package className={`w-5.5 h-5.5 ${page === 'bulk' ? 'text-[#C4601A]' : ''}`} />

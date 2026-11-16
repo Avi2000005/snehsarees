@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ActivePage, Product, Order, Category, OfferBanner, Coupon, Review, Reel, ReturnRequest } from '../../types';
+import { ActivePage, Product, ProductVariant, Order, Category, OfferBanner, Coupon, Review, Reel, ReturnRequest, StoreOffer, StoreSettings, Policy } from '../../types';
 import { Inquiry } from '../../../server/models/inquiry.model';
 import { API_URL } from '../../config';
 import {
   ArrowLeft, LogIn, Lock, Mail, LayoutDashboard, ShoppingBag,
   Users, Layers, Trash2, Edit3, PlusCircle, CheckCircle, RefreshCw, X, MapPin,
   Tag, MessageSquare, Film, RotateCcw, FileSpreadsheet, Download, Upload, AlertCircle, FileText, CheckCircle2,
-  Image as ImageIcon, Camera, Sparkles, Check, Archive, Globe, Star
+  Image as ImageIcon, Camera, Sparkles, Check, Archive, Globe, Star, Percent, Settings as SettingsIcon, Building,
+  ArrowUp, ArrowDown, GripVertical, Calendar
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { RichTextEditor } from '../RichTextEditor';
 import { sanitizeHtml } from '../../utils/sanitizeHtml';
+import { ProductThumbnail } from '../ProductThumbnail';
 
 interface AdminDashboardViewProps {
   onNavigate: (page: ActivePage) => void;
@@ -36,17 +38,47 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [sessionTimeLeft, setSessionTimeLeft] = useState('');
 
   // Dashboard Data
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'inquiries' | 'categories' | 'banners' | 'coupons' | 'reviews' | 'reels' | 'returns'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'inquiries' | 'categories' | 'banners' | 'coupons' | 'offers' | 'settings' | 'policies' | 'reviews' | 'reels' | 'returns'>('dashboard');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [banners, setBanners] = useState<OfferBanner[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [storeOffers, setStoreOffers] = useState<StoreOffer[]>([]);
+  const [policies, setPolicies] = useState<Policy[]>([]);
   const [reviewsList, setReviewsList] = useState<Review[]>([]);
   const [reels, setReels] = useState<Reel[]>([]);
   const [returnsList, setReturnsList] = useState<ReturnRequest[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
+
+  // Store Policies CRUD State
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null);
+  const [policyTitle, setPolicyTitle] = useState('');
+  const [policySlug, setPolicySlug] = useState('');
+  const [policyContent, setPolicyContent] = useState('');
+  const [policyPublished, setPolicyPublished] = useState(true);
+  const [policyPreviewMode, setPolicyPreviewMode] = useState<'editor' | 'preview'>('editor');
+  const [savingPolicy, setSavingPolicy] = useState(false);
+
+  // Store Offers CRUD State
+  const [offerTitle, setOfferTitle] = useState('');
+  const [offerCode, setOfferCode] = useState('');
+  const [offerConditions, setOfferConditions] = useState('');
+  const [offerSortOrder, setOfferSortOrder] = useState('0');
+  const [offerExpiresAt, setOfferExpiresAt] = useState('');
+
+  // Store Settings (Business details) State
+  const [settingsOrigin, setSettingsOrigin] = useState('India');
+  const [settingsBusinessName, setSettingsBusinessName] = useState('');
+  const [settingsAddress, setSettingsAddress] = useState('');
+  const [settingsPincode, setSettingsPincode] = useState('');
+  const [settingsEmail, setSettingsEmail] = useState('');
+  const [settingsGstin, setSettingsGstin] = useState('');
+  const [settingsFreeShippingAbove, setSettingsFreeShippingAbove] = useState('');
+  const [settingsShowReviewDates, setSettingsShowReviewDates] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // CRUD / Modal States
   const [showProductModal, setShowProductModal] = useState(false);
@@ -110,14 +142,23 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [uploadingCatImage, setUploadingCatImage] = useState(false);
   const [addingCategory, setAddingCategory] = useState(false);
 
+  // Model / Advertisement Gallery Images states
+  const [prodGalleryImages, setProdGalleryImages] = useState<string[]>([]);
+  const [uploadingGalleryImages, setUploadingGalleryImages] = useState(false);
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
+  const [galleryInputMode, setGalleryInputMode] = useState<'upload' | 'url'>('upload');
+  const [draggedGalleryIdx, setDraggedGalleryIdx] = useState<number | null>(null);
+
   // Custom Color and Variants states
   const [selectedAdminCategory, setSelectedAdminCategory] = useState('all');
   const [catalogStatusFilter, setCatalogStatusFilter] = useState<'all' | 'live' | 'archived' | 'no-image'>('all');
   const [prodColourInputMode, setProdColourInputMode] = useState<'preset' | 'custom'>('preset');
   const [customColourVal, setCustomColourVal] = useState('');
-  const [prodVariants, setProdVariants] = useState<{ colour: string; image: string }[]>([]);
+  const [prodVariants, setProdVariants] = useState<ProductVariant[]>([]);
   const [newVariantColour, setNewVariantColour] = useState('');
   const [newVariantImage, setNewVariantImage] = useState('');
+  const [newVariantPrice, setNewVariantPrice] = useState('');
+  const [newVariantStock, setNewVariantStock] = useState('');
   const [newVariantMode, setNewVariantMode] = useState<'upload' | 'url'>('upload');
   const [newVariantUrl, setNewVariantUrl] = useState('');
   const [uploadingVariantImage, setUploadingVariantImage] = useState(false);
@@ -127,6 +168,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
   const [editingVariantColour, setEditingVariantColour] = useState('');
   const [editingVariantImage, setEditingVariantImage] = useState('');
+  const [editingVariantPrice, setEditingVariantPrice] = useState('');
+  const [editingVariantStock, setEditingVariantStock] = useState('');
   const [uploadingEditVariantImage, setUploadingEditVariantImage] = useState(false);
 
   // Address edit modal state
@@ -234,20 +277,23 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [resProd, resOrders, resInq, resCats, resBanners, resCoupons, resReviews, resReels, resReturns] = await Promise.all([
+      const [resProd, resOrders, resInq, resCats, resBanners, resCoupons, resOffers, resSettings, resReviews, resReels, resReturns, resPolicies] = await Promise.all([
         fetch(`${API_URL}/api/products?all=true`),
         fetch(`${API_URL}/api/admin/orders`, { headers }),
         fetch(`${API_URL}/api/admin/inquiries`, { headers }),
         fetch(`${API_URL}/api/categories`),
         fetch(`${API_URL}/api/admin/banners`, { headers }),
         fetch(`${API_URL}/api/admin/coupons`, { headers }),
+        fetch(`${API_URL}/api/admin/offers`, { headers }),
+        fetch(`${API_URL}/api/admin/settings`, { headers }),
         fetch(`${API_URL}/api/admin/reviews`, { headers }),
         fetch(`${API_URL}/api/admin/reels`, { headers }),
         fetch(`${API_URL}/api/admin/returns`, { headers }),
+        fetch(`${API_URL}/api/admin/policies`, { headers }),
       ]);
 
       // Check if any response is 401 Unauthorized
-      const unauthorized = [resOrders, resInq, resBanners, resCoupons, resReviews, resReels, resReturns].some(r => r.status === 401);
+      const unauthorized = [resOrders, resInq, resBanners, resCoupons, resOffers, resSettings, resReviews, resReels, resReturns, resPolicies].some(r => r.status === 401);
       if (unauthorized) {
         handleLogout();
         showToast('Admin session expired or invalid. Please log in again.');
@@ -260,6 +306,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       if (resCats.ok) setCategories(await resCats.json());
       if (resBanners.ok) setBanners(await resBanners.json());
       if (resCoupons.ok) setCoupons(await resCoupons.json());
+      if (resOffers.ok) setStoreOffers(await resOffers.json());
+      if (resPolicies.ok) setPolicies(await resPolicies.json());
+      if (resSettings.ok) {
+        const s = await resSettings.json();
+        if (s.country_of_origin) setSettingsOrigin(s.country_of_origin);
+        if (s.business_name) setSettingsBusinessName(s.business_name);
+        if (s.address) setSettingsAddress(s.address);
+        if (s.pincode) setSettingsPincode(s.pincode);
+        if (s.email) setSettingsEmail(s.email);
+        if (s.gstin) setSettingsGstin(s.gstin);
+        if (s.free_shipping_above) setSettingsFreeShippingAbove(s.free_shipping_above);
+        if (s.show_review_date !== undefined) setSettingsShowReviewDates(s.show_review_date !== 'false');
+      }
       if (resReviews.ok) setReviewsList(await resReviews.json());
       if (resReels.ok) setReels(await resReels.json());
       if (resReturns.ok) setReturnsList(await resReturns.json());
@@ -372,9 +431,111 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     }
   };
 
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/avif'];
+
+  const validateImageFile = (file: File): string | null => {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+      return `File "${file.name}" is not a supported image format (JPEG, PNG, WebP, AVIF).`;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return `File "${file.name}" exceeds the 10MB maximum file size limit.`;
+    }
+    return null;
+  };
+
+  const handleGalleryImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const err = validateImageFile(files[i]);
+      if (err) {
+        showToast(err);
+        return;
+      }
+    }
+
+    setUploadingGalleryImages(true);
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('images', files[i]);
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/admin/products/upload-bulk`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.uploaded && Array.isArray(data.uploaded)) {
+        const newUrls = data.uploaded.map((u: any) => u.imageUrl).filter(Boolean);
+        setProdGalleryImages((prev) => [...prev, ...newUrls]);
+        showToast(`${newUrls.length} model image(s) uploaded!`);
+      } else {
+        showToast(data.error || 'Bulk upload failed.');
+      }
+    } catch {
+      showToast('Error uploading gallery images.');
+    } finally {
+      setUploadingGalleryImages(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddGalleryUrl = () => {
+    if (!newGalleryUrl.trim()) return;
+    setProdGalleryImages((prev) => [...prev, newGalleryUrl.trim()]);
+    setNewGalleryUrl('');
+    showToast('Image URL added to Model / Advertisement gallery!');
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    setProdGalleryImages((prev) => prev.filter((_, i) => i !== index));
+    showToast('Model image removed.');
+  };
+
+  const handleMoveGalleryImage = (fromIndex: number, direction: 'up' | 'down') => {
+    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= prodGalleryImages.length) return;
+    setProdGalleryImages((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+  };
+
+  const handleDragStartGallery = (idx: number) => {
+    setDraggedGalleryIdx(idx);
+  };
+
+  const handleDragOverGallery = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDropGallery = (targetIdx: number) => {
+    if (draggedGalleryIdx === null || draggedGalleryIdx === targetIdx) return;
+    setProdGalleryImages((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(draggedGalleryIdx, 1);
+      copy.splice(targetIdx, 0, item);
+      return copy;
+    });
+    setDraggedGalleryIdx(null);
+  };
+
   const handleVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const err = validateImageFile(file);
+    if (err) {
+      showToast(err);
+      return;
+    }
+
     setUploadingVariantImage(true);
     const formData = new FormData();
     formData.append('image', file);
@@ -387,7 +548,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       const data = await res.json();
       if (res.ok && data.imageUrl) {
         setNewVariantImage(data.imageUrl);
-        showToast('Variant image uploaded!');
+        showToast('Colour swatch image uploaded!');
       } else {
         showToast(data.error || 'Variant image upload failed.');
       }
@@ -426,19 +587,31 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   const handleAddVariant = () => {
     if (!newVariantColour.trim()) {
-      showToast('Please enter a photo / angle label.');
+      showToast('Please enter a colour name (e.g. Yellow, Purple, Blue).');
       return;
     }
     const finalImage = newVariantMode === 'url' ? newVariantUrl.trim() : newVariantImage;
     if (!finalImage) {
-      showToast('Please upload an image or provide an image URL for this angle.');
+      showToast('Please upload an image or provide an image URL for this colour.');
       return;
     }
-    setProdVariants([...prodVariants, { colour: newVariantColour.trim(), image: finalImage }]);
+    const newEntry: ProductVariant = {
+      colour: newVariantColour.trim(),
+      image: finalImage,
+    };
+    if (newVariantPrice && !isNaN(parseFloat(newVariantPrice))) {
+      newEntry.price = parseFloat(newVariantPrice);
+    }
+    if (newVariantStock && !isNaN(parseInt(newVariantStock, 10))) {
+      newEntry.stock = parseInt(newVariantStock, 10);
+    }
+    setProdVariants((prev) => [...prev, newEntry]);
     setNewVariantColour('');
     setNewVariantImage('');
     setNewVariantUrl('');
-    showToast('Photo / Angle added to gallery!');
+    setNewVariantPrice('');
+    setNewVariantStock('');
+    showToast(`Colour option "${newEntry.colour}" added!`);
   };
 
   const handleRemoveVariant = (index: number) => {
@@ -446,41 +619,54 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       setEditingVariantIndex(null);
     }
     setProdVariants(prodVariants.filter((_, i) => i !== index));
-    showToast('Angle photo removed.');
+    showToast('Colour option removed.');
   };
 
   const handleStartEditVariant = (index: number) => {
     setEditingVariantIndex(index);
     setEditingVariantColour(prodVariants[index].colour);
     setEditingVariantImage(prodVariants[index].image);
+    setEditingVariantPrice(prodVariants[index].price !== undefined ? prodVariants[index].price.toString() : '');
+    setEditingVariantStock(prodVariants[index].stock !== undefined ? prodVariants[index].stock.toString() : '');
   };
 
   const handleSaveEditVariant = () => {
     if (editingVariantIndex === null) return;
     if (!editingVariantColour.trim()) {
-      showToast('Please enter an angle/color label.');
+      showToast('Please enter a colour name.');
       return;
     }
     if (!editingVariantImage.trim()) {
-      showToast('Please attach an image for this angle.');
+      showToast('Please attach an image for this colour.');
       return;
     }
     const updated = [...prodVariants];
-    updated[editingVariantIndex] = {
+    const edited: ProductVariant = {
       colour: editingVariantColour.trim(),
-      image: editingVariantImage.trim()
+      image: editingVariantImage.trim(),
     };
+    if (editingVariantPrice && !isNaN(parseFloat(editingVariantPrice))) {
+      edited.price = parseFloat(editingVariantPrice);
+    }
+    if (editingVariantStock && !isNaN(parseInt(editingVariantStock, 10))) {
+      edited.stock = parseInt(editingVariantStock, 10);
+    }
+    updated[editingVariantIndex] = edited;
     setProdVariants(updated);
     setEditingVariantIndex(null);
     setEditingVariantColour('');
     setEditingVariantImage('');
-    showToast('Angle/Color updated successfully!');
+    setEditingVariantPrice('');
+    setEditingVariantStock('');
+    showToast('Colour variant updated successfully!');
   };
 
   const handleCancelEditVariant = () => {
     setEditingVariantIndex(null);
     setEditingVariantColour('');
     setEditingVariantImage('');
+    setEditingVariantPrice('');
+    setEditingVariantStock('');
   };
 
   const handleSetVariantAsThumbnail = (index: number) => {
@@ -493,6 +679,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const handleEditVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const err = validateImageFile(file);
+    if (err) {
+      showToast(err);
+      return;
+    }
+
     setUploadingEditVariantImage(true);
     const formData = new FormData();
     formData.append('image', file);
@@ -605,8 +798,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       return;
     }
 
+    const finalCover = prodImage || prodGalleryImages[0] || (prodVariants[0] && prodVariants[0].image) || '';
+
     // Image check: sarees cannot be published without an image
-    if (!prodIsArchived && (!prodImage || prodImage.trim() === '')) {
+    if (!prodIsArchived && !finalCover) {
       showToast('Cannot publish saree without an image. Please attach an image or put in archive.');
       return;
     }
@@ -620,10 +815,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       colour: finalColour,
       desc: prodDesc ? sanitizeHtml(prodDesc) : '',
       blouse: prodBlouse,
-      image: prodImage,
+      image: finalCover,
       stock: parseInt(prodStock, 10) || 0,
       categoryId: prodCategoryId ? parseInt(prodCategoryId, 10) : undefined,
       variants: prodVariants,
+      galleryImages: prodGalleryImages,
       tags: editingProduct ? editingProduct.tags : ['new'],
       reelUrl: prodReelUrl.trim() || null,
       isArchived: prodIsArchived
@@ -682,6 +878,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setProdStock((p.stock ?? 10).toString());
     setProdCategoryId(p.categoryId ? p.categoryId.toString() : '');
     setProdVariants(p.variants || []);
+    setProdGalleryImages(p.galleryImages || []);
     setProdReelUrl(p.reelUrl || '');
     setProdIsArchived(p.isArchived === true);
     setShowProductModal(true);
@@ -753,12 +950,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setProdStock('10');
     setProdCategoryId('');
     setProdVariants([]);
+    setProdGalleryImages([]);
+    setNewGalleryUrl('');
+    setGalleryInputMode('upload');
     setNewVariantColour('');
     setNewVariantImage('');
     setNewVariantUrl('');
+    setNewVariantPrice('');
+    setNewVariantStock('');
     setEditingVariantIndex(null);
     setEditingVariantColour('');
     setEditingVariantImage('');
+    setEditingVariantPrice('');
+    setEditingVariantStock('');
     setThumbnailInputMode('upload');
     setProdReelUrl('');
     setProdIsArchived(false);
@@ -1556,6 +1760,231 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     }
   };
 
+  // Store Offers Actions
+  const handleCreateOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offerTitle.trim()) {
+      showToast('Offer title/text is required.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/admin/offers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: offerTitle.trim(),
+          code: offerCode.trim() ? offerCode.trim().toUpperCase() : undefined,
+          conditions: offerConditions.trim() || undefined,
+          sortOrder: parseInt(offerSortOrder) || 0,
+          expiresAt: offerExpiresAt || undefined
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Offer created successfully!');
+        setOfferTitle('');
+        setOfferCode('');
+        setOfferConditions('');
+        setOfferSortOrder('0');
+        setOfferExpiresAt('');
+        fetchDashboardData();
+      } else {
+        showToast(data.error || 'Failed to create offer.');
+      }
+    } catch {
+      showToast('Error connecting to server.');
+    }
+  };
+
+  const handleDeleteOffer = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this offer?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/offers/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Offer deleted.');
+        fetchDashboardData();
+      } else {
+        showToast('Failed to delete offer.');
+      }
+    } catch {
+      showToast('Error connecting to server.');
+    }
+  };
+
+  // Store Settings (Business details) Actions
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          country_of_origin: settingsOrigin.trim(),
+          business_name: settingsBusinessName.trim(),
+          address: settingsAddress.trim(),
+          pincode: settingsPincode.trim(),
+          email: settingsEmail.trim(),
+          gstin: settingsGstin.trim(),
+          free_shipping_above: settingsFreeShippingAbove.trim(),
+          show_review_date: settingsShowReviewDates ? 'true' : 'false'
+        })
+      });
+      if (res.ok) {
+        showToast('Store settings saved successfully!');
+      } else {
+        showToast('Failed to save store settings.');
+      }
+    } catch {
+      showToast('Error saving store settings.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleToggleReviewDates = async (enabled: boolean) => {
+    setSettingsShowReviewDates(enabled);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          show_review_date: enabled ? 'true' : 'false'
+        })
+      });
+      if (res.ok) {
+        showToast(enabled ? 'Review dates are now visible to customers.' : 'Review dates are now hidden from customers.');
+      } else {
+        showToast('Failed to update review date setting.');
+      }
+    } catch {
+      showToast('Network error updating review date setting.');
+    }
+  };
+
+  // Store Policies Actions
+  const openCreatePolicyModal = () => {
+    setEditingPolicy(null);
+    setPolicyTitle('');
+    setPolicySlug('');
+    setPolicyContent('');
+    setPolicyPublished(true);
+    setPolicyPreviewMode('editor');
+    setPolicyModalOpen(true);
+  };
+
+  const openEditPolicyModal = (p: Policy) => {
+    setEditingPolicy(p);
+    setPolicyTitle(p.title);
+    setPolicySlug(p.slug);
+    setPolicyContent(p.content);
+    setPolicyPublished(p.is_published);
+    setPolicyPreviewMode('editor');
+    setPolicyModalOpen(true);
+  };
+
+  const handleSavePolicy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!policyTitle.trim()) {
+      showToast('Please enter a policy title.');
+      return;
+    }
+    const cleanSlug = (policySlug.trim() || policyTitle.trim())
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    if (!cleanSlug) {
+      showToast('Please enter a valid policy slug.');
+      return;
+    }
+
+    setSavingPolicy(true);
+    try {
+      const url = editingPolicy
+        ? `${API_URL}/api/admin/policies/${editingPolicy.id}`
+        : `${API_URL}/api/admin/policies`;
+      const method = editingPolicy ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: policyTitle.trim(),
+          slug: cleanSlug,
+          content: policyContent,
+          is_published: policyPublished,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        if (editingPolicy) {
+          setPolicies((prev) => prev.map((p) => (p.id === editingPolicy.id ? data : p)));
+          showToast(`Policy '${data.title}' updated successfully!`);
+        } else {
+          setPolicies((prev) => [...prev, data]);
+          showToast(`Policy '${data.title}' created successfully!`);
+        }
+        setPolicyModalOpen(false);
+      } else {
+        showToast(data.error || 'Failed to save policy.');
+      }
+    } catch {
+      showToast('Network error while saving policy.');
+    } finally {
+      setSavingPolicy(false);
+    }
+  };
+
+  const handleTogglePublishPolicy = async (id: number, currentPublished: boolean) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/policies/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_published: !currentPublished }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setPolicies((prev) => prev.map((p) => (p.id === id ? updated : p)));
+        showToast(`Policy ${!currentPublished ? 'published' : 'unpublished'} successfully!`);
+      } else {
+        showToast('Failed to update policy status.');
+      }
+    } catch {
+      showToast('Network error while updating policy.');
+    }
+  };
+
+  const handleDeletePolicy = async (id: number, title: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete the policy "${title}"?`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/admin/policies/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setPolicies((prev) => prev.filter((p) => p.id !== id));
+        showToast(`Policy "${title}" deleted successfully.`);
+      } else {
+        showToast('Failed to delete policy.');
+      }
+    } catch {
+      showToast('Network error while deleting policy.');
+    }
+  };
+
   // Review Actions
   const handleDeleteReview = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this customer review?')) return;
@@ -1694,7 +2123,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
             <Lock className="w-6 h-6 text-[#C4601A]" />
           </div>
-          <h2 className="font-serif text-xl font-bold text-[#1A1A1A] mb-2">Access Restricted</h2>
+          <h2 className="font-sans text-xl font-bold text-[#1A1A1A] mb-2">Access Restricted</h2>
           <p className="text-xs text-[#888888] mb-6 leading-relaxed">
             The Admin Portal is private. Please sign in with <strong>info@snehsarees.in</strong> on the store to access.
           </p>
@@ -1720,7 +2149,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     <div className="bg-[#FAF6F0] min-h-screen">
       {/* Top Header */}
       <div className="fixed top-0 left-0 right-0 h-[60px] md:h-[64px] bg-white border-b border-[#E8E0D5] flex items-center px-4 md:px-8 z-30 shadow-xs">
-        <span className="font-serif text-lg md:text-xl font-bold text-[#C4601A] flex-1 flex items-center gap-2">
+        <span className="font-sans text-lg md:text-xl font-bold text-[#C4601A] flex-1 flex items-center gap-2">
           Sneh Sarees <span className="bg-[#F5E4BC]/25 text-[#C4601A] text-[10px] px-2 py-0.5 rounded font-sans uppercase font-bold">Admin</span>
         </span>
         {sessionTimeLeft && (
@@ -1794,6 +2223,30 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('offers')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'offers' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
+          >
+            <Percent className="w-4.5 h-4.5 text-orange-500" /> Store Offers
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'settings' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
+          >
+            <SettingsIcon className="w-4.5 h-4.5 text-slate-600" /> Store Settings
+          </button>
+
+          <button
+            onClick={() => setActiveTab('policies')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'policies' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
+              }`}
+          >
+            <FileText className="w-4.5 h-4.5 text-amber-600" /> Store Policies
+          </button>
+
+          <button
             onClick={() => setActiveTab('reviews')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${activeTab === 'reviews' ? 'bg-[#C4601A] text-white' : 'text-[#888888] hover:bg-[#FAF6F0]'
               }`}
@@ -1836,27 +2289,27 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Total Revenue</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#C4601A] mt-1 truncate">
+                  <h3 className="font-sans text-2xl font-bold text-[#C4601A] mt-1 truncate">
                     ₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                   </h3>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Store Orders</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{orders.length}</h3>
+                  <h3 className="font-sans text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{orders.length}</h3>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Bulk Leads</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{inquiries.length}</h3>
+                  <h3 className="font-sans text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{inquiries.length}</h3>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] shadow-2xs overflow-hidden">
                   <span className="text-[10px] uppercase font-bold text-[#888888]">Catalog Size</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{products.length} Items</h3>
+                  <h3 className="font-sans text-2xl font-bold text-[#1A1A1A] mt-1 truncate">{products.length} Items</h3>
                 </div>
               </div>
 
               {/* Recent Orders block */}
               <div className="bg-white rounded-2xl border border-[#E8E0D5] p-5 shadow-2xs">
-                <h3 className="font-serif text-lg font-bold text-[#1A1A1A] mb-4">Pending Tasks Overview</h3>
+                <h3 className="font-sans text-lg font-bold text-[#1A1A1A] mb-4">Pending Tasks Overview</h3>
                 <p className="text-xs text-[#888888] leading-relaxed">
                   Use the sidebar to jump directly into Catalog management (adjust prices, fabrics, descriptions), track order statuses, or verify wholesale customer inquiries.
                 </p>
@@ -1869,7 +2322,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <div className="space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#E8E0D5] shadow-2xs">
                 <div>
-                  <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Catalog Management</h3>
+                  <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Catalog Management</h3>
                   <p className="text-[11px] text-[#888888] mt-0.5">Manage sarees or upload products in bulk via Excel spreadsheet</p>
                 </div>
                 
@@ -2003,17 +2456,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     return (
                       <div key={p.id} className="p-4 flex items-center justify-between text-xs hover:bg-[#FAF6F0]/20 gap-3 border-b border-gray-100 last:border-b-0">
                         <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                          {/* Saree Thumbnail Image Preview */}
+                          {/* Saree Thumbnail Image Preview (Uniform 4:5 Contain) */}
                           <div
                             onClick={() => handleEditProductClick(p)}
-                            className="relative w-12 h-15 rounded-lg border border-[#E8E0D5] bg-[#FAF6F0] overflow-hidden shrink-0 cursor-pointer group shadow-3xs"
+                            className="relative w-12 aspect-[4/5] rounded-lg border border-[#E8E0D5] bg-[#FAF6F0] overflow-hidden shrink-0 cursor-pointer group shadow-3xs flex items-center justify-center"
                             title="Click to edit thumbnail or saree details"
                           >
                             {hasImage ? (
-                              <img
-                                src={p.image}
-                                alt={p.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              <ProductThumbnail
+                                imageUrl={p.image}
+                                altText={p.name}
+                                width={p.imageWidth}
+                                height={p.imageHeight}
+                                className="w-full h-full"
                               />
                             ) : (
                               <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
@@ -2021,7 +2476,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                                 <span className="text-[7px] font-bold mt-0.5">No Photo</span>
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
                               <Edit3 className="w-3.5 h-3.5 text-white" />
                             </div>
                           </div>
@@ -2135,7 +2590,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Orders Pipeline</h3>
+                  <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Orders Pipeline</h3>
                   <p className="text-xs text-[#888888]">Track live orders, auto-sync statuses with Shiprocket, and handle shipments.</p>
                 </div>
                 <button
@@ -2316,7 +2771,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {/* Wholesale Leads Panel */}
           {!dataLoading && activeTab === 'inquiries' && (
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Wholesale Leads</h3>
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Wholesale Leads</h3>
               <div className="space-y-3">
                 {inquiries.map((inq) => (
                   <div key={inq.id} className="bg-white border border-[#E8E0D5] rounded-xl p-4 text-xs space-y-3 shadow-2xs">
@@ -2365,11 +2820,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           {/* Categories Panel */}
           {!dataLoading && activeTab === 'categories' && (
             <div className="space-y-4">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Manage Saree Categories</h3>
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Manage Saree Categories</h3>
 
               {/* Category creation/edit form */}
               <form onSubmit={handleCreateCategory} className="bg-white border border-[#E8E0D5] rounded-xl p-4 space-y-3">
-                <h4 className="font-serif text-sm font-bold text-[#C4601A]">
+                <h4 className="font-sans text-sm font-bold text-[#C4601A]">
                   {editingCatId ? 'Edit Saree Category' : 'Add New Saree Category'}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2570,7 +3025,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           {!dataLoading && activeTab === 'banners' && (
             <div className="space-y-6">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Manage Scrollable Offer Banners</h3>
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Manage Scrollable Offer Banners</h3>
 
               <form onSubmit={handleCreateBanner} className="bg-white p-5 rounded-2xl border border-[#E8E0D5] space-y-4 shadow-2xs">
                 <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2">Add New Banner Banner</span>
@@ -2684,7 +3139,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase" style={{ backgroundColor: `${b.bgFrom}15`, color: b.bgFrom }}>
                           {b.badgeText || 'Promo'}
                         </span>
-                        <h4 className="font-serif text-sm font-bold text-[#1a1a1a]">{b.title}</h4>
+                        <h4 className="font-sans text-sm font-bold text-[#1a1a1a]">{b.title}</h4>
                       </div>
                       <p className="text-[11px] text-gray-500">{b.subtitle || 'No description'}</p>
                       <div className="flex gap-2.5 mt-1 flex-wrap text-[9px] text-[#888888]">
@@ -2707,7 +3162,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           {!dataLoading && activeTab === 'coupons' && (
             <div className="space-y-6">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Manage Coupon Codes</h3>
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Manage Coupon Codes</h3>
 
               <form onSubmit={handleCreateCoupon} className="bg-white p-5 rounded-2xl border border-[#E8E0D5] space-y-4 shadow-2xs">
                 <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2">Create New Coupon</span>
@@ -2790,9 +3245,599 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </div>
           )}
 
+          {!dataLoading && activeTab === 'offers' && (
+            <div className="space-y-6">
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Manage Store Offers</h3>
+
+              <form onSubmit={handleCreateOffer} className="bg-white p-5 rounded-2xl border border-[#E8E0D5] space-y-4 shadow-2xs">
+                <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2">Create New Promotional Offer</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Offer Title / Text *</label>
+                    <input
+                      type="text"
+                      value={offerTitle}
+                      onChange={(e) => setOfferTitle(e.target.value)}
+                      placeholder='e.g. First Order → Save ₹100 or Extra ₹100 OFF on Prepaid Orders'
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Coupon Code (optional)</label>
+                    <input
+                      type="text"
+                      value={offerCode}
+                      onChange={(e) => setOfferCode(e.target.value)}
+                      placeholder='e.g. WELCOME200'
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Conditions / Details (optional)</label>
+                    <input
+                      type="text"
+                      value={offerConditions}
+                      onChange={(e) => setOfferConditions(e.target.value)}
+                      placeholder='e.g. On orders above ₹2000'
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Display Order</label>
+                    <input
+                      type="number"
+                      value={offerSortOrder}
+                      onChange={(e) => setOfferSortOrder(e.target.value)}
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Expires At (optional)</label>
+                    <input
+                      type="date"
+                      value={offerExpiresAt}
+                      onChange={(e) => setOfferExpiresAt(e.target.value)}
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="bg-[#C4601A] hover:bg-[#A0450F] text-white text-xs font-bold py-2.5 px-5 rounded-xl cursor-pointer">
+                  Create Offer
+                </button>
+              </form>
+
+              {/* Offers List */}
+              <div className="bg-white rounded-2xl border border-[#E8E0D5] divide-y divide-[#E8E0D5] overflow-hidden shadow-2xs">
+                {storeOffers.map((o) => (
+                  <div key={o.id} className="p-4 flex items-center justify-between hover:bg-[#FAF6F0]/20 text-xs">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="w-5 h-5 rounded-full bg-[#E65100] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                          %
+                        </span>
+                        <span className="font-bold text-[#1A1A1A] text-sm">{o.title}</span>
+                        {o.code && (
+                          <span className="font-mono font-bold text-xs bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">
+                            Code: {o.code}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[#777777] space-x-2">
+                        {o.conditions && <span>Conditions: {o.conditions}</span>}
+                        {o.expiresAt && <span>Expires: {new Date(o.expiresAt).toLocaleDateString()}</span>}
+                      </div>
+                    </div>
+                    <button onClick={() => handleDeleteOffer(o.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-full cursor-pointer">
+                      <Trash2 className="w-4.5 h-4.5" />
+                    </button>
+                  </div>
+                ))}
+                {storeOffers.length === 0 && (
+                  <div className="p-6 text-center text-xs text-gray-500">
+                    No custom promotional offers created yet. (Coupons created in Coupon Codes also show up automatically on product pages).
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!dataLoading && activeTab === 'settings' && (
+            <div className="space-y-6">
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Store Settings &amp; Business Details</h3>
+              <p className="text-xs text-[#777777]">
+                Configure the store's importer, marketer, packer, origin, and tax details displayed in the Product Details accordion on product pages.
+              </p>
+
+              <form onSubmit={handleSaveSettings} className="bg-white p-6 rounded-2xl border border-[#E8E0D5] space-y-4 shadow-2xs">
+                <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2">Business &amp; Legal Details</span>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Country of Origin</label>
+                    <input
+                      type="text"
+                      value={settingsOrigin}
+                      onChange={(e) => setSettingsOrigin(e.target.value)}
+                      placeholder="e.g. India"
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Imported / Marketed / Packed By (Business Name)</label>
+                    <input
+                      type="text"
+                      value={settingsBusinessName}
+                      onChange={(e) => setSettingsBusinessName(e.target.value)}
+                      placeholder="e.g. Sneh Sarees (Kabir Textile & Co.)"
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Full Business Address</label>
+                  <input
+                    type="text"
+                    value={settingsAddress}
+                    onChange={(e) => setSettingsAddress(e.target.value)}
+                    placeholder="e.g. #624/626, Dr India Textile hub, opp. Amazia, Parvat Patiya"
+                    className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Pincode &amp; City, State</label>
+                    <input
+                      type="text"
+                      value={settingsPincode}
+                      onChange={(e) => setSettingsPincode(e.target.value)}
+                      placeholder="e.g. 395010, Surat, GJ"
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">Customer Care Email</label>
+                    <input
+                      type="email"
+                      value={settingsEmail}
+                      onChange={(e) => setSettingsEmail(e.target.value)}
+                      placeholder="e.g. care@snehsarees.in"
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">GST IN Number</label>
+                    <input
+                      type="text"
+                      value={settingsGstin}
+                      onChange={(e) => setSettingsGstin(e.target.value)}
+                      placeholder="e.g. 24AAWFK6975C1ZU"
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2 mb-3">
+                    Customer Reviews Settings
+                  </span>
+                  <div className="max-w-md flex items-center justify-between gap-4 bg-[#FAF6F0] border border-[#E8E0D5] p-3.5 rounded-xl">
+                    <div>
+                      <label className="block text-xs font-bold text-[#1A1A1A]">
+                        Show Review Dates on Website
+                      </label>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        Decide whether review dates (e.g. "16 Nov 2026") are shown or hidden below products.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsShowReviewDates(!settingsShowReviewDates)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer shrink-0 ${
+                        settingsShowReviewDates ? 'bg-[#C4601A]' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs ${
+                          settingsShowReviewDates ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2 mb-3">
+                    Shipping &amp; Delivery Settings
+                  </span>
+                  <div className="max-w-md">
+                    <label className="block text-[10px] font-bold uppercase text-[#1A1A1A] mb-1">
+                      Free Shipping Order Threshold (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={settingsFreeShippingAbove}
+                      onChange={(e) => setSettingsFreeShippingAbove(e.target.value)}
+                      placeholder="e.g. 2000"
+                      className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Minimum order total (in INR) for free shipping. Displayed in the coupon &amp; service perks section on the product page.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={savingSettings}
+                    className="bg-[#C4601A] hover:bg-[#A0450F] text-white text-xs font-bold py-2.5 px-6 rounded-xl cursor-pointer disabled:opacity-50"
+                  >
+                    {savingSettings ? 'Saving...' : 'Save Store Settings'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {!dataLoading && activeTab === 'policies' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Store Policies &amp; Legal Center</h3>
+                  <p className="text-xs text-[#777777] mt-0.5">
+                    Central single source of truth for Shipping, Return, Privacy, Terms, and Cancellation. Changes update everywhere across the site instantly.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openCreatePolicyModal}
+                  className="bg-[#C4601A] hover:bg-[#A0450F] text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs self-start sm:self-auto shrink-0 transition-colors"
+                >
+                  <PlusCircle className="w-4 h-4" /> Add New Policy
+                </button>
+              </div>
+
+              {policies.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-[#E8E0D5] p-12 text-center shadow-2xs space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-[#FFF0E8] text-[#C4601A] flex items-center justify-center mx-auto">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-sans text-sm font-bold text-[#1A1A1A]">No Policies Found in Database</h4>
+                  <p className="text-xs text-[#777777] max-w-md mx-auto">
+                    No policy records are currently stored. Click &quot;Add New Policy&quot; or run the migration script to populate store policies.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {policies.map((p) => {
+                    const plainSnippet = p.content
+                      .replace(/<[^>]+>/g, ' ')
+                      .replace(/&nbsp;/g, ' ')
+                      .replace(/\s+/g, ' ')
+                      .trim();
+
+                    const lastUpdated = p.updated_at
+                      ? new Date(p.updated_at).toLocaleString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : 'Recently';
+
+                    return (
+                      <div
+                        key={p.id}
+                        className="bg-white rounded-2xl border border-[#E8E0D5] p-5 shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between gap-4"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-1">
+                              <h4 className="font-serif text-base font-bold text-[#1A1A1A]">{p.title}</h4>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <code className="text-[11px] bg-[#FAF6F0] text-[#7A3A12] px-2 py-0.5 rounded-md border border-[#E8E0D5] font-mono">
+                                  #/policies/{p.slug}
+                                </code>
+                                <span
+                                  className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md tracking-wider ${
+                                    p.is_published
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}
+                                >
+                                  {p.is_published ? '● Published' : '○ Draft (Hidden)'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-[#666666] line-clamp-3 leading-relaxed bg-[#FAF6F0]/50 p-2.5 rounded-xl border border-[#E8E0D5]/40 italic">
+                            {plainSnippet || 'No content written yet.'}
+                          </p>
+
+                          <div className="text-[10px] text-[#888888]">
+                            Last updated: <strong>{lastUpdated}</strong>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 pt-3 border-t border-[#E8E0D5] flex-wrap">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditPolicyModal(p)}
+                              className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6D8] text-[#1A1A1A] rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                              title="Edit Title and Content"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-[#C4601A]" /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePublishPolicy(p.id, p.is_published)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                                p.is_published
+                                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200'
+                                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200'
+                              }`}
+                              title={p.is_published ? 'Unpublish to hide from public' : 'Publish to make public'}
+                            >
+                              {p.is_published ? 'Unpublish' : 'Publish'}
+                            </button>
+                            <a
+                              href={`/#/policies/${p.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F0E6D8] text-[#555555] hover:text-[#1A1A1A] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Preview on Storefront"
+                            >
+                              <Globe className="w-3.5 h-3.5" /> View Live
+                            </a>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePolicy(p.id, p.title)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Policy"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── POLICY EDITOR / PREVIEW MODAL ── */}
+              {policyModalOpen && (
+                <div className="fixed inset-0 z-[280] flex items-center justify-center p-3 sm:p-5 bg-black/70 backdrop-blur-xs animate-fade-in">
+                  <div className="relative w-full max-w-[880px] max-h-[92vh] bg-white rounded-2xl md:rounded-3xl border border-[#E8E0D5] shadow-2xl flex flex-col overflow-hidden animate-scale-100">
+                    {/* Modal Top Header */}
+                    <div className="p-4 sm:p-5 border-b border-[#E8E0D5] bg-[#FAF6F0] flex items-center justify-between shrink-0">
+                      <div>
+                        <h3 className="font-serif text-lg font-bold text-[#1A1A1A]">
+                          {editingPolicy ? `Edit: ${editingPolicy.title}` : 'Create New Store Policy'}
+                        </h3>
+                        <p className="text-[11px] text-[#777777]">
+                          {editingPolicy
+                            ? `Last updated: ${
+                                editingPolicy.updated_at
+                                  ? new Date(editingPolicy.updated_at).toLocaleString('en-IN')
+                                  : 'Recently'
+                              }`
+                            : 'Fill in policy details and compose rich-text content.'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPolicyModalOpen(false)}
+                        className="p-1.5 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+                        title="Close"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Editor / Preview Tabs */}
+                    <div className="flex items-center justify-between border-b border-[#E8E0D5] bg-white px-4 shrink-0">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPolicyPreviewMode('editor')}
+                          className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                            policyPreviewMode === 'editor'
+                              ? 'border-[#C4601A] text-[#C4601A]'
+                              : 'border-transparent text-gray-500 hover:text-black'
+                          }`}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Rich Text Editor
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPolicyPreviewMode('preview')}
+                          className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                            policyPreviewMode === 'preview'
+                              ? 'border-[#C4601A] text-[#C4601A]'
+                              : 'border-transparent text-gray-500 hover:text-black'
+                          }`}
+                        >
+                          <Globe className="w-3.5 h-3.5" /> Storefront Preview
+                        </button>
+                      </div>
+
+                      <label className="flex items-center gap-2 text-xs font-bold text-[#1A1A1A] cursor-pointer py-2">
+                        <input
+                          type="checkbox"
+                          checked={policyPublished}
+                          onChange={(e) => setPolicyPublished(e.target.checked)}
+                          className="w-4 h-4 text-[#C4601A] rounded focus:ring-[#C4601A] cursor-pointer"
+                        />
+                        <span>Published to Storefront</span>
+                      </label>
+                    </div>
+
+                    {/* Modal Scrollable Body */}
+                    <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+                      {/* Meta Fields (Title & Slug) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-[#1A1A1A] mb-1">
+                            Policy Title <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={policyTitle}
+                            onChange={(e) => {
+                              const newTitle = e.target.value;
+                              setPolicyTitle(newTitle);
+                              if (!editingPolicy) {
+                                setPolicySlug(
+                                  newTitle
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9]+/g, '-')
+                                    .replace(/^-+|-+$/g, '')
+                                );
+                              }
+                            }}
+                            placeholder="e.g. Shipping & Delivery Policy"
+                            className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5 text-xs font-semibold focus:outline-none"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-[#1A1A1A] mb-1">
+                            URL Slug (Public Route) <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex items-center bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl px-2.5 focus-within:ring-1 focus-within:ring-[#C4601A]">
+                            <span className="text-xs text-[#888888] select-none font-mono">#/policies/</span>
+                            <input
+                              type="text"
+                              value={policySlug}
+                              onChange={(e) => setPolicySlug(e.target.value)}
+                              placeholder="e.g. shipping-policy"
+                              className="w-full bg-transparent p-2 text-xs font-mono font-semibold focus:outline-none text-[#1A1A1A]"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content Section: Editor or Preview */}
+                      {policyPreviewMode === 'editor' ? (
+                        <div className="space-y-1.5 pt-1">
+                          <label className="block text-xs font-bold text-[#1A1A1A]">
+                            Policy Content (Headings, Lists, Bold, Links)
+                          </label>
+                          <RichTextEditor
+                            value={policyContent}
+                            onChange={setPolicyContent}
+                            placeholder="Write the policy terms, guidelines, shipping rates, refund conditions..."
+                          />
+                          <p className="text-[11px] text-gray-500">
+                            Use Heading 2 &amp; 3 for sections, bullet or ordered lists for requirements, and bold for emphasis. All HTML is strictly sanitized.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="border border-[#E8E0D5] rounded-2xl p-6 bg-[#FAF6F0]/60 space-y-4">
+                          <div className="bg-[#FFF8F3] border border-[#F0C8A0] rounded-xl p-4">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#C4601A] block mb-1">
+                              Store Policy Preview
+                            </span>
+                            <h2 className="font-serif text-xl font-bold text-[#1A1A1A]">{policyTitle || 'Untitled Policy'}</h2>
+                            <p className="text-[11px] text-[#7A3A12]">
+                              Slug: <code className="font-mono">#/policies/{policySlug || 'preview-slug'}</code> · Status:{' '}
+                              {policyPublished ? 'Published' : 'Draft'}
+                            </p>
+                          </div>
+
+                          <div
+                            className="bg-white rounded-2xl border border-[#E8E0D5] p-6 space-y-4 text-xs sm:text-sm text-[#3A3A3A] leading-relaxed [&_h2]:font-serif [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#1A1A1A] [&_h3]:font-serif [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-[#1A1A1A] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#C4601A] [&_a]:underline"
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                sanitizeHtml(policyContent) ||
+                                '<p class="text-gray-400 italic">No content written yet.</p>',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Modal Bottom Actions */}
+                    <div className="p-4 border-t border-[#E8E0D5] bg-[#FAF6F0] flex items-center justify-between shrink-0">
+                      <span className="text-[11px] text-gray-500">
+                        {policyPublished ? '● Will appear live on storefront' : '○ Saved as draft (hidden from public)'}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPolicyModalOpen(false)}
+                          className="px-4 py-2 border border-[#E8E0D5] hover:bg-gray-100 text-gray-700 text-xs font-bold rounded-xl cursor-pointer transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSavePolicy}
+                          disabled={savingPolicy}
+                          className="bg-[#C4601A] hover:bg-[#A0450F] text-white text-xs font-bold py-2 px-6 rounded-xl cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                        >
+                          {savingPolicy ? 'Saving...' : editingPolicy ? 'Update Policy' : 'Create Policy'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {!dataLoading && activeTab === 'reviews' && (
             <div className="space-y-6">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Customer Reviews Moderation</h3>
+              <div className="bg-white p-5 rounded-2xl border border-[#E8E0D5] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+                <div>
+                  <h3 className="font-sans text-xl font-bold text-[#1A1A1A] flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-[#C4601A]" /> Customer Reviews Moderation
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Moderate customer reviews and decide whether review dates are shown or hidden on the store.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 bg-[#FAF6F0] border border-[#E8E0D5] px-4 py-2.5 rounded-xl shrink-0 self-start sm:self-auto">
+                  <div className="text-right">
+                    <span className="block text-xs font-bold text-[#1A1A1A]">Review Dates</span>
+                    <span className="block text-[10px] text-gray-500 font-medium">
+                      {settingsShowReviewDates ? 'Visible on website' : 'Hidden from website'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleReviewDates(!settingsShowReviewDates)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                      settingsShowReviewDates ? 'bg-[#C4601A]' : 'bg-gray-300'
+                    }`}
+                    title={settingsShowReviewDates ? 'Click to hide dates on website' : 'Click to show dates on website'}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs ${
+                        settingsShowReviewDates ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
               <div className="bg-white rounded-2xl border border-[#E8E0D5] divide-y divide-[#E8E0D5] overflow-hidden shadow-2xs">
                 {reviewsList.map((r) => (
                   <div key={r.id} className="p-4 hover:bg-[#FAF6F0]/20 text-xs flex justify-between gap-4">
@@ -2804,6 +3849,22 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       </div>
                       <span className="block text-[10px] text-[#888888]">Product: <strong>{r.productName || `Product #${r.productId}`}</strong></span>
                       <p className="text-gray-600 italic bg-gray-50 p-2.5 rounded-lg border border-gray-100">{r.body || 'No review message'}</p>
+                      {r.images && r.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {r.images.map((imgUrl, idx) => (
+                            <a
+                              key={idx}
+                              href={imgUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-12 h-12 rounded-lg overflow-hidden border border-[#E8E0D5] bg-gray-50 hover:opacity-80 transition-opacity"
+                              title="Click to view full photo"
+                            >
+                              <img src={imgUrl} alt={`Customer upload ${idx + 1}`} className="w-full h-full object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <button onClick={() => handleDeleteReview(r.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-full h-fit cursor-pointer align-top shrink-0">
                       <Trash2 className="w-4.5 h-4.5" />
@@ -2817,7 +3878,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           {!dataLoading && activeTab === 'reels' && (
             <div className="space-y-6">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Video Reels Content Manager</h3>
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Video Reels Content Manager</h3>
 
               <form onSubmit={handleCreateReel} className="bg-white p-5 rounded-2xl border border-[#E8E0D5] space-y-4 shadow-2xs">
                 <span className="block text-xs font-bold text-[#C4601A] border-b border-[#E8E0D5] pb-2">Add New Reel</span>
@@ -2853,9 +3914,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {reels.map((rl) => (
                   <div key={rl.id} className="p-4 bg-white rounded-2xl border border-[#E8E0D5] flex gap-3 shadow-2xs">
-                    <div className="w-16 h-24 bg-gray-100 rounded-lg flex items-center justify-center border overflow-hidden shrink-0">
+                    <div className="w-16 aspect-[4/5] bg-[#FAF6F0] rounded-lg flex items-center justify-center border border-[#E8E0D5] overflow-hidden shrink-0">
                       {rl.product?.image ? (
-                        <img src={rl.product.image} className="w-full h-full object-cover" />
+                        <ProductThumbnail imageUrl={rl.product.image} className="w-full h-full" />
                       ) : (
                         <Film className="w-6 h-6 text-gray-400" />
                       )}
@@ -2877,7 +3938,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           {!dataLoading && activeTab === 'returns' && (
             <div className="space-y-6">
-              <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">Manage Return & Refund Requests</h3>
+              <h3 className="font-sans text-xl font-bold text-[#1A1A1A]">Manage Return & Refund Requests</h3>
               <p className="text-xs text-[#888888]">Process customer returns, updates statuses, and document resolution comments.</p>
 
               <div className="space-y-4">
@@ -3029,7 +4090,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <button onClick={() => setEditingOrderLocation(null)} className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded-full cursor-pointer">
               <X className="w-5 h-5" />
             </button>
-            <h4 className="font-serif text-lg font-bold text-[#1A1A1A] mb-2 flex items-center gap-1.5">
+            <h4 className="font-sans text-lg font-bold text-[#1A1A1A] mb-2 flex items-center gap-1.5">
               <MapPin className="w-5 h-5 text-[#C4601A]" /> Change Delivery Location
             </h4>
             <p className="text-[11px] text-[#888888] mb-4">
@@ -3067,7 +4128,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <button onClick={() => setShippingOrder(null)} className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded-full cursor-pointer">
               <X className="w-5 h-5" />
             </button>
-            <h4 className="font-serif text-lg font-bold text-[#1A1A1A] mb-1 flex items-center gap-2">
+            <h4 className="font-sans text-lg font-bold text-[#1A1A1A] mb-1 flex items-center gap-2">
               🚚 Ship Order
             </h4>
             <p className="text-[11px] text-[#888888] mb-4">
@@ -3147,7 +4208,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       {/* Product Create/Edit Modal */}
       {showProductModal && (
         <div className="fixed inset-0 bg-[#1A1A1A]/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-[450px] w-full p-6 border border-[#E8E0D5] relative my-8 shadow-xl">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 border border-[#E8E0D5] relative my-8 shadow-xl">
             <button
               onClick={() => { setShowProductModal(false); resetProductForm(); }}
               className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded-full cursor-pointer"
@@ -3155,7 +4216,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               <X className="w-5 h-5 text-gray-500" />
             </button>
 
-            <h4 className="font-serif text-lg font-bold text-[#C4601A] mb-4">
+            <h4 className="font-sans text-lg font-bold text-[#C4601A] mb-4">
               {editingProduct ? 'Edit Saree Inventory' : 'Add New Saree'}
             </h4>
 
@@ -3194,18 +4255,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
                 <div className="flex gap-3 items-center bg-white border border-[#E8E0D5] rounded-xl p-2.5 shadow-3xs">
                   {prodImage ? (
-                    <div className="relative group shrink-0">
-                      <img
-                        src={prodImage}
-                        alt="Saree thumbnail preview"
-                        className="w-14 h-16 rounded-lg object-cover border border-[#E8E0D5]"
+                    <div className="relative group shrink-0 w-14 aspect-[4/5] rounded-lg overflow-hidden bg-[#FAF6F0] border border-[#E8E0D5]">
+                      <ProductThumbnail
+                        imageUrl={prodImage}
+                        altText="Saree thumbnail preview"
+                        className="w-full h-full"
                       />
-                      <span className="absolute -top-1.5 -right-1.5 bg-[#C4601A] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-xs">
-                        ★ Main
+                      <span className="absolute -top-1.5 -right-1.5 bg-[#C4601A] text-white text-[7px] font-bold px-1.5 py-0.5 rounded-full shadow-xs">
+                        4:5 Box
                       </span>
                     </div>
                   ) : (
-                    <div className="w-14 h-16 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-gray-400 shrink-0">
+                    <div className="w-14 aspect-[4/5] rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-gray-400 shrink-0">
                       <Camera className="w-5 h-5 mb-0.5 text-gray-400" />
                       <span className="text-[8px] font-bold">No Photo</span>
                     </div>
@@ -3248,9 +4309,25 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         />
                       </div>
                     )}
-                    <span className="text-[8px] text-gray-400 block">Recommended ratio: 3:4 portrait (e.g. 600×800 px)</span>
+                    <span className="text-[8px] text-gray-400 block">Thumbnail displayed in uniform 4:5 contain box (no crop)</span>
                   </div>
                 </div>
+
+                {/* Natural Aspect Ratio Preview (PDP Customer View) */}
+                {prodImage && (
+                  <div className="bg-[#FAF6F0] border border-[#E8E0D5] rounded-xl p-2.5">
+                    <span className="text-[9px] font-bold text-gray-700 block mb-1">
+                      Natural Size / Product Page Large View (Full image, natural aspect ratio, no crop):
+                    </span>
+                    <div className="max-w-[260px] mx-auto rounded-lg overflow-hidden bg-white border border-[#E8E0D5] p-1 flex items-center justify-center">
+                      <img
+                        src={prodImage}
+                        alt="Natural size preview"
+                        style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '200px', objectFit: 'contain' }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Choose from Angles as Thumbnail Quick Picker */}
                 {prodVariants.length > 0 && (
@@ -3276,7 +4353,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                             }`}
                             title={`Make ${v.colour} the main thumbnail`}
                           >
-                            <img src={v.image} alt={v.colour} className="w-7 h-8 rounded object-cover" />
+                            <img src={v.image} alt={v.colour} className="w-7 aspect-[4/5] rounded object-contain bg-[#FAF6F0] border border-[#E8E0D5]" />
                             <div className="min-w-0">
                               <span className="block text-[9px] font-bold text-gray-800 truncate max-w-[85px]">{v.colour}</span>
                               <span className={`block text-[8px] font-bold ${isCurrentThumbnail ? 'text-emerald-700' : 'text-[#C4601A]'}`}>
@@ -3438,31 +4515,204 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 </label>
               </div>
 
-              {/* More Photos / Angles (Gallery & Color Variants) Builder */}
-              <div className="bg-gray-50 border border-dashed border-[#E8E0D5] rounded-xl p-3.5 space-y-3">
+              {/* SECTION 1: Model / Advertisement Images (Showcase Gallery) */}
+              <div className="bg-[#FAF6F0]/80 border-2 border-dashed border-[#C4601A]/30 rounded-2xl p-4 space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-[#C4601A] flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>More Photos / Angles / Color Variants</span>
-                  </span>
-                  <span className="text-[9px] font-bold text-gray-500">
-                    {prodVariants.length} photo{prodVariants.length !== 1 ? 's' : ''} in gallery
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-[#C4601A]" />
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
+                        1. Model / Advertisement Images
+                      </h5>
+                      <span className="bg-[#C4601A]/10 text-[#C4601A] text-[9px] font-bold px-2 py-0.5 rounded-full">
+                        Main Showcase Slider
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      Photos of models wearing the saree, lifestyle, and campaign shots shown in the main slider. Drag or use arrows to reorder.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-500 shrink-0">
+                    {prodGalleryImages.length} image{prodGalleryImages.length !== 1 ? 's' : ''}
                   </span>
                 </div>
 
-                {/* List of existing variants with full Edit / Delete / Make Thumbnail capabilities */}
+                {/* Multi-upload input and URL toggle */}
+                <div className="bg-white border border-[#E8E0D5] rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-700">
+                      {galleryInputMode === 'upload' ? 'Upload multiple photoshoot / model pictures:' : 'Add Image by URL:'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setGalleryInputMode(galleryInputMode === 'upload' ? 'url' : 'upload')}
+                      className="text-[9px] text-[#C4601A] font-bold hover:underline cursor-pointer"
+                    >
+                      {galleryInputMode === 'upload' ? 'Or paste Image URL' : 'Or upload image files'}
+                    </button>
+                  </div>
+
+                  {galleryInputMode === 'upload' ? (
+                    <div>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleGalleryImagesUpload}
+                        disabled={uploadingGalleryImages}
+                        className="text-[10px] text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#C4601A] file:text-white hover:file:bg-[#a84e15] cursor-pointer w-full"
+                      />
+                      <span className="text-[8px] text-gray-400 block mt-1">
+                        Supports multiple selection (JPEG, PNG, WebP, max 10MB each). Aspect ratio: 3:4 portrait.
+                      </span>
+                      {uploadingGalleryImages && (
+                        <span className="text-[9px] text-[#C4601A] font-semibold animate-pulse block mt-1">
+                          Uploading images to gallery...
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newGalleryUrl}
+                        onChange={(e) => setNewGalleryUrl(e.target.value)}
+                        placeholder="https://example.com/photoshoot-1.jpg"
+                        className="flex-1 bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-2 text-xs font-mono focus:outline-none focus:border-[#C4601A]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddGalleryUrl}
+                        className="px-3 py-1.5 bg-[#C4601A] text-white text-xs font-bold rounded-lg hover:bg-[#a84e15] cursor-pointer"
+                      >
+                        Add URL
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Display / Reorder List */}
+                {prodGalleryImages.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-bold text-gray-600 uppercase tracking-wider block">
+                      Display Order in Slider (Drag or use ▲ / ▼ to reorder):
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {prodGalleryImages.map((imgUrl, idx) => {
+                        const isCover = prodImage === imgUrl;
+                        return (
+                          <div
+                            key={idx}
+                            draggable={true}
+                            onDragStart={() => handleDragStartGallery(idx)}
+                            onDragOver={handleDragOverGallery}
+                            onDrop={() => handleDropGallery(idx)}
+                            className={`p-2 bg-white rounded-xl border relative group transition-all flex flex-col justify-between ${
+                              isCover ? 'border-[#C4601A] ring-1 ring-[#C4601A]/30 bg-[#FFFDFB]' : 'border-[#E8E0D5] hover:border-gray-400'
+                            }`}
+                          >
+                            <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-[#FAF6F0] mb-1.5 flex items-center justify-center border border-[#E8E0D5]">
+                              <img src={imgUrl} alt={`Model ${idx + 1}`} className="w-full h-full object-contain" />
+                              <span className="absolute top-1 left-1 bg-black/70 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">
+                                #{idx + 1}
+                              </span>
+                              {isCover && (
+                                <span className="absolute top-1 right-1 bg-[#C4601A] text-white text-[8px] font-bold px-1.5 py-0.5 rounded">
+                                  ★ Cover
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Order Controls & Actions */}
+                            <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => handleMoveGalleryImage(idx, 'up')}
+                                  className="p-1 text-gray-600 hover:text-[#C4601A] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                  title="Move earlier"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === prodGalleryImages.length - 1}
+                                  onClick={() => handleMoveGalleryImage(idx, 'down')}
+                                  className="p-1 text-gray-600 hover:text-[#C4601A] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                  title="Move later"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                {!isCover && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setProdImage(imgUrl);
+                                      showToast(`Image #${idx + 1} set as main cover thumbnail!`);
+                                    }}
+                                    className="text-[8px] font-bold text-[#C4601A] hover:underline cursor-pointer"
+                                    title="Set as main cover thumbnail"
+                                  >
+                                    ★ Set Cover
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveGalleryImage(idx)}
+                                  className="p-1 text-red-500 hover:bg-red-50 rounded cursor-pointer"
+                                  title="Delete image"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 2: Colour Images (Colour Options & Swatches) */}
+              <div className="bg-amber-50/60 border-2 border-dashed border-amber-300 rounded-2xl p-4 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-700" />
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
+                        2. Colour Images (Colour Options & Swatches)
+                      </h5>
+                      <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                        Storefront "Colours" Strip
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      Each entry corresponds to a colour option (e.g. Yellow, Purple, Blue, Red). Shown as clickable swatches on the product page.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-500 shrink-0">
+                    {prodVariants.length} colour{prodVariants.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {/* List of existing colour variants */}
                 {prodVariants.length > 0 && (
                   <div className="space-y-2">
                     {prodVariants.map((v, idx) => {
                       const isEditing = editingVariantIndex === idx;
-                      const isMainThumbnail = prodImage === v.image;
+                      const isCover = prodImage === v.image;
 
                       if (isEditing) {
                         return (
-                          <div key={idx} className="bg-white border-2 border-[#C4601A] p-3 rounded-xl shadow-xs space-y-2.5 animate-fade-in">
+                          <div key={idx} className="bg-white border-2 border-[#C4601A] p-3.5 rounded-xl shadow-xs space-y-2.5">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-[#C4601A]">
-                                Editing Photo / Angle #{idx + 1}
+                                Editing Colour Option #{idx + 1}
                               </span>
                               <button
                                 type="button"
@@ -3473,44 +4723,42 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-[9px] font-bold text-gray-600 mb-1">
-                                  Angle / Color Label:
+                                <label className="block text-[9px] font-bold text-gray-700 mb-1">
+                                  Colour Name:
                                 </label>
                                 <input
                                   type="text"
                                   value={editingVariantColour}
                                   onChange={(e) => setEditingVariantColour(e.target.value)}
-                                  placeholder="e.g. Pallu View, Front Angle, Red..."
+                                  placeholder="e.g. Yellow, Purple, Royal Blue..."
                                   className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                                  autoFocus
                                 />
-                                {/* Quick suggestion chips for edit */}
                                 <div className="flex gap-1 flex-wrap mt-1">
-                                  {['Front View', 'Pallu Angle', 'Border Detail', 'Pleats', 'Blouse Piece'].map((chip) => (
+                                  {['Yellow', 'Purple', 'Royal Blue', 'Red', 'Pink', 'Green', 'Maroon'].map((c) => (
                                     <button
-                                      key={chip}
+                                      key={c}
                                       type="button"
-                                      onClick={() => setEditingVariantColour(chip)}
-                                      className="text-[8px] bg-gray-100 hover:bg-[#FFF0E8] hover:text-[#C4601A] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                                      onClick={() => setEditingVariantColour(c)}
+                                      className="text-[8px] bg-gray-100 hover:bg-[#FFF0E8] hover:text-[#C4601A] px-1.5 py-0.5 rounded cursor-pointer"
                                     >
-                                      {chip}
+                                      {c}
                                     </button>
                                   ))}
                                 </div>
                               </div>
 
                               <div>
-                                <label className="block text-[9px] font-bold text-gray-600 mb-1">
-                                  Change Angle Photo:
+                                <label className="block text-[9px] font-bold text-gray-700 mb-1">
+                                  Replace Swatch Image:
                                 </label>
                                 <div className="flex items-center gap-2">
                                   {editingVariantImage && (
                                     <img
                                       src={editingVariantImage}
-                                      alt="Angle Preview"
-                                      className="w-9 h-11 rounded object-cover border border-[#E8E0D5] shrink-0"
+                                      alt="Preview"
+                                      className="w-10 aspect-[4/5] rounded-lg object-contain bg-[#FAF6F0] border border-[#E8E0D5] shrink-0"
                                     />
                                   )}
                                   <div className="flex-1 min-w-0">
@@ -3519,13 +4767,40 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                                       accept="image/*"
                                       onChange={handleEditVariantImageUpload}
                                       disabled={uploadingEditVariantImage}
-                                      className="text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
+                                      className="text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
                                     />
                                     {uploadingEditVariantImage && (
                                       <span className="text-[8px] text-[#C4601A] animate-pulse block mt-0.5">Uploading...</span>
                                     )}
                                   </div>
                                 </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100">
+                              <div>
+                                <label className="block text-[9px] font-semibold text-gray-600 mb-0.5">
+                                  Variant Price (₹, optional):
+                                </label>
+                                <input
+                                  type="number"
+                                  value={editingVariantPrice}
+                                  onChange={(e) => setEditingVariantPrice(e.target.value)}
+                                  placeholder="Leave empty for base price"
+                                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-1.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[9px] font-semibold text-gray-600 mb-0.5">
+                                  Variant Stock (optional):
+                                </label>
+                                <input
+                                  type="number"
+                                  value={editingVariantStock}
+                                  onChange={(e) => setEditingVariantStock(e.target.value)}
+                                  placeholder="Leave empty for base stock"
+                                  className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-1.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                                />
                               </div>
                             </div>
 
@@ -3542,7 +4817,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                                 onClick={handleSaveEditVariant}
                                 className="px-3.5 py-1 text-xs font-bold text-white bg-[#C4601A] hover:bg-[#a84e15] rounded-lg shadow-xs cursor-pointer"
                               >
-                                Save Changes
+                                Save Colour
                               </button>
                             </div>
                           </div>
@@ -3552,52 +4827,58 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       return (
                         <div
                           key={idx}
-                          className={`flex items-center justify-between p-2 rounded-xl border bg-white shadow-3xs hover:border-[#C4601A]/40 transition-all ${
-                            isMainThumbnail ? 'border-[#C4601A]/50 bg-[#FFFDFB]' : 'border-[#E8E0D5]'
+                          className={`flex items-center justify-between p-2.5 rounded-xl border bg-white shadow-3xs transition-all ${
+                            isCover ? 'border-[#C4601A]/60 bg-[#FFFDFB]' : 'border-[#E8E0D5]'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-3 min-w-0">
                             <img
                               src={v.image}
                               alt={v.colour}
-                              className="w-8 h-10 rounded-md object-cover border border-[#E8E0D5] shrink-0"
+                              className="w-10 aspect-[4/5] rounded-lg object-contain bg-[#FAF6F0] border border-[#E8E0D5] shrink-0"
                             />
                             <div className="min-w-0">
                               <span className="font-bold text-[#1A1A1A] text-xs block truncate">{v.colour}</span>
-                              {isMainThumbnail ? (
-                                <span className="text-[8px] font-extrabold text-[#C4601A] bg-[#FFF0E8] border border-[#C4601A]/30 px-1.5 py-0.2 rounded-full inline-block mt-0.5">
-                                  ★ Active Main Thumbnail
-                                </span>
-                              ) : (
-                                <span className="text-[8px] text-gray-400 block mt-0.5">Gallery Angle #{idx + 1}</span>
-                              )}
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {v.price !== undefined && (
+                                  <span className="text-[9px] text-[#C4601A] font-bold">₹{v.price}</span>
+                                )}
+                                {v.stock !== undefined && (
+                                  <span className="text-[9px] text-gray-500 font-semibold">{v.stock} in stock</span>
+                                )}
+                                {isCover && (
+                                  <span className="text-[8px] font-bold text-[#C4601A] bg-[#FFF0E8] px-1.5 py-0.2 rounded">
+                                    ★ Main Cover
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
-                            {!isMainThumbnail && (
+                            {!isCover && (
                               <button
                                 type="button"
                                 onClick={() => handleSetVariantAsThumbnail(idx)}
-                                className="px-2 py-1 text-[9px] font-bold text-[#C4601A] bg-[#FFF0E8] hover:bg-[#C4601A] hover:text-white border border-[#C4601A]/30 rounded-lg transition-colors cursor-pointer"
-                                title="Use this photo as the main thumbnail"
+                                className="px-2 py-1 text-[9px] font-bold text-[#C4601A] bg-[#FFF0E8] hover:bg-[#C4601A] hover:text-white rounded-lg transition-colors cursor-pointer"
+                                title="Make this colour image the main thumbnail"
                               >
-                                ★ Make Thumbnail
+                                ★ Set Cover
                               </button>
                             )}
                             <button
                               type="button"
                               onClick={() => handleStartEditVariant(idx)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-lg transition-colors cursor-pointer"
-                              title="Edit angle name / photo"
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                              title="Edit colour name / replace image"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => handleRemoveVariant(idx)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-lg transition-colors cursor-pointer"
-                              title="Delete photo angle"
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                              title="Remove colour"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -3608,82 +4889,113 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   </div>
                 )}
 
-                {/* Add new variant controls */}
-                <div className="space-y-2 pt-2 border-t border-[#E8E0D5]/70 bg-white/70 p-3 rounded-xl border border-[#E8E0D5]">
-                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-600">
-                    + Add New Angle / Color Photo
+                {/* Add new colour entry form */}
+                <div className="bg-white border border-[#E8E0D5] p-3.5 rounded-xl space-y-2.5">
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700">
+                    + Add New Colour Variant
                   </span>
 
-                  <div>
-                    <input
-                      type="text"
-                      value={newVariantColour}
-                      onChange={(e) => setNewVariantColour(e.target.value)}
-                      placeholder="Photo / Angle label (e.g. Pallu View, Front Angle, Red)"
-                      className="w-full bg-white border border-[#E8E0D5] rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
-                    />
-                    {/* Quick suggestion chips */}
-                    <div className="flex gap-1 flex-wrap mt-1">
-                      {['Front Angle', 'Pallu View', 'Border Detail', 'Pleats', 'Blouse Piece'].map((chip) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[9px] font-bold text-gray-600 mb-1">
+                        Colour Name:
+                      </label>
+                      <input
+                        type="text"
+                        value={newVariantColour}
+                        onChange={(e) => setNewVariantColour(e.target.value)}
+                        placeholder="e.g. Yellow, Purple, Royal Blue, Wine..."
+                        className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                      />
+                      <div className="flex gap-1 flex-wrap mt-1">
+                        {['Yellow', 'Purple', 'Royal Blue', 'Red', 'Pink', 'Green'].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setNewVariantColour(c)}
+                            className="text-[8px] bg-gray-100 hover:bg-[#FFF0E8] hover:text-[#C4601A] px-1.5 py-0.5 rounded cursor-pointer"
+                          >
+                            + {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[9px] font-bold text-gray-600">
+                          {newVariantMode === 'upload' ? 'Upload Colour Photo:' : 'Image URL:'}
+                        </label>
                         <button
-                          key={chip}
                           type="button"
-                          onClick={() => setNewVariantColour(chip)}
-                          className="text-[8px] bg-gray-100 hover:bg-[#FFF0E8] hover:text-[#C4601A] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                          onClick={() => setNewVariantMode(newVariantMode === 'upload' ? 'url' : 'upload')}
+                          className="text-[9px] text-[#C4601A] font-bold hover:underline cursor-pointer"
                         >
-                          + {chip}
+                          {newVariantMode === 'upload' ? 'Or paste URL' : 'Or upload File'}
                         </button>
-                      ))}
+                      </div>
+
+                      {newVariantMode === 'upload' ? (
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleVariantImageUpload}
+                            disabled={uploadingVariantImage}
+                            className="text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
+                          />
+                          {uploadingVariantImage && (
+                            <span className="text-[8px] text-[#C4601A] animate-pulse block mt-0.5">Uploading...</span>
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          value={newVariantUrl}
+                          onChange={(e) => setNewVariantUrl(e.target.value)}
+                          placeholder="https://example.com/yellow-saree.jpg"
+                          className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-1.5 text-xs font-mono focus:outline-none focus:border-[#C4601A]"
+                        />
+                      )}
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[9px] font-semibold text-gray-600">
-                        {newVariantMode === 'upload' ? 'Upload photo file:' : 'Angle Image URL:'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setNewVariantMode(newVariantMode === 'upload' ? 'url' : 'upload')}
-                        className="text-[9px] text-[#C4601A] font-bold hover:underline cursor-pointer ml-auto"
-                      >
-                        {newVariantMode === 'upload' ? 'Or paste Image URL' : 'Or upload Image File'}
-                      </button>
-                    </div>
-
-                    {newVariantMode === 'upload' ? (
-                      <div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleVariantImageUpload}
-                          disabled={uploadingVariantImage}
-                          className="text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-semibold file:bg-[#C4601A]/10 file:text-[#C4601A] hover:file:bg-[#C4601A]/20 cursor-pointer w-full"
-                        />
-                        <span className="text-[8px] text-gray-400 block mt-0.5">(Recommended: 3:4 portrait)</span>
-                        {uploadingVariantImage && (
-                          <span className="text-[8px] text-[#C4601A] animate-pulse block mt-0.5">Uploading...</span>
-                        )}
-                      </div>
-                    ) : (
+                  {/* Optional variant price and stock overrides */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="block text-[8px] font-semibold text-gray-500 mb-0.5">
+                        Custom Price (₹, optional):
+                      </label>
                       <input
-                        type="text"
-                        value={newVariantUrl}
-                        onChange={(e) => setNewVariantUrl(e.target.value)}
-                        placeholder="https://example.com/angle-photo.webp"
-                        className="w-full bg-white border border-[#E8E0D5] rounded-lg p-2 text-xs font-mono focus:outline-none focus:border-[#C4601A]"
+                        type="number"
+                        value={newVariantPrice}
+                        onChange={(e) => setNewVariantPrice(e.target.value)}
+                        placeholder="Leave blank for base"
+                        className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-1.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
                       />
-                    )}
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-semibold text-gray-500 mb-0.5">
+                        Custom Stock (optional):
+                      </label>
+                      <input
+                        type="number"
+                        value={newVariantStock}
+                        onChange={(e) => setNewVariantStock(e.target.value)}
+                        placeholder="Leave blank for base"
+                        className="w-full bg-[#FAF6F0] border border-[#E8E0D5] rounded-lg p-1.5 text-xs font-semibold focus:outline-none focus:border-[#C4601A]"
+                      />
+                    </div>
                   </div>
 
                   {(newVariantImage || newVariantUrl) && (
-                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-1.5 rounded-lg">
+                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-lg">
                       <img
                         src={newVariantMode === 'url' ? newVariantUrl : newVariantImage}
-                        alt="Variant upload preview"
-                        className="w-6 h-7 rounded object-cover border border-[#E8E0D5]"
+                        alt="Preview"
+                        className="w-8 aspect-[4/5] rounded object-contain bg-[#FAF6F0] border border-[#E8E0D5]"
                       />
-                      <span className="text-[9px] text-emerald-800 font-semibold">Ready to add to saree gallery!</span>
+                      <span className="text-[9px] text-emerald-800 font-semibold">Image ready for colour {newVariantColour || 'variant'}</span>
                     </div>
                   )}
 
@@ -3692,7 +5004,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     onClick={handleAddVariant}
                     className="w-full bg-[#FFF0E8] hover:bg-[#C4601A] hover:text-white text-[#C4601A] border border-[#C4601A]/30 font-bold py-2 rounded-lg text-xs transition-colors cursor-pointer shadow-3xs"
                   >
-                    + Add This Photo / Angle to Gallery
+                    + Add This Colour Option
                   </button>
                 </div>
               </div>
@@ -3745,7 +5057,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">Bulk Excel Upload Preview</h3>
+                  <h3 className="font-sans text-lg md:text-xl font-bold text-[#1A1A1A]">Bulk Excel Upload Preview</h3>
                   <p className="text-xs text-[#888888]">
                     File: <span className="font-semibold text-[#1A1A1A]">{bulkUploadFile?.name || 'Spreadsheet'}</span> · <strong>{bulkParsedProducts.length}</strong> items detected
                   </p>
@@ -3965,7 +5277,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <Camera className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">Bulk Photo Auto-Assigner</h3>
+                  <h3 className="font-sans text-lg md:text-xl font-bold text-[#1A1A1A]">Bulk Photo Auto-Assigner</h3>
                   <p className="text-xs text-[#888888]">
                     <strong>{bulkPhotoItems.length}</strong> photos selected · Auto-matched by Product ID or Saree Title
                   </p>
@@ -4029,8 +5341,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     >
                       {/* Photo Header */}
                       <div className="flex items-center gap-2.5">
-                        <div className="w-14 h-16 rounded-xl overflow-hidden bg-gray-100 border border-[#E8E0D5] shrink-0">
-                          <img src={item.previewUrl} alt={item.file.name} className="w-full h-full object-cover" />
+                        <div className="w-14 aspect-[4/5] rounded-xl overflow-hidden bg-[#FAF6F0] border border-[#E8E0D5] shrink-0">
+                          <ProductThumbnail imageUrl={item.previewUrl} altText={item.file.name} className="w-full h-full" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-bold text-[#1A1A1A] truncate" title={item.file.name}>

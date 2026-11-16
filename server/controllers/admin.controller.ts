@@ -5,6 +5,7 @@ import cloudinary from '../config/cloudinary';
 import { createShipment, syncShiprocketOrderStatus, syncActiveOrdersWithShiprocket } from '../services/shiprocket.service';
 import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail, sendOrderShippedEmail, sendOrderDeliveredEmail } from '../services/order-email.service';
 import { sanitizeProductDescriptionServer } from '../utils/sanitizeHtml';
+import { getImageDimensions } from '../utils/imageDimensions';
 
 // Admin: Get ALL confirmed orders (exclude unpaid / pending orders)
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
@@ -22,7 +23,7 @@ export const getAllOrders = async (req: Request, res: Response, next: NextFuncti
 // Product CRUD
 export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, price, fabric, occasion, colour, tags, isReel, views, rating, reviews, blouse, desc, image, stock, categoryId, variants, discountPrice, reelUrl, isArchived } = req.body;
+    const { name, price, fabric, occasion, colour, tags, isReel, views, rating, reviews, blouse, desc, image, stock, categoryId, variants, discountPrice, reelUrl, isArchived, galleryImages, imageWidth, imageHeight, galleryImagesMeta } = req.body;
 
     const newProduct = await db.createProduct({
       name: name ? String(name).trim() : 'Untitled Saree',
@@ -39,9 +40,13 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       blouse: Boolean(blouse),
       desc: desc ? sanitizeProductDescriptionServer(desc) : '',
       image: image ? String(image).trim() : '',
+      imageWidth: imageWidth ? parseInt(imageWidth, 10) : undefined,
+      imageHeight: imageHeight ? parseInt(imageHeight, 10) : undefined,
+      galleryImagesMeta: Array.isArray(galleryImagesMeta) ? galleryImagesMeta : undefined,
       stock: stock !== undefined && stock !== null && stock !== '' ? parseInt(stock, 10) : 10,
       categoryId: categoryId !== undefined && categoryId !== null && categoryId !== '' ? parseInt(categoryId, 10) : undefined,
       variants: Array.isArray(variants) ? variants : [],
+      galleryImages: Array.isArray(galleryImages) ? galleryImages : [],
       reelUrl: reelUrl ? String(reelUrl).trim() : undefined,
       isArchived: Boolean(isArchived)
     });
@@ -170,6 +175,7 @@ export const createBulkProducts = async (req: Request, res: Response, next: Next
         stock,
         categoryId,
         variants: Array.isArray(item.variants) ? item.variants : [],
+        galleryImages: Array.isArray(item.galleryImages) ? item.galleryImages : [],
         reelUrl: item.reelUrl ? String(item.reelUrl).trim() : undefined,
         code: item.code ? String(item.code).trim() : undefined,
         isArchived: Boolean(item.isArchived)
@@ -448,22 +454,39 @@ export const updateOrderLocation = async (req: Request, res: Response, next: Nex
   }
 };
 
-// Helper to upload a single buffer to Cloudinary
-const uploadBufferToCloudinary = (fileBuffer: Buffer): Promise<string> => {
+// Helper to upload a single buffer to Cloudinary (preserves natural aspect ratio, downscale only, no cropping)
+const uploadBufferToCloudinary = (fileBuffer: Buffer): Promise<{ imageUrl: string; width?: number; height?: number }> => {
   return new Promise((resolve) => {
+    const bufferDims = getImageDimensions(fileBuffer);
     if (!ENV.CLOUDINARY_API_KEY) {
-      console.log('Cloudinary: Operating in demo/mock mode. Simulating bulk photo upload.');
-      return resolve('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80');
+      console.log('Cloudinary: Operating in demo/mock mode. Simulating photo upload.');
+      return resolve({
+        imageUrl: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
+        width: bufferDims?.width || 800,
+        height: bufferDims?.height || 1000
+      });
     }
 
+    // Preserve natural aspect ratio (crop: 'limit' only downscales if larger, never crops or distorts)
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: 'laxmi_store_sarees' },
+      {
+        folder: 'laxmi_store_sarees',
+        transformation: [{ width: 2400, height: 3200, crop: 'limit' }]
+      },
       (error, result) => {
         if (error) {
           console.warn('Cloudinary upload failed for item, falling back to placeholder:', error.message);
-          return resolve('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80');
+          return resolve({
+            imageUrl: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
+            width: bufferDims?.width || 800,
+            height: bufferDims?.height || 1000
+          });
         }
-        resolve(result?.secure_url || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80');
+        resolve({
+          imageUrl: result?.secure_url || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
+          width: result?.width || bufferDims?.width,
+          height: result?.height || bufferDims?.height
+        });
       }
     );
     uploadStream.end(fileBuffer);
@@ -477,8 +500,8 @@ export const uploadProductImage = async (req: Request, res: Response, next: Next
       return res.status(400).json({ error: 'No image file uploaded.' });
     }
 
-    const imageUrl = await uploadBufferToCloudinary(req.file.buffer);
-    res.json({ imageUrl });
+    const { imageUrl, width, height } = await uploadBufferToCloudinary(req.file.buffer);
+    res.json({ imageUrl, width, height });
   } catch (err) {
     next(err);
   }
@@ -494,10 +517,12 @@ export const uploadBulkProductImages = async (req: Request, res: Response, next:
 
     const results = await Promise.all(
       files.map(async (file) => {
-        const imageUrl = await uploadBufferToCloudinary(file.buffer);
+        const { imageUrl, width, height } = await uploadBufferToCloudinary(file.buffer);
         return {
           originalname: file.originalname,
-          imageUrl
+          imageUrl,
+          width,
+          height
         };
       })
     );
@@ -531,18 +556,36 @@ export const bulkAssignProductImages = async (req: Request, res: Response, next:
         );
         let newVariants = [...currentVariants];
         if (existingIdx >= 0) {
-          newVariants[existingIdx] = { colour: item.variantColour.trim(), image: item.imageUrl };
+          newVariants[existingIdx] = {
+            ...currentVariants[existingIdx],
+            colour: item.variantColour.trim(),
+            image: item.imageUrl,
+            ...(item.width ? { width: item.width } : {}),
+            ...(item.height ? { height: item.height } : {})
+          };
         } else {
-          newVariants.push({ colour: item.variantColour.trim(), image: item.imageUrl });
+          newVariants.push({
+            colour: item.variantColour.trim(),
+            image: item.imageUrl,
+            width: item.width,
+            height: item.height
+          });
         }
         const updatePayload: any = { variants: newVariants };
         if (!product.image) {
           updatePayload.image = item.imageUrl;
+          if (item.width) updatePayload.imageWidth = item.width;
+          if (item.height) updatePayload.imageHeight = item.height;
         }
         await db.updateProduct(productId, updatePayload);
         updatedCount++;
       } else {
-        await db.updateProduct(productId, { image: item.imageUrl });
+        const updatePayload: any = {
+          image: item.imageUrl,
+          ...(item.width ? { imageWidth: item.width } : {}),
+          ...(item.height ? { imageHeight: item.height } : {})
+        };
+        await db.updateProduct(productId, updatePayload);
         updatedCount++;
       }
     }

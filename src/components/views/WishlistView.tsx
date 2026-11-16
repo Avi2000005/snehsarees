@@ -48,7 +48,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
         >
           <ArrowLeft className="w-[22px] h-[22px]" />
         </button>
-        <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
+        <div className="va-title font-sans text-lg md:text-xl font-bold text-black">
           My Wishlist
         </div>
         <button
@@ -65,7 +65,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
             {Array.from({ length: wishlist.length }).map((_, i) => (
               <div key={i} className="w-full bg-white rounded-2xl overflow-hidden border border-[#E8E0D5] p-0 shadow-xs">
-                <div className="w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#E8E0D5]/50 animate-pulse" />
+                <div className="w-full aspect-[4/5] bg-[#E8E0D5]/50 animate-pulse" />
                 <div className="p-3 sm:p-4 space-y-2.5">
                   <div className="h-4 bg-[#E8E0D5]/60 rounded-md animate-pulse w-3/4" />
                   <div className="h-3 bg-[#E8E0D5]/40 rounded-md animate-pulse w-1/2" />
@@ -80,10 +80,10 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
             <div className="wishlist-empty-icon mb-4 flex justify-center text-primrose opacity-30">
               <Heart className="w-14 h-14" strokeWidth={1.2} />
             </div>
-            <h2 className="font-serif text-2xl font-semibold text-[#1A1A1A] mb-2 leading-tight">
+            <h2 className="font-sans text-2xl font-semibold text-black mb-2 leading-tight">
               Your wishlist is empty
             </h2>
-            <p className="text-xs text-[#888888] leading-relaxed mb-6">
+            <p className="text-xs text-black leading-relaxed mb-6 font-sans">
               Tap the heart icon on any saree to save it here and view it later.
             </p>
             <button

@@ -3,6 +3,7 @@ import { ActivePage, Order } from '../../types';
 import { Home } from 'lucide-react';
 import { BUSINESS_WHATSAPP } from '../../config';
 import { pixelPurchase } from '../MetaPixel';
+import { ProductThumbnail } from '../ProductThumbnail';
 
 interface SuccessViewProps {
   order: Order | null;
@@ -25,7 +26,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) =
   if (!order) {
     return (
       <div className="bg-transparent min-h-screen flex flex-col items-center justify-center p-8">
-        <h2 className="font-serif text-2xl font-bold text-[#1A1A1A] mb-4">No Order Details Found</h2>
+        <h2 className="font-sans text-2xl font-bold text-[#1A1A1A] mb-4">No Order Details Found</h2>
         <button
           onClick={() => onNavigate('home')}
           className="bg-[#C4601A] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-[#FFF0E8]"
@@ -55,7 +56,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) =
     <div id="page-success" className="min-h-screen bg-[#FAF6F0]/80 backdrop-blur-xs">
       <div className="va-top-bar bg-white/95 backdrop-blur-md border-b border-[#E8E0D5] px-4 md:px-7 lg:px-12 h-[56px] md:h-[60px] lg:h-[68px] flex items-center justify-between z-20 shadow-xs max-w-[430px] md:max-w-full mx-auto">
         <div className="w-8 h-8" />
-        <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
+        <div className="va-title font-sans text-lg md:text-xl font-bold text-[#1A1A1A]">
           Order Confirmed
         </div>
         <button
@@ -72,7 +73,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) =
         ✓
       </div>
 
-      <h1 className="success-title font-serif text-3xl md:text-[38px] font-bold text-[#111111] mb-1.5 text-center">
+      <h1 className="success-title font-sans text-3xl md:text-[38px] font-bold text-[#111111] mb-1.5 text-center">
         Order Confirmed!
       </h1>
       <p className="success-subtitle text-xs text-[#333333] font-semibold mb-6 text-center leading-relaxed">
@@ -88,17 +89,24 @@ export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) =
 
       {/* Recaps card */}
       <div id="success-items-card" className="success-card bg-white rounded-xl p-5 border border-[#E8E0D5] w-full shadow-xs mb-4">
-        <h3 className="success-card-title font-serif text-base font-bold text-[#111111] mb-4">
+        <h3 className="success-card-title font-sans text-base font-bold text-[#111111] mb-4">
           Order Summary
         </h3>
 
         <div id="success-items-list" className="flex flex-col gap-2.5">
           {(order.items || []).map((i, idx) => (
-            <div key={idx} className="success-item flex justify-between text-xs">
-              <span className="success-item-name text-[#111111] font-medium">
-                {i.name || 'Saree'} <span className="text-[#333333] font-bold">x{i.qty || 1}</span>
-              </span>
-              <span className="success-item-price font-bold text-[#111111]">
+            <div key={idx} className="success-item flex items-center justify-between text-xs gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                {i.image && (
+                  <div className="w-9 aspect-[4/5] rounded overflow-hidden bg-[#FAF6F0] shrink-0 border border-[#E8E0D5]">
+                    <ProductThumbnail id={i.id} imageUrl={i.image} altText={i.name} className="w-full h-full" />
+                  </div>
+                )}
+                <span className="success-item-name text-[#111111] font-medium truncate">
+                  {i.name || 'Saree'} <span className="text-[#333333] font-bold">x{i.qty || 1}</span>
+                </span>
+              </div>
+              <span className="success-item-price font-bold text-[#111111] shrink-0">
                 ₹{((i.price || 0) * (i.qty || 1)).toLocaleString('en-IN')}
               </span>
             </div>

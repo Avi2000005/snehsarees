@@ -3,9 +3,10 @@ import { Menu, Search, ShoppingBag, Eye, Play, Sparkles, ChevronLeft, ChevronRig
 import { ActivePage, Product, Category, OfferBanner, Reel, Review, UserProfile } from '../../types';
 import { SareeSwatch } from '../SareeSwatch';
 import { ProductCard } from '../ProductCard';
+import { ProductThumbnail } from '../ProductThumbnail';
 import logoUrl from '@/assets/logo.jpg';
 import saree3dBg from '../saree_heritage_3d_bg.png';
-import { PolicyModal, PolicyTab } from '../PolicyModal';
+import { API_URL } from '../../config';
 import { useCatalog } from '../../catalog-cache';
 
 interface HomeViewProps {
@@ -44,8 +45,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   // Interactive UI state
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [policyModalTab, setPolicyModalTab] = useState<PolicyTab | null>(null);
+  const [publishedPolicies, setPublishedPolicies] = useState<{ id: number; slug: string; title: string }[]>([]);
   const [activeReel, setActiveReel] = useState<Reel | null>(null);
+
+  // Fetch published store policies from backend (single source of truth)
+  useEffect(() => {
+    fetch(`${API_URL}/api/policies`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setPublishedPolicies(data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Auto-advance banner carousel every 5 seconds
   useEffect(() => {
@@ -112,7 +123,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <img
           src={imageUrl}
           alt={slug}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-contain bg-[#FAF6F0] transition-transform duration-300 group-hover:scale-105"
         />
       );
     }
@@ -145,7 +156,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-6">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="w-full bg-white rounded-2xl overflow-hidden border border-[#E8E0D5] p-0 shadow-xs">
-          <div className="w-full h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px] bg-[#E8E0D5]/50 animate-pulse" />
+          <div className="w-full aspect-[4/5] bg-[#E8E0D5]/50 animate-pulse" />
           <div className="p-3 sm:p-4 space-y-2.5">
             <div className="h-4 bg-[#E8E0D5]/60 rounded-md animate-pulse w-3/4" />
             <div className="h-3 bg-[#E8E0D5]/40 rounded-md animate-pulse w-1/2" />
@@ -178,7 +189,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <Menu className="w-5 h-5 md:w-6 lg:w-6 text-[#1A1A1A]" />
         </button>
 
-        <div className="nav-brand font-serif text-[19px] md:text-[22px] lg:text-[26.4px] font-bold text-[#C4601A] tracking-wider text-center flex-1 truncate flex items-center justify-center gap-2.5">
+        <div className="nav-brand font-sans text-[19px] md:text-[22px] lg:text-[26.4px] font-bold text-[#C4601A] tracking-wider text-center flex-1 truncate flex items-center justify-center gap-2.5">
           <div className="w-[42px] h-[42px] md:w-[48px] md:h-[48px] lg:w-[54px] lg:h-[54px] rounded-full border border-[#F5E4BC] p-0.5 bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
             <img src={logoUrl} alt="Sneh Sarees - Best Sarees Online & Kota Doria Handlooms" className="w-full h-full object-cover rounded-full" />
           </div>
@@ -272,7 +283,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
                 </svg>
               </div>
-              <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-full truncate ${activeHomeCategory === 'all' ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A]'}`}>
+              <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-full truncate ${activeHomeCategory === 'all' ? 'text-[#C4601A] font-bold' : 'text-black'}`}>
                 All
               </div>
             </div>
@@ -300,7 +311,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     >
                       {renderCategoryIcon(c.slug, active, c.imageUrl)}
                     </div>
-                    <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-[72px] sm:max-w-20 md:max-w-24 line-clamp-2 px-0.5 break-words ${active ? 'text-[#C4601A] font-bold' : 'text-[#4A4A4A] group-hover:text-[#C4601A]'}`}>
+                    <div className={`cat-label text-[11px] sm:text-xs font-semibold text-center leading-tight max-w-[72px] sm:max-w-20 md:max-w-24 line-clamp-2 px-0.5 break-words ${active ? 'text-[#C4601A] font-bold' : 'text-black group-hover:text-[#C4601A]'}`}>
                       {c.name}
                     </div>
                   </div>
@@ -337,7 +348,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       {banners[currentBannerIndex].badgeText}
                     </span>
                   )}
-                  <span className="banner-title font-serif text-[18px] md:text-2xl lg:text-3xl font-semibold text-white leading-tight mb-2.5">
+                  <span className="banner-title font-sans text-[18px] md:text-2xl lg:text-3xl font-semibold text-white leading-tight mb-2.5">
                     {banners[currentBannerIndex].title}
                   </span>
                   {banners[currentBannerIndex].subtitle && (
@@ -415,7 +426,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="offers-banner brand-gradient rounded-[20px] p-5 md:p-6 lg:p-7 min-h-[110px] md:min-h-[120px] lg:min-h-[148px] flex justify-between items-center relative overflow-hidden my-1 shadow-sm">
             <div className="banner-text z-10 flex flex-col items-start">
               <span className="banner-tag text-[9px] md:text-[10px] font-bold text-[#FFF8EC] tracking-[0.15em] uppercase mb-1.5">Special Offers</span>
-              <span className="banner-title font-serif text-[20px] md:text-2xl lg:text-3xl font-semibold text-white leading-tight mb-2.5">New Festive Collection Arrived</span>
+              <span className="banner-title font-sans text-[20px] md:text-2xl lg:text-3xl font-semibold text-white leading-tight mb-2.5">New Festive Collection Arrived</span>
               <button onClick={() => handleViewAllRoute('deals')} className="banner-btn bg-[#F5E4BC] text-[#7A2F08] text-[11px] md:text-xs font-bold px-4 py-2 rounded-full cursor-pointer hover:brightness-110 shadow-xs">Explore Now</button>
             </div>
             <div className="banner-emoji font-sans select-none z-10 scale-100 md:scale-110 lg:scale-[1.25]">
@@ -434,7 +445,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {activeHomeCategory !== 'all' && (
               <div className="mb-6">
                 <div className="section-header flex justify-between items-center py-4 px-0">
-                  <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A] capitalize">
+                  <div className="section-title font-sans text-xl md:text-2xl lg:text-[28px] font-bold text-black capitalize">
                     {categories.find(c => c.slug === activeHomeCategory)?.name || activeHomeCategory} Collection
                   </div>
                   <div className="flex items-center gap-2">
@@ -447,7 +458,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         Weave Heritage
                       </button>
                     )}
-                    <span className="text-xs text-[#888888] font-medium shrink-0">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-black font-semibold shrink-0 font-sans">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
 
@@ -459,7 +470,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   renderProductSkeletonGrid(4)
                 ) : status === 'error' ? (
                   <div className="w-full py-12 flex flex-col items-center justify-center gap-2 text-center bg-white/50 rounded-2xl border border-[#E8E0D5]/50 p-6">
-                    <p className="text-xs text-[#888888] font-serif">Unable to load sarees.</p>
+                    <p className="text-xs text-black font-sans">Unable to load sarees.</p>
                     <button onClick={() => reload()} className="text-xs font-bold text-[#C4601A] underline cursor-pointer">
                       Tap to Retry
                     </button>
@@ -467,8 +478,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 ) : (
                   <div className="w-full py-14 flex flex-col items-center justify-center gap-3 text-center bg-white/50 rounded-2xl border border-[#E8E0D5]/50 p-6">
                     <div className="text-3xl">🪡</div>
-                    <div className="font-serif text-base text-[#C4601A] font-semibold">No sarees yet in this category</div>
-                    <div className="text-xs text-[#888888]">The admin hasn't added any sarees here yet. Check back soon!</div>
+                    <div className="font-sans text-base text-[#C4601A] font-semibold">No sarees yet in this category</div>
+                    <div className="text-xs text-black font-sans">The admin hasn't added any sarees here yet. Check back soon!</div>
                   </div>
                 )}
 
@@ -509,7 +520,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       </div>
 
                       {/* Editorial Title */}
-                      <h3 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-[#7A2F08] mb-2 leading-tight">
+                      <h3 className="font-sans text-2xl md:text-3xl lg:text-4xl font-bold text-[#7A2F08] mb-2 leading-tight">
                         {heritage.title}
                       </h3>
 
@@ -523,8 +534,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             <Compass className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider">Region of Origin</span>
-                            <span className="text-xs md:text-sm font-bold text-[#1A1A1A]">{heritage.origin}</span>
+                            <span className="text-[9px] uppercase font-bold text-black block tracking-wider">Region of Origin</span>
+                            <span className="text-xs md:text-sm font-bold text-black">{heritage.origin}</span>
                           </div>
                         </div>
 
@@ -533,8 +544,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             <Feather className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider">Weave Technique</span>
-                            <span className="text-xs md:text-sm font-bold text-[#1A1A1A]">{heritage.craft}</span>
+                            <span className="text-[9px] uppercase font-bold text-black block tracking-wider">Weave Technique</span>
+                            <span className="text-xs md:text-sm font-bold text-black">{heritage.craft}</span>
                           </div>
                         </div>
                       </div>
@@ -542,7 +553,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       {/* Pull-quote Intro Description */}
                       {heritage.details && (
                         <div className="border-l-3 border-[#C4601A] pl-4 py-2.5 my-6 bg-[#FFF0E8]/70 backdrop-blur-xs rounded-r-xl border-t border-b border-r border-[#F0C8A0]/40">
-                          <p className="text-sm md:text-base text-[#7A2F08] font-serif italic leading-relaxed">
+                          <p className="text-sm md:text-base text-[#7A2F08] font-sans italic leading-relaxed">
                             "{heritage.details}"
                           </p>
                         </div>
@@ -559,7 +570,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                 Chronology & History
                               </span>
                             </div>
-                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed font-serif">
+                            <p className="text-xs md:text-sm text-black leading-relaxed font-sans">
                               {heritage.history}
                             </p>
                           </div>
@@ -574,7 +585,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                 Saree Properties & Weaving
                               </span>
                             </div>
-                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed">
+                            <p className="text-xs md:text-sm text-black leading-relaxed font-sans">
                               {heritage.properties}
                             </p>
                           </div>
@@ -589,7 +600,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                 Saree Care & Preservation
                               </span>
                             </div>
-                            <p className="text-xs md:text-sm text-[#4A4A4A] leading-relaxed">
+                            <p className="text-xs md:text-sm text-black leading-relaxed font-sans">
                               {heritage.care}
                             </p>
                           </div>
@@ -607,10 +618,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 {filtered.length > 0 ? (
                   <div className="mb-6">
                     <div className="section-header flex justify-between items-center py-4 px-0">
-                      <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#111111]">
+                      <div className="section-title font-sans text-xl md:text-2xl lg:text-[28px] font-bold text-black">
                         Best Sarees for Women Collection
                       </div>
-                      <span className="text-xs text-[#333333] font-bold">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
+                      <span className="text-xs text-black font-bold font-sans">{filtered.length} saree{filtered.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-6">
                       {filtered.map((p, idx) => renderProductScrollCard(p, idx))}
@@ -625,13 +636,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
                 ) : status === 'error' ? (
                   <div className="w-full py-16 flex flex-col items-center justify-center gap-2 text-center">
-                    <p className="text-xs text-[#888888] font-serif">Unable to load saree collection.</p>
+                    <p className="text-xs text-black font-sans">Unable to load saree collection.</p>
                     <button onClick={() => reload()} className="text-xs font-bold text-[#C4601A] underline cursor-pointer">
                       Tap to Retry
                     </button>
                   </div>
                 ) : (
-                  <div className="w-full py-16 text-center text-[#888888] font-serif text-sm">
+                  <div className="w-full py-16 text-center text-black font-sans text-sm">
                     No sarees found matching this category.
                   </div>
                 )}
@@ -640,10 +651,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 {reviews.length > 0 && (
                   <div className="mb-4">
                     <div className="section-header flex justify-between items-center py-4 px-0">
-                      <div className="section-title font-serif text-xl md:text-2xl lg:text-[28px] font-bold text-[#1A1A1A] flex items-center gap-2">
+                      <div className="section-title font-sans text-xl md:text-2xl lg:text-[28px] font-bold text-black flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-[#C4601A]" /> Customer Love
                       </div>
-                      <span className="text-[10px] font-bold text-gray-500">Verified buyers reviews</span>
+                      <span className="text-[10px] font-bold text-black font-sans">Verified buyers reviews</span>
                     </div>
                     <div className="h-scroll flex gap-4 overflow-x-auto pb-4 no-scroll">
                       {reviews.map((r) => (
@@ -654,18 +665,30 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         >
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-[#1a1a1a] text-xs">{r.userName}</span>
+                              <span className="font-bold text-black text-xs font-sans">{r.userName}</span>
                               <div className="flex text-amber-500">
                                 {Array.from({ length: 5 }).map((_, i) => (
                                   <Star key={i} className={`w-3.5 h-3.5 ${i < r.rating ? 'fill-amber-500' : 'text-gray-300'}`} />
                                 ))}
                               </div>
                             </div>
-                            <p className="text-[11px] text-gray-600 italic line-clamp-3 mb-2 font-serif">"{r.body}"</p>
+                            <p className="text-[11px] text-black italic line-clamp-3 mb-2 font-sans">"{r.body}"</p>
+                            {r.images && r.images.length > 0 && (
+                              <div className="flex gap-1.5 mb-2 overflow-hidden">
+                                {r.images.slice(0, 3).map((img, idx) => (
+                                  <img key={idx} src={img} alt="Customer review photo" className="w-9 h-9 rounded-md object-cover border border-[#E8E0D5]" />
+                                ))}
+                                {r.images.length > 3 && (
+                                  <div className="w-9 h-9 rounded-md bg-[#FAF6F0] border border-[#E8E0D5] flex items-center justify-center text-[9px] font-bold text-gray-500">
+                                    +{r.images.length - 3}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="border-t border-gray-100 pt-2 flex items-center justify-between">
-                            <span className="text-[9px] text-[#888888] font-semibold truncate max-w-[70%]">Saree: {r.productName}</span>
-                            {r.isVerified && <span className="bg-emerald-50 text-emerald-700 text-[8px] font-bold px-1.5 py-0.5 rounded">Verified</span>}
+                            <span className="text-[9px] text-black font-semibold truncate max-w-[70%] font-sans">Saree: {r.productName}</span>
+                            {r.isVerified && <span className="bg-emerald-50 text-emerald-700 text-[8px] font-bold px-1.5 py-0.5 rounded font-sans">Verified</span>}
                           </div>
                         </div>
                       ))}
@@ -715,19 +738,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {activeReel.product && (
               <div className="p-4 bg-white border-t border-[#E8E0D5] flex gap-3.5 items-center justify-between shadow-sm">
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-13 rounded-lg overflow-hidden border border-[#E8E0D5] shrink-0 bg-[#F0E8DC]">
-                    <img src={activeReel.product.image} alt={activeReel.product.name} className="w-full h-full object-cover" />
+                  <div className="w-12 aspect-[4/5] rounded-lg overflow-hidden border border-[#E8E0D5] shrink-0 bg-[#FAF6F0]">
+                    <ProductThumbnail
+                      id={activeReel.product.id}
+                      imageUrl={activeReel.product.image}
+                      altText={activeReel.product.name}
+                      className="w-full h-full"
+                    />
                   </div>
                   <div className="min-w-0">
-                    <span className="block font-serif text-xs font-bold text-[#1A1A1A] truncate">{activeReel.product.name}</span>
+                    <span className="block font-sans text-xs font-bold text-black truncate">{activeReel.product.name}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {activeReel.product.discountPrice ? (
                         <>
-                          <span className="text-xs font-extrabold text-[#C4601A]">₹{activeReel.product.discountPrice.toLocaleString('en-IN')}</span>
-                          <span className="text-[10px] text-gray-400 line-through">₹{activeReel.product.price.toLocaleString('en-IN')}</span>
+                          <span className="text-xs font-extrabold text-[#C4601A] font-sans">₹{activeReel.product.discountPrice.toLocaleString('en-IN')}</span>
+                          <span className="text-[10px] text-black/70 line-through font-sans">₹{activeReel.product.price.toLocaleString('en-IN')}</span>
                         </>
                       ) : (
-                        <span className="text-xs font-extrabold text-[#C4601A]">₹{activeReel.product.price.toLocaleString('en-IN')}</span>
+                        <span className="text-xs font-extrabold text-[#C4601A] font-sans">₹{activeReel.product.price.toLocaleString('en-IN')}</span>
                       )}
                     </div>
                   </div>
@@ -764,61 +792,71 @@ export const HomeView: React.FC<HomeViewProps> = ({
       )}
 
       {/* Store Footer */}
-      <footer className="bg-white border-t border-[#E8E0D5] mt-16 pt-12 px-6 md:px-12 text-[#4A4A4A]">
+      <footer className="bg-white border-t border-[#E8E0D5] mt-16 pt-12 px-6 md:px-12 text-black">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-[#E8E0D5]">
           <div className="md:col-span-2 space-y-3">
-            <div className="font-serif text-2xl font-bold text-[#C4601A]">Sneh Sarees</div>
-            <p className="text-xs text-gray-600 leading-relaxed max-w-sm">
+            <div className="font-sans text-2xl font-bold text-[#C4601A]">Sneh Sarees</div>
+            <p className="text-xs text-black leading-relaxed max-w-sm">
               Discover authentic Kota Doria sarees. Sneh Sarees is a dedicated saree store based in Kota, Rajasthan, offering authentic, lightweight, and elegant Kotadoria sarees.
             </p>
-            <div className="flex items-center gap-3 pt-2 text-xs font-bold text-[#1A1A1A]">
+            <div className="flex items-center gap-3 pt-2 text-xs font-bold text-black">
               <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">100% Authentic Kota Doria</span>
               <span className="bg-[#FFF0E8] text-[#C4601A] px-2.5 py-1 rounded-md">Free Delivery on All Orders</span>
             </div>
           </div>
 
           <div>
-            <h5 className="font-serif text-sm font-bold text-[#1A1A1A] mb-3 uppercase tracking-wider">Customer Care</h5>
-            <ul className="space-y-2 text-xs font-medium text-gray-600">
-              <li>
-                <button onClick={() => setPolicyModalTab('shipping')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
-                  Shipping &amp; Delivery
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setPolicyModalTab('returns')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
-                  7-Day Returns &amp; Refunds
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setPolicyModalTab('cancellation')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
-                  Cancellation &amp; Payments
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setPolicyModalTab('faqs')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
-                  Frequently Asked Questions
-                </button>
-              </li>
+            <h5 className="font-sans text-sm font-bold text-black mb-3 uppercase tracking-wider">Customer Care &amp; Policies</h5>
+            <ul className="space-y-2 text-xs font-medium text-black">
+              {publishedPolicies.map((pol) => (
+                <li key={pol.id}>
+                  <button
+                    onClick={() => onNavigate('policies', pol.slug)}
+                    className="hover:text-[#C4601A] transition-colors cursor-pointer text-left"
+                  >
+                    {pol.title}
+                  </button>
+                </li>
+              ))}
+              {publishedPolicies.length === 0 && (
+                <>
+                  <li>
+                    <button
+                      onClick={() => onNavigate('policies', 'shipping-policy')}
+                      className="hover:text-[#C4601A] transition-colors cursor-pointer"
+                    >
+                      Shipping &amp; Delivery Policy
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => onNavigate('policies', 'return-policy')}
+                      className="hover:text-[#C4601A] transition-colors cursor-pointer"
+                    >
+                      Return &amp; Refund Policy
+                    </button>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
           <div>
-            <h5 className="font-serif text-sm font-bold text-[#1A1A1A] mb-3 uppercase tracking-wider">Legal &amp; Policies</h5>
-            <ul className="space-y-2 text-xs font-medium text-gray-600">
+            <h5 className="font-sans text-sm font-bold text-black mb-3 uppercase tracking-wider">Quick Links</h5>
+            <ul className="space-y-2 text-xs font-medium text-black">
               <li>
-                <button onClick={() => setPolicyModalTab('privacy')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
-                  Privacy Policy
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setPolicyModalTab('terms')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
-                  Terms &amp; Conditions
+                <button onClick={() => onNavigate('viewall')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  All Sarees Collection
                 </button>
               </li>
               <li>
                 <button onClick={() => onNavigate('bulk')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
                   Bulk &amp; Bridal Orders
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigate('orders')} className="hover:text-[#C4601A] transition-colors cursor-pointer">
+                  Track My Orders
                 </button>
               </li>
               <li>
@@ -830,7 +868,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">
+        <div className="max-w-6xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-black font-sans gap-2">
           <p>© {new Date().getFullYear()} Sneh Sarees. All rights reserved.</p>
           <p>Kota, Rajasthan · Saree Store</p>
         </div>
@@ -838,12 +876,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
         {/* Guaranteed clearance buffer so bottom nav bar never covers text */}
         <div className="w-full pointer-events-none" style={{ height: '110px' }} aria-hidden="true" />
       </footer>
-
-      <PolicyModal
-        isOpen={!!policyModalTab}
-        initialTab={policyModalTab || 'privacy'}
-        onClose={() => setPolicyModalTab(null)}
-      />
     </div>
   );
 };

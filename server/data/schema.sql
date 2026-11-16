@@ -38,9 +38,13 @@ CREATE TABLE IF NOT EXISTS products (
     blouse BOOLEAN DEFAULT FALSE,
     description TEXT,
     image TEXT,
+    image_width INTEGER,
+    image_height INTEGER,
+    gallery_images_meta JSONB DEFAULT '[]'::jsonb,
     stock INTEGER NOT NULL DEFAULT 10,
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     variants JSONB DEFAULT '[]'::jsonb,
+    gallery_images TEXT[] DEFAULT '{}',
     reel_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -180,3 +184,36 @@ CREATE TABLE IF NOT EXISTS returns (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Store Offers (active promotions & coupon callouts)
+CREATE TABLE IF NOT EXISTS offers (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    code VARCHAR(50),
+    conditions TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Store Settings (business info, contact, GSTIN, importer/marketer/packer details)
+CREATE TABLE IF NOT EXISTS store_settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Store Policies (Single source of truth for shipping, return, privacy, terms, cancellation, etc.)
+CREATE TABLE IF NOT EXISTS policies (
+    id SERIAL PRIMARY KEY,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    is_published BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_policies_slug ON policies(slug);
+CREATE INDEX IF NOT EXISTS idx_policies_published ON policies(is_published);

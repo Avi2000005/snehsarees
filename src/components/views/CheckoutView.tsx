@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Banknote, Home, Plus, X, ShieldCheck, Lock, Check, Loader2 } from 'lucide-react';
 import { CartItem, ActivePage, Order, UserProfile, UserAddress } from '../../types';
 import { API_URL } from '../../config';
-import { PolicyModal, PolicyTab } from '../PolicyModal';
 import { INDIAN_STATES, getDistrictsForState, lookupPincode } from '../../data/indiaLocations';
 import { pixelInitiateCheckout, pixelPurchase } from '../MetaPixel';
+import { ProductThumbnail } from '../ProductThumbnail';
 
 const loadRazorpayScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -49,7 +49,6 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   onUpdateUser
 }) => {
   const [step, setStep] = useState<1 | 2>(1);
-  const [policyModalTab, setPolicyModalTab] = useState<PolicyTab | null>(null);
 
   useEffect(() => {
     loadRazorpayScript();
@@ -607,11 +606,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               </div>
             </div>
             <div>
-              <p className="font-serif text-xl font-bold text-[#1A1A1A] mb-2">Confirming Your Payment</p>
-              <p className="text-sm text-[#666666] leading-relaxed max-w-[260px]">
+              <p className="font-sans text-xl font-bold text-black mb-2">Confirming Your Payment</p>
+              <p className="text-sm text-black leading-relaxed max-w-[260px]">
                 Please wait while we securely verify your transaction…
               </p>
-              <p className="text-xs text-[#999999] mt-3 font-medium">Do not close or refresh this page</p>
+              <p className="text-xs text-black/80 mt-3 font-medium">Do not close or refresh this page</p>
             </div>
             {/* Animated dots */}
             <div className="flex gap-2">
@@ -645,7 +644,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         >
           <ArrowLeft className="w-[22px] h-[22px]" />
         </button>
-        <div className="va-title font-serif text-lg md:text-xl font-bold text-[#1A1A1A]">
+        <div className="va-title font-sans text-lg md:text-xl font-bold text-black">
           Checkout
         </div>
         <button
@@ -699,7 +698,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         {/* STEP 1: DELIVERY VIEW */}
         {step === 1 ? (
           <div id="checkout-step1" className="checkout-form p-4 px-3.5 bg-white rounded-b-xl border border-[#E8E0D5] shadow-xs">
-            <h3 className="form-section-title font-serif text-lg font-bold text-[#1A1A1A] mb-4">
+            <h3 className="form-section-title font-sans text-lg font-bold text-black mb-4">
               Delivery Details
             </h3>
 
@@ -1014,11 +1013,18 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 {cart.map((item) => (
-                  <div key={`${item.id}-${item.colour}`} className="text-xs flex justify-between">
-                    <span>
-                      • {item.name} <span className="text-[#888888] font-sans font-bold">x{item.qty}</span> ({item.colour})
-                    </span>
-                    <span className="font-semibold text-right">
+                  <div key={`${item.id}-${item.colour}`} className="text-xs flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {item.image && (
+                        <div className="w-8 aspect-[4/5] rounded overflow-hidden bg-[#FAF6F0] shrink-0 border border-[#E8E0D5]">
+                          <ProductThumbnail id={item.id} imageUrl={item.image} altText={item.name} className="w-full h-full" />
+                        </div>
+                      )}
+                      <span className="truncate">
+                        • {item.name} <span className="text-[#888888] font-sans font-bold">x{item.qty}</span> ({item.colour})
+                      </span>
+                    </div>
+                    <span className="font-semibold text-right shrink-0">
                       ₹{(item.price * item.qty).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -1090,7 +1096,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
             {/* ══ PAYMENT METHODS PANEL ══ */}
             <div className="payment-section px-3.5 pb-6">
-              <h3 className="font-serif text-lg font-bold text-[#1A1A1A] mb-3">Select Payment Method</h3>
+              <h3 className="font-sans text-lg font-bold text-black mb-3">Select Payment Method</h3>
 
               {/* ── RAZORPAY — ONLY PAYMENT METHOD ── */}
               <div
@@ -1168,19 +1174,19 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-1 text-[11px] font-semibold text-gray-500 border-t border-[#E8E0D5]">
-                  <button type="button" onClick={() => setPolicyModalTab('shipping')} className="hover:text-[#C4601A] underline cursor-pointer">
+                  <button type="button" onClick={() => onNavigate('policies', 'shipping-policy')} className="hover:text-[#C4601A] underline cursor-pointer">
                     Shipping Policy
                   </button>
                   <span>•</span>
-                  <button type="button" onClick={() => setPolicyModalTab('returns')} className="hover:text-[#C4601A] underline cursor-pointer">
+                  <button type="button" onClick={() => onNavigate('policies', 'return-policy')} className="hover:text-[#C4601A] underline cursor-pointer">
                     7-Day Returns
                   </button>
                   <span>•</span>
-                  <button type="button" onClick={() => setPolicyModalTab('cancellation')} className="hover:text-[#C4601A] underline cursor-pointer">
+                  <button type="button" onClick={() => onNavigate('policies', 'cancellation-policy')} className="hover:text-[#C4601A] underline cursor-pointer">
                     Cancellation Policy
                   </button>
                   <span>•</span>
-                  <button type="button" onClick={() => setPolicyModalTab('privacy')} className="hover:text-[#C4601A] underline cursor-pointer">
+                  <button type="button" onClick={() => onNavigate('policies', 'privacy-policy')} className="hover:text-[#C4601A] underline cursor-pointer">
                     Privacy
                   </button>
                 </div>
@@ -1198,7 +1204,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="relative w-full max-w-[450px] bg-white rounded-2xl border border-[#E8E0D5] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-[#E8E0D5] bg-[#FAF6F0] flex justify-between items-center">
-              <h2 className="font-serif text-lg font-bold text-[#C4601A]">
+              <h2 className="font-sans text-lg font-bold text-[#C4601A]">
                 Add New Address
               </h2>
               <button
@@ -1421,13 +1427,6 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* Policy Modal */}
-      <PolicyModal
-        isOpen={!!policyModalTab}
-        initialTab={policyModalTab || 'privacy'}
-        onClose={() => setPolicyModalTab(null)}
-      />
     </div>
   );
 };

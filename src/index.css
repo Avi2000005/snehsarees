@@ -1,11 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Playfair Display", "Cormorant Garamond", Georgia, serif;
-  --font-cinzel: "Cinzel", Georgia, serif;
-  --font-sans: "Plus Jakarta Sans", sans-serif;
-  --font-display: "Cinzel", "Playfair Display", Georgia, serif;
-  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-serif: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-cinzel: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --color-gray-400: #000000;
+  --color-gray-500: #000000;
+  --color-gray-600: #000000;
+  --color-gray-700: #000000;
+  --color-gray-800: #000000;
+  --color-gray-900: #000000;
+  --color-neutral-400: #000000;
+  --color-neutral-500: #000000;
+  --color-neutral-600: #000000;
+  --color-neutral-700: #000000;
+  --color-neutral-800: #000000;
+  --color-neutral-900: #000000;
+  --color-stone-400: #000000;
+  --color-stone-500: #000000;
+  --color-stone-600: #000000;
+  --color-stone-700: #000000;
+  --color-stone-800: #000000;
+  --color-stone-900: #000000;
+  --color-slate-400: #000000;
+  --color-slate-500: #000000;
+  --color-slate-600: #000000;
+  --color-slate-700: #000000;
+  --color-slate-800: #000000;
+  --color-slate-900: #000000;
 
   --color-primrose: #C4601A;
   --color-primrose-dark: #7A2F08;
@@ -49,22 +74,108 @@ body {
   font-family: var(--font-body);
   background-color: transparent;
   color: #000000;
+  font-variant-numeric: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Global High Contrast Text Overrides for crisp legibility */
+/* Ensure clean, professional sans-serif numbers everywhere without designed/decorative glyphs */
+*, ::before, ::after {
+  font-variant-numeric: normal;
+}
+
+/* Professional numbers for prices, measurements, stock and counters */
+input[type="number"],
+.tabular-nums,
+[class*="price"],
+[class*="stock"],
+[class*="rating"],
+[class*="quantity"] {
+  font-family: var(--font-sans) !important;
+  font-variant-numeric: normal;
+}
+
+/* Base text color: solid black throughout website */
+p, li, dd, dt, label {
+  color: #000000;
+}
+
+/* Global High Contrast Text Overrides - strictly black text everywhere text was gray */
 .text-gray-400,
-.text-gray-500 {
-  color: #222222 !important;
-}
-
+.text-gray-500,
 .text-gray-600,
-.text-gray-700 {
-  color: #111111 !important;
+.text-gray-700,
+.text-gray-800,
+.text-gray-900,
+.text-stone-400,
+.text-stone-500,
+.text-stone-600,
+.text-stone-700,
+.text-stone-800,
+.text-stone-900,
+.text-neutral-400,
+.text-neutral-500,
+.text-neutral-600,
+.text-neutral-700,
+.text-neutral-800,
+.text-neutral-900,
+.text-slate-400,
+.text-slate-500,
+.text-slate-600,
+.text-slate-700,
+.text-slate-800,
+.text-slate-900 {
+  color: #000000 !important;
 }
 
-.text-gray-800,
-.text-gray-900 {
+/* Overrides for arbitrary grayish hex classes */
+.text-\[\#4A4A4A\],
+.text-\[\#4a4a4a\],
+.text-\[\#444444\],
+.text-\[\#444\],
+.text-\[\#555555\],
+.text-\[\#555\],
+.text-\[\#666666\],
+.text-\[\#666\],
+.text-\[\#777777\],
+.text-\[\#777\],
+.text-\[\#888888\],
+.text-\[\#888\],
+.text-\[\#999999\],
+.text-\[\#999\],
+.text-\[\#1A1A1A\],
+.text-\[\#1a1a1a\],
+.text-\[\#2A2A2A\],
+.text-\[\#2a2a2a\],
+.text-\[\#111111\],
+.text-\[\#111\],
+.text-\[\#222222\],
+.text-\[\#222\],
+.text-\[\#333333\],
+.text-\[\#333\] {
   color: #000000 !important;
+}
+
+/* Product description & rich text styling: crisp black, modern sans-serif, clean professional numbers */
+.product-description-prose,
+.product-description-prose * {
+  font-family: var(--font-sans) !important;
+  color: #000000;
+  font-variant-numeric: normal !important;
+}
+
+.product-description-prose strong,
+.product-description-prose b,
+.product-description-prose h1,
+.product-description-prose h2,
+.product-description-prose h3,
+.product-description-prose h4 {
+  color: #000000 !important;
+  font-weight: 700;
+}
+
+.product-description-prose a {
+  color: #C4601A !important;
 }
 
 /* Scrollbar behaviors */
@@ -270,6 +381,27 @@ body {
   white-space: nowrap !important;
   border-width: 0 !important;
 }
+
+/* ─── Uniform 4:5 Product Thumbnail Classes ────────────────────────────── */
+.product-thumb-container {
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  background-color: #FAF6F0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
 
 
 

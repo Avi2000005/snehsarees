@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, X, Tag, Layers, ArrowLeft, ShieldCheck, Shield } from 'lucide-react';
 import { ActivePage } from '../types';
 import { API_URL } from '../config';
-import { PolicyModal } from './PolicyModal';
 
 interface Category {
   id: number;
@@ -22,7 +21,6 @@ interface DrawerProps {
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, showToast, user, onLogout }) => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [policyOpen, setPolicyOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +69,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
         {/* Drawer Header */}
         <div className="drawer-header brand-gradient px-5 pt-10 pb-5 text-white shrink-0 flex items-center justify-between border-b border-[#F5E4BC]/20">
           <div>
-            <div className="font-serif text-xl font-bold mb-0.5">Categories</div>
+            <div className="font-sans text-xl font-bold mb-0.5">Categories</div>
             <div className="text-[11px] text-white/80">Explore authentic saree collections</div>
           </div>
           <button
@@ -111,7 +109,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
             >
               <div className="w-8.5 h-8.5 rounded-lg overflow-hidden shrink-0 border border-[#E8E0D5] group-hover:border-[#C4601A] group-hover:scale-105 transition-all">
                 {cat.imageUrl ? (
-                  <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover" />
+                  <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-contain bg-[#FAF6F0]" />
                 ) : (
                   <div className="w-full h-full bg-[#FAF6F0] flex items-center justify-center text-[15px]">
                     {categoryEmojis[cat.slug.toLowerCase()] || <Tag className="w-4 h-4 text-[#C4601A]" />}
@@ -142,7 +140,8 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
           {/* Store Policies */}
           <button
             onClick={() => {
-              setPolicyOpen(true);
+              onNavigate('policies', 'privacy-policy');
+              onClose();
             }}
             className="drawer-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#FFF0E8] transition-all cursor-pointer group"
           >
@@ -176,12 +175,6 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, onNavigate, sho
           )}
         </div>
       </div>
-
-      <PolicyModal
-        isOpen={policyOpen}
-        initialTab="privacy"
-        onClose={() => setPolicyOpen(false)}
-      />
     </>
   );
 };

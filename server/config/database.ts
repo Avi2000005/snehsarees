@@ -30,6 +30,8 @@ if (ENV.DATABASE_URL) {
         await pool!.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP;');
         await pool!.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP;');
         await pool!.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE;');
+        await pool!.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS gallery_images TEXT[] DEFAULT \'{}\';');
+        await pool!.query('ALTER TABLE reviews ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT \'{}\';');
         
         await pool!.query(`
           CREATE TABLE IF NOT EXISTS returns (
@@ -45,6 +47,41 @@ if (ENV.DATABASE_URL) {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           );
+        `);
+
+        await pool!.query(`
+          CREATE TABLE IF NOT EXISTS offers (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            code VARCHAR(50),
+            conditions TEXT,
+            is_active BOOLEAN DEFAULT TRUE,
+            sort_order INTEGER DEFAULT 0,
+            expires_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        await pool!.query(`
+          CREATE TABLE IF NOT EXISTS store_settings (
+            key VARCHAR(100) PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        await pool!.query(`
+          CREATE TABLE IF NOT EXISTS policies (
+            id SERIAL PRIMARY KEY,
+            slug VARCHAR(100) UNIQUE NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            content TEXT NOT NULL,
+            is_published BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          CREATE INDEX IF NOT EXISTS idx_policies_slug ON policies(slug);
+          CREATE INDEX IF NOT EXISTS idx_policies_published ON policies(is_published);
         `);
       } catch (e: any) {
         console.error('Database migration error:', e.message);

@@ -187,7 +187,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             </div>
             <div className="search-history flex flex-col gap-1">
               {recentSearches.length === 0 ? (
-                <span className="text-xs text-gray-400 font-serif">No recent search terms logged.</span>
+                <span className="text-xs text-gray-400 font-sans">No recent search terms logged.</span>
               ) : (
                 recentSearches.map((term, index) => (
                   <div
@@ -255,7 +255,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
               </div>
             ))}
             {suggestions.length === 0 && (
-              <div className="p-6 text-center text-xs text-[#888888] font-serif">
+              <div className="p-6 text-center text-xs text-[#888888] font-sans">
                 No autocomplete suggestions. Press enter to search catalog.
               </div>
             )}
@@ -272,7 +272,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
               {results.map((p) => renderGridCard(p))}
             </div>
             {results.length === 0 && (
-              <div className="py-16 text-center text-gray-500 font-serif text-sm">
+              <div className="py-16 text-center text-gray-500 font-sans text-sm">
                 No saree matching "{query}" found in catalog. Try adjusting terms.
               </div>
             )}

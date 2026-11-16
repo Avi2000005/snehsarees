@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, ActivePage } from '../types';
-import { SareeSwatch } from './SareeSwatch';
+import { ProductThumbnail } from './ProductThumbnail';
 
 export interface ProductCardProps {
   product: Product;
@@ -22,7 +22,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   showTrendingBadge = false,
   className = '',
-  imageHeightClass = 'h-[220px] sm:h-[260px] md:h-[300px] lg:h-[330px]',
+  imageHeightClass = '',
   priority = false
 }) => {
   const effectivePrice = p.discountPrice && p.discountPrice > 0 ? p.discountPrice : p.price;
@@ -33,16 +33,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       onClick={() => !isOutOfStock && onNavigate('product', String(p.id))}
-      className={`product-card w-full bg-white rounded-2xl overflow-hidden shadow-xs border border-[#E8E0D5] relative transition-all duration-200 ${
+      className={`product-card w-full bg-white rounded-2xl overflow-hidden shadow-xs border border-[#E8E0D5] relative transition-all duration-200 flex flex-col justify-between ${
         isOutOfStock ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg hover:-translate-y-1'
       } ${className}`}
     >
-      <div className={`product-card-img relative w-full ${imageHeightClass} bg-[#F0E8DC]`}>
-        <SareeSwatch
+      <div className={`product-card-img relative w-full aspect-[4/5] bg-[#FAF6F0] overflow-hidden ${imageHeightClass}`}>
+        <ProductThumbnail
           id={p.id}
           imageUrl={p.image}
           altText={`${p.name} - Best Kota Doria Handloom Saree with Zari Border`}
           priority={priority}
+          width={p.imageWidth}
+          height={p.imageHeight}
+          className="w-full h-full"
         />
         {isTrending && (
           <div className="absolute top-2.5 left-2.5 bg-[#E8871E] text-white text-[9px] font-bold px-2 py-0.75 rounded-full tracking-wider uppercase shadow-xs">
@@ -74,27 +77,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       <div className="product-card-info p-3 sm:p-4">
-        <div className="product-name font-sans text-[14px] sm:text-[15px] lg:text-[16px] font-bold text-[#111111] leading-snug mb-1 line-clamp-2 min-h-[40px]">
+        <div className="product-name font-sans text-[14px] sm:text-[15px] lg:text-[16px] font-bold text-black leading-snug mb-1 line-clamp-2 min-h-[40px]">
           {p.name}
         </div>
-        <div className="product-fabric text-[11px] sm:text-xs font-semibold text-[#555555] mb-2 line-clamp-1">
+        <div className="product-fabric text-[11px] sm:text-xs font-semibold text-black mb-2 line-clamp-1">
           {p.fabric ? `${p.fabric} · ` : '· '}{p.occasion || 'Everyday'}
         </div>
         <div className="product-price flex items-center gap-2 mb-3 font-sans flex-wrap">
           {p.discountPrice && p.discountPrice > 0 ? (
             <>
-              <span className="text-[15px] sm:text-[16px] lg:text-[17px] font-extrabold text-[#C4601A]">
+              <span className="text-[15px] sm:text-[16px] lg:text-[17px] font-extrabold text-[#C4601A] font-sans">
                 ₹{p.discountPrice.toLocaleString('en-IN')}
               </span>
-              <span className="text-xs text-gray-500 font-medium line-through">
+              <span className="text-xs text-black/70 font-medium line-through font-sans">
                 ₹{p.price.toLocaleString('en-IN')}
               </span>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-sans">
                 {Math.round(((p.price - p.discountPrice) / p.price) * 100)}% OFF
               </span>
             </>
           ) : (
-            <span className="text-[15px] sm:text-[16px] lg:text-[17px] font-extrabold text-[#C4601A]">
+            <span className="text-[15px] sm:text-[16px] lg:text-[17px] font-extrabold text-[#C4601A] font-sans">
               ₹{p.price.toLocaleString('en-IN')}
             </span>
           )}
