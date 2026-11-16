@@ -13,6 +13,7 @@ export const ENV = {
   RAZORPAY_KEY_SECRET: cleanEnv(process.env.RAZORPAY_KEY_SECRET),
   ADMIN_SECRET: cleanEnv(process.env.ADMIN_SECRET, 'super_secret_admin_token'),
   ADMIN_EMAIL: cleanEnv(process.env.ADMIN_EMAIL, 'info@snehsarees.in'),
+  ORDER_NOTIFICATION_EMAILS: cleanEnv(process.env.ORDER_NOTIFICATION_EMAILS, 'info@snehsarees.in,chateavinash123@gmail.com'),
   ADMIN_PASSWORD: cleanEnv(process.env.ADMIN_PASSWORD, 'Snehsarees@2026'),
   JWT_SECRET: cleanEnv(process.env.JWT_SECRET, 'super_secret_jwt_sign_key_999'),
   LOGIN_LIMIT_WINDOW_MS: parseInt(process.env.LOGIN_LIMIT_WINDOW_MS || '900000', 10), // Default: 15 minutes

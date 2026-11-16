@@ -222,6 +222,218 @@ function renderItemsList(items: CartItem[]): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 0. ADMIN NEW ORDER ALERT EMAIL
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Resolves list of admin email addresses that receive order alerts.
+ * Defaults to info@snehsarees.in and chateavinash123@gmail.com.
+ */
+export function getAdminNotificationEmails(): string[] {
+  const raw = ENV.ORDER_NOTIFICATION_EMAILS || 'info@snehsarees.in,chateavinash123@gmail.com';
+  const list = raw
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => e.length > 0 && e.includes('@'));
+
+  // Ensure both required emails are always included
+  const defaults = ['info@snehsarees.in', 'chateavinash123@gmail.com'];
+  for (const d of defaults) {
+    if (!list.includes(d.toLowerCase())) {
+      list.push(d.toLowerCase());
+    }
+  }
+  return list;
+}
+
+/**
+ * Sends a detailed new order notification email to both store owners
+ * (info@snehsarees.in and chateavinash123@gmail.com).
+ */
+export async function sendAdminOrderNotificationEmail(orderOrId: string | Order): Promise<boolean> {
+  try {
+    const order: Order | null =
+      typeof orderOrId === 'string' ? await db.getOrderById(orderOrId) : orderOrId;
+
+    if (!order) {
+      console.warn(`[OrderEmail] Cannot send admin notification: order not found.`);
+      return false;
+    }
+
+    const adminEmails = getAdminNotificationEmails();
+    if (adminEmails.length === 0) {
+      console.warn(`[OrderEmail] No admin notification emails configured.`);
+      return false;
+    }
+
+    const customerEmail = await resolveCustomerEmail(order);
+    const items = await enrichOrderItems(order.items || []);
+    const siteUrl = ENV.FRONTEND_URL || 'https://www.snehsarees.in';
+    const adminUrl = `${siteUrl}/admin.html`;
+
+    const subtotal = items.reduce((sum, it) => sum + it.price * it.qty, 0);
+    const discount = order.discountAmount || 0;
+    const deliveryFee = order.deliveryFee !== undefined ? order.deliveryFee : (subtotal >= 2000 ? 0 : 100);
+    const grandTotal = order.total;
+
+    const rawPhone = (order.phone || '').replace(/\D/g, '');
+    const cleanPhone = rawPhone.startsWith('91') && rawPhone.length === 12 ? rawPhone.slice(2) : rawPhone;
+    const waUrl = cleanPhone
+      ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
+          `Namaste ${order.name || 'Customer'}, thank you for ordering from Sneh Sarees! We have received your order #${order.id}.`
+        )}`
+      : '';
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🛍️ New Order #${order.id} — Sneh Sarees</title>
+</head>
+<body style="margin:0;padding:0;background-color:#FAF6F0;font-family:'Segoe UI',Arial,sans-serif;color:#333333;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FAF6F0;padding:32px 12px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);border:1px solid #E8E0D5;">
+          ${renderEmailHeader('Store Admin Alert · New Order Received')}
+          <tr>
+            <td style="padding:36px 32px;">
+              <!-- Alert Pill -->
+              <div style="display:inline-block;background:#FFF4E6;border:1px solid #F5C79E;border-radius:24px;padding:6px 14px;margin-bottom:16px;">
+                <span style="color:#C4601A;font-size:12px;font-weight:700;letter-spacing:0.5px;">🛍️ NEW ORDER RECEIVED</span>
+              </div>
+
+              <h2 style="margin:0 0 8px;color:#1A1A1A;font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:700;">
+                New Order #${order.id}
+              </h2>
+              <p style="margin:0 0 24px;color:#666666;font-size:14px;line-height:1.6;">
+                A new order of <strong>${formatCurrency(grandTotal)}</strong> was placed by <strong>${order.name}</strong> on the website.
+              </p>
+
+              <!-- Order Overview Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6F0;border-radius:12px;padding:16px;margin-bottom:24px;border:1px solid #EAE3D6;">
+                <tr>
+                  <td style="padding:4px 8px;font-size:12px;color:#777777;">Order ID</td>
+                  <td style="padding:4px 8px;font-size:12px;color:#777777;">Amount</td>
+                  <td style="padding:4px 8px;font-size:12px;color:#777777;">Payment Mode</td>
+                  <td style="padding:4px 8px;font-size:12px;color:#777777;">Status</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 8px;font-size:14px;font-weight:700;color:#C4601A;font-family:monospace;">#${order.id}</td>
+                  <td style="padding:4px 8px;font-size:14px;font-weight:700;color:#1A1A1A;">${formatCurrency(grandTotal)}</td>
+                  <td style="padding:4px 8px;font-size:13px;font-weight:600;color:#1A1A1A;">${order.method || 'Online'}</td>
+                  <td style="padding:4px 8px;font-size:13px;font-weight:700;color:#0E864E;text-transform:uppercase;">${order.status || 'placed'}</td>
+                </tr>
+              </table>
+
+              <!-- Customer Info Card -->
+              <div style="background:#FAF6F0;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #EAE3D6;">
+                <div style="font-size:12px;font-weight:700;color:#C4601A;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
+                  👤 Customer & Shipping Details
+                </div>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+                  <tr>
+                    <td width="110" style="padding:4px 0;color:#777777;">Customer:</td>
+                    <td style="padding:4px 0;font-weight:700;color:#1A1A1A;">${order.name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#777777;">Phone:</td>
+                    <td style="padding:4px 0;font-weight:600;">
+                      <a href="tel:${order.phone}" style="color:#C4601A;text-decoration:none;">${order.phone}</a>
+                      ${cleanPhone ? ` &nbsp;·&nbsp; <a href="${waUrl}" target="_blank" style="color:#0E864E;text-decoration:none;font-weight:700;">💬 Open WhatsApp</a>` : ''}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#777777;">Email:</td>
+                    <td style="padding:4px 0;color:#333333;">${customerEmail || '<em style="color:#999999;">Not provided</em>'}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;vertical-align:top;color:#777777;">Address:</td>
+                    <td style="padding:4px 0;color:#333333;line-height:1.5;">${order.address}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Items in Order -->
+              <h3 style="margin:0 0 8px;font-size:16px;color:#1A1A1A;font-weight:700;border-bottom:2px solid #FAF6F0;padding-bottom:8px;">
+                Ordered Sarees (${items.reduce((s, it) => s + it.qty, 0)})
+              </h3>
+              ${renderItemsList(items)}
+
+              <!-- Price Breakdown -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E8E0D5;padding-top:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:6px 0;font-size:13px;color:#666666;">Subtotal</td>
+                  <td align="right" style="padding:6px 0;font-size:13px;color:#333333;font-weight:600;">${formatCurrency(subtotal)}</td>
+                </tr>
+                ${discount > 0 ? `
+                <tr>
+                  <td style="padding:6px 0;font-size:13px;color:#0E864E;">Coupon Discount ${order.couponCode ? `(${order.couponCode})` : ''}</td>
+                  <td align="right" style="padding:6px 0;font-size:13px;color:#0E864E;font-weight:600;">-${formatCurrency(discount)}</td>
+                </tr>` : ''}
+                <tr>
+                  <td style="padding:6px 0;font-size:13px;color:#666666;">Delivery Fee</td>
+                  <td align="right" style="padding:6px 0;font-size:13px;color:#333333;font-weight:600;">
+                    ${deliveryFee === 0 ? '<span style="color:#0E864E;">FREE</span>' : formatCurrency(deliveryFee)}
+                  </td>
+                </tr>
+                <tr style="border-top:2px solid #1A1A1A;">
+                  <td style="padding:14px 0 6px;font-size:16px;font-weight:800;color:#1A1A1A;">Total Order Value</td>
+                  <td align="right" style="padding:14px 0 6px;font-size:18px;font-weight:800;color:#C4601A;">${formatCurrency(grandTotal)}</td>
+                </tr>
+              </table>
+
+              <!-- Action Buttons -->
+              <div style="text-align:center;margin:32px 0 12px;">
+                <a href="${adminUrl}" style="display:inline-block;background:linear-gradient(135deg,#C4601A 0%,#E8920E 100%);color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;padding:14px 28px;border-radius:8px;box-shadow:0 3px 12px rgba(196,96,26,0.25);margin-right:10px;">
+                  Open Admin Dashboard &rarr;
+                </a>
+                ${cleanPhone ? `
+                <a href="${waUrl}" target="_blank" style="display:inline-block;background:#25D366;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;padding:14px 24px;border-radius:8px;box-shadow:0 3px 12px rgba(37,211,102,0.25);">
+                  WhatsApp Customer
+                </a>` : ''}
+              </div>
+            </td>
+          </tr>
+          ${renderEmailFooter()}
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `.trim();
+
+    // Send to each admin email independently via Promise.allSettled
+    const sendResults = await Promise.allSettled(
+      adminEmails.map((email) =>
+        sendBrevoEmail({
+          toEmail: email,
+          toName: email === 'chateavinash123@gmail.com' ? 'Avinash Chate' : 'Sneh Sarees Admin',
+          subject: `🛍️ New Order Received: #${order.id} — ${formatCurrency(grandTotal)} (${order.name})`,
+          htmlContent,
+        })
+      )
+    );
+
+    const successfulCount = sendResults.filter(
+      (r) => r.status === 'fulfilled' && r.value === true
+    ).length;
+
+    console.log(
+      `[OrderEmail] ✅ Admin order notification dispatched to ${successfulCount}/${adminEmails.length} recipients for order #${order.id}: ${adminEmails.join(', ')}`
+    );
+
+    return successfulCount > 0;
+  } catch (err: any) {
+    console.error(`[OrderEmail] Failed to process admin order notification:`, err.message);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. ORDER CONFIRMATION / PLACED EMAIL
 // ─────────────────────────────────────────────────────────────────────────────
 export async function sendOrderConfirmationEmail(orderOrId: string | Order, force = false): Promise<boolean> {
@@ -243,10 +455,20 @@ export async function sendOrderConfirmationEmail(orderOrId: string | Order, forc
       }
     }
 
+    // 1. Send Admin Notification to both info@snehsarees.in and chateavinash123@gmail.com
+    // Runs unconditionally even if customer did not provide an email address
+    try {
+      await sendAdminOrderNotificationEmail(order);
+    } catch (adminErr: any) {
+      console.error(`[OrderEmail] Failed to dispatch admin alert for order #${order.id}:`, adminErr.message);
+    }
+
+    // 2. Send Customer Confirmation Email (if customer email is present)
     const customerEmail = await resolveCustomerEmail(order);
     if (!customerEmail) {
-      console.warn(`[OrderEmail] No email address found for order #${order.id}. Skipping confirmation email.`);
-      return false;
+      console.warn(`[OrderEmail] No email address found for customer on order #${order.id}. Admin alert was sent.`);
+      await db.markOrderEmailSent(order.id, 'placed');
+      return true;
     }
 
     const items = await enrichOrderItems(order.items || []);

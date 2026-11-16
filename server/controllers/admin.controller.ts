@@ -3,7 +3,7 @@ import { db } from '../data/db';
 import { ENV } from '../config/env';
 import cloudinary from '../config/cloudinary';
 import { createShipment, syncShiprocketOrderStatus, syncActiveOrdersWithShiprocket } from '../services/shiprocket.service';
-import { sendOrderConfirmationEmail, sendOrderShippedEmail, sendOrderDeliveredEmail } from '../services/order-email.service';
+import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail, sendOrderShippedEmail, sendOrderDeliveredEmail } from '../services/order-email.service';
 import { sanitizeProductDescriptionServer } from '../utils/sanitizeHtml';
 
 // Admin: Get ALL confirmed orders (exclude unpaid / pending orders)
@@ -557,10 +557,10 @@ export const bulkAssignProductImages = async (req: Request, res: Response, next:
 export const resendOrderEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { type, recipientEmail } = req.body; // type: 'placed' | 'shipped' | 'delivered'
+    const { type, recipientEmail } = req.body; // type: 'placed' | 'admin_alert' | 'shipped' | 'delivered'
 
-    if (!type || !['placed', 'shipped', 'delivered'].includes(type)) {
-      return res.status(400).json({ error: "Email type must be one of: 'placed', 'shipped', 'delivered'." });
+    if (!type || !['placed', 'admin_alert', 'shipped', 'delivered'].includes(type)) {
+      return res.status(400).json({ error: "Email type must be one of: 'placed', 'admin_alert', 'shipped', 'delivered'." });
     }
 
     const order = await db.getOrderById(id);
@@ -575,6 +575,8 @@ export const resendOrderEmail = async (req: Request, res: Response, next: NextFu
     let success = false;
     if (type === 'placed') {
       success = await sendOrderConfirmationEmail(order, true);
+    } else if (type === 'admin_alert') {
+      success = await sendAdminOrderNotificationEmail(order);
     } else if (type === 'shipped') {
       success = await sendOrderShippedEmail(order, undefined, true);
     } else if (type === 'delivered') {
