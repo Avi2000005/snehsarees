@@ -416,7 +416,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setStep(2);
     // Fire Meta Pixel InitiateCheckout (Option 2: tracks ad conversions at checkout stage)
     const cartTotal = cart.reduce((sum, it) => sum + it.price * it.qty, 0);
-    pixelInitiateCheckout({ value: cartTotal, numItems: cart.reduce((s, it) => s + it.qty, 0) });
+    pixelInitiateCheckout({
+      value: cartTotal,
+      numItems: cart.reduce((s, it) => s + it.qty, 0),
+      items: cart,
+    });
   };
 
 
@@ -448,7 +452,12 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       if (!res.ok) throw new Error(data.error || 'Failed to place order.');
       onOrderConfirm(data.order);
       // Fire Meta Pixel Purchase event (Option 2: COD conversion tracking)
-      pixelPurchase({ orderId: data.order.id, value: data.order.total, numItems: cart.reduce((s, it) => s + it.qty, 0) });
+      pixelPurchase({
+        orderId: data.order.id,
+        value: data.order.total,
+        numItems: cart.reduce((s, it) => s + it.qty, 0),
+        items: cart,
+      });
       showToast('Order placed! Pay cash on delivery.');
       onNavigate('success');
     } catch (err: any) {
@@ -551,7 +560,12 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             }
             onOrderConfirm(order);
             // Fire Meta Pixel Purchase event (Option 2: Razorpay online payment conversion)
-            pixelPurchase({ orderId: order.id, value: order.total, numItems: cart.reduce((s, it) => s + it.qty, 0) });
+            pixelPurchase({
+              orderId: order.id,
+              value: order.total,
+              numItems: cart.reduce((s, it) => s + it.qty, 0),
+              items: cart,
+            });
             showToast('Payment successful! Order confirmed ✨');
             onNavigate('success');
           } catch (verifyErr: any) {

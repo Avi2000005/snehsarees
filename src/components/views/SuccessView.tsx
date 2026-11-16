@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivePage, Order } from '../../types';
 import { Home } from 'lucide-react';
 import { BUSINESS_WHATSAPP } from '../../config';
+import { pixelPurchase } from '../MetaPixel';
 
 interface SuccessViewProps {
   order: Order | null;
@@ -9,6 +10,18 @@ interface SuccessViewProps {
 }
 
 export const SuccessView: React.FC<SuccessViewProps> = ({ order, onNavigate }) => {
+  // Fire standard Purchase event as safety fallback (automatically deduplicated by orderId in MetaPixel)
+  React.useEffect(() => {
+    if (order && order.id) {
+      pixelPurchase({
+        orderId: order.id,
+        value: order.total,
+        numItems: (order.items || []).reduce((s, it) => s + (it.qty || 1), 0),
+        items: order.items,
+      });
+    }
+  }, [order?.id]);
+
   if (!order) {
     return (
       <div className="bg-transparent min-h-screen flex flex-col items-center justify-center p-8">

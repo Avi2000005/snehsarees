@@ -1,5 +1,5 @@
 /**
- * MetaPixel.tsx
+ * MetaPixel.ts
  * ─────────────────────────────────────────────────────────────────────────────
  * Utility functions to fire Meta Pixel (Facebook Pixel) standard events
  * from React components. Powers both:
@@ -20,10 +20,10 @@
  *   pixelAddToCart({ id: product.id, name: product.name, price: product.price });
  *
  *   // On checkout start:
- *   pixelInitiateCheckout({ value: cartTotal, numItems: cart.length });
+ *   pixelInitiateCheckout({ value: cartTotal, numItems: cart.length, items: cart });
  *
  *   // On order confirmed:
- *   pixelPurchase({ orderId: order.id, value: order.total, numItems: order.items.length });
+ *   pixelPurchase({ orderId: order.id, value: order.total, numItems: order.items.length, items: order.items });
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -44,8 +44,16 @@ function fbq(...args: unknown[]): void {
 
 // ─── Standard Events ─────────────────────────────────────────────────────────
 
+export interface MetaItemParam {
+  id: number | string;
+  name?: string;
+  price?: number;
+  qty?: number;
+  category?: string;
+}
+
 export interface ViewContentParams {
-  id: number;
+  id: number | string;
   name: string;
   price: number;
   category?: string;
@@ -58,17 +66,17 @@ export interface ViewContentParams {
  */
 export function pixelViewContent(params: ViewContentParams): void {
   fbq('track', 'ViewContent', {
-    content_ids:   [String(params.id)],
-    content_name:  params.name,
-    content_type:  'product',
-    value:         params.price,
-    currency:      params.currency || 'INR',
+    content_ids:      [String(params.id)],
+    content_name:     params.name,
+    content_type:     'product',
+    value:            params.price,
+    currency:         params.currency || 'INR',
     content_category: params.category || 'Sarees',
   });
 }
 
 export interface AddToCartParams {
-  id: number;
+  id: number | string;
   name: string;
   price: number;
   currency?: string;
@@ -90,39 +98,95 @@ export function pixelAddToCart(params: AddToCartParams): void {
 
 export interface InitiateCheckoutParams {
   value: number;
-  numItems: number;
+  numItems?: number;
   currency?: string;
+  content_ids?: string[];
+  contents?: Array<{ id: string; quantity: number; item_price?: number }>;
+  items?: MetaItemParam[];
 }
 
 /**
  * InitiateCheckout — fires when a user reaches the checkout page.
  */
 export function pixelInitiateCheckout(params: InitiateCheckoutParams): void {
+  const content_ids: string[] =
+    params.content_ids || (params.items ? params.items.map((it) => String(it.id)) : []);
+  const contents =
+    params.contents ||
+    (params.items
+      ? params.items.map((it) => ({
+          id: String(it.id),
+          quantity: it.qty || 1,
+          item_price: it.price || 0,
+        }))
+      : undefined);
+  const numItems =
+    params.numItems ?? (params.items ? params.items.reduce((s, it) => s + (it.qty || 1), 0) : 1);
+
   fbq('track', 'InitiateCheckout', {
-    value:     params.value,
-    currency:  params.currency || 'INR',
-    num_items: params.numItems,
+    value:        params.value,
+    currency:     params.currency || 'INR',
+    content_type: 'product',
+    num_items:    numItems,
+    ...(content_ids.length > 0 ? { content_ids } : {}),
+    ...(contents && contents.length > 0 ? { contents } : {}),
   });
 }
 
 export interface PurchaseParams {
-  orderId: string;
+  orderId: string | number;
   value: number;
-  numItems: number;
+  numItems?: number;
   currency?: string;
+  content_ids?: string[];
+  contents?: Array<{ id: string; quantity: number; item_price?: number }>;
+  items?: MetaItemParam[];
 }
 
 /**
  * Purchase — fires after a successful order.
- * This is the most important event for ad ROI measurement.
+ * This is the standard event for ad ROI measurement and ROAS optimization.
+ * Automatically deduplicates using sessionStorage so it never double-fires on refresh.
  */
 export function pixelPurchase(params: PurchaseParams): void {
+  const orderIdStr = String(params.orderId);
+
+  // Prevent duplicate purchase events for the same order ID (e.g. page refresh)
+  if (typeof window !== 'undefined' && orderIdStr) {
+    const key = `meta_pixel_purchased_${orderIdStr}`;
+    try {
+      if (sessionStorage.getItem(key)) {
+        console.warn(`[MetaPixel] Purchase event for order #${orderIdStr} already tracked. Skipping duplicate.`);
+        return;
+      }
+      sessionStorage.setItem(key, '1');
+    } catch {
+      // Ignore sessionStorage exceptions (e.g. private mode)
+    }
+  }
+
+  const content_ids: string[] =
+    params.content_ids || (params.items ? params.items.map((it) => String(it.id)) : []);
+  const contents =
+    params.contents ||
+    (params.items
+      ? params.items.map((it) => ({
+          id: String(it.id),
+          quantity: it.qty || 1,
+          item_price: it.price || 0,
+        }))
+      : undefined);
+  const numItems =
+    params.numItems ?? (params.items ? params.items.reduce((s, it) => s + (it.qty || 1), 0) : 1);
+
   fbq('track', 'Purchase', {
     content_type: 'product',
     value:        params.value,
     currency:     params.currency || 'INR',
-    num_items:    params.numItems,
-    order_id:     params.orderId,
+    num_items:    numItems,
+    order_id:     orderIdStr,
+    ...(content_ids.length > 0 ? { content_ids } : {}),
+    ...(contents && contents.length > 0 ? { contents } : {}),
   });
 }
 
@@ -135,4 +199,3 @@ export function pixelSearch(searchString: string): void {
     content_type:  'product',
   });
 }
-
