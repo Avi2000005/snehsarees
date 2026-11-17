@@ -832,6 +832,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     .filter((o) => {
       if (!o.code || !o.code.trim()) return false;
       if (o.isActive !== undefined && !o.isActive) return false;
+      if ((o as any).showOnStore === false) return false;
       if (o.expiresAt && new Date(o.expiresAt) <= new Date()) return false;
       return true;
     })

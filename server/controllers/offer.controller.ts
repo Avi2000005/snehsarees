@@ -41,7 +41,7 @@ export const getActiveOffers = async (req: Request, res: Response, next: NextFun
   try {
     const [offers, coupons] = await Promise.all([
       db.getActiveOffers(),
-      db.getCoupons().then(list => list.filter(c => c.isActive && (!c.expiresAt || new Date(c.expiresAt) > new Date()))).catch(() => [])
+      db.getCoupons().then(list => list.filter(c => c.isActive && c.showOnStore !== false && (!c.expiresAt || new Date(c.expiresAt) > new Date()))).catch(() => [])
     ]);
 
     const existingCodes = new Set(offers.map(o => (o.code || '').toUpperCase()).filter(Boolean));

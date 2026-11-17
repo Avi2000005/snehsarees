@@ -57,6 +57,7 @@ export interface IDatabase {
   getCouponByCode(code: string): Promise<Coupon | null>;
   createCoupon(coupon: Omit<Coupon, 'id' | 'usedCount' | 'createdAt'>): Promise<Coupon>;
   deleteCoupon(id: number): Promise<boolean>;
+  updateCoupon(id: number, data: Partial<Coupon>): Promise<Coupon | null>;
   recordCouponUsage(couponId: number, userId: number, orderId: string): Promise<void>;
   getCouponUsageCount(couponId: number, userId: number): Promise<number>;
   incrementCouponUsage(couponId: number): Promise<void>;

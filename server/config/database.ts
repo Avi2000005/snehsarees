@@ -32,6 +32,7 @@ if (ENV.DATABASE_URL) {
         await pool!.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE;');
         await pool!.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS gallery_images TEXT[] DEFAULT \'{}\';');
         await pool!.query('ALTER TABLE reviews ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT \'{}\';');
+        await pool!.query('ALTER TABLE coupons ADD COLUMN IF NOT EXISTS show_on_store BOOLEAN DEFAULT TRUE;');
         
         await pool!.query(`
           CREATE TABLE IF NOT EXISTS returns (

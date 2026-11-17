@@ -133,6 +133,7 @@ CREATE TABLE IF NOT EXISTS coupons (
     per_user_limit INTEGER DEFAULT 1,
     applicable_category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     is_active BOOLEAN DEFAULT TRUE,
+    show_on_store BOOLEAN DEFAULT TRUE,
     expires_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

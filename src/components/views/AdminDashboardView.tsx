@@ -7,7 +7,7 @@ import {
   Users, Layers, Trash2, Edit3, PlusCircle, CheckCircle, RefreshCw, X, MapPin,
   Tag, MessageSquare, Film, RotateCcw, FileSpreadsheet, Download, Upload, AlertCircle, FileText, CheckCircle2,
   Image as ImageIcon, Camera, Sparkles, Check, Archive, Globe, Star, Percent, Settings as SettingsIcon, Building,
-  ArrowUp, ArrowDown, GripVertical, Calendar
+  ArrowUp, ArrowDown, GripVertical, Calendar, Eye, EyeOff
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { RichTextEditor } from '../RichTextEditor';
@@ -122,6 +122,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [cpLimit, setCpLimit] = useState('');
   const [cpPerUser, setCpPerUser] = useState('1');
   const [cpCatId, setCpCatId] = useState('');
+  const [cpShowOnStore, setCpShowOnStore] = useState(true);
 
   // Reel state
   const [reelProdId, setReelProdId] = useState('');
@@ -1719,7 +1720,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           maxDiscountCap: cpCap ? parseFloat(cpCap) : undefined,
           usageLimit: cpLimit ? parseInt(cpLimit) : undefined,
           perUserLimit: parseInt(cpPerUser) || 1,
-          applicableCategoryId: cpCatId ? parseInt(cpCatId) : undefined
+          applicableCategoryId: cpCatId ? parseInt(cpCatId) : undefined,
+          showOnStore: cpShowOnStore
         })
       });
       const data = await res.json();
@@ -1733,11 +1735,56 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         setCpLimit('');
         setCpPerUser('1');
         setCpCatId('');
+        setCpShowOnStore(true);
         fetchDashboardData();
       } else {
         showToast(data.error || 'Failed to create coupon.');
       }
     } catch (err) {
+      showToast('Error connecting to server.');
+    }
+  };
+
+  const handleToggleCouponStoreVisibility = async (coupon: Coupon) => {
+    const newShow = coupon.showOnStore === false ? true : false;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/coupons/${coupon.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ showOnStore: newShow })
+      });
+      if (res.ok) {
+        showToast(newShow ? `Coupon ${coupon.code} is now visible on product pages 👁️` : `Coupon ${coupon.code} is now hidden from product pages 👁️‍🗨️`);
+        setCoupons(prev => prev.map(c => c.id === coupon.id ? { ...c, showOnStore: newShow } : c));
+      } else {
+        showToast('Failed to update coupon visibility.');
+      }
+    } catch {
+      showToast('Error connecting to server.');
+    }
+  };
+
+  const handleToggleCouponActive = async (coupon: Coupon) => {
+    const newActive = !coupon.isActive;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/coupons/${coupon.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: newActive })
+      });
+      if (res.ok) {
+        showToast(newActive ? `Coupon ${coupon.code} activated!` : `Coupon ${coupon.code} deactivated.`);
+        setCoupons(prev => prev.map(c => c.id === coupon.id ? { ...c, isActive: newActive } : c));
+      } else {
+        showToast('Failed to update coupon status.');
+      }
+    } catch {
       showToast('Error connecting to server.');
     }
   };
@@ -1761,6 +1808,27 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   };
 
   // Store Offers Actions
+  const handleToggleOfferVisibility = async (offer: StoreOffer) => {
+    const newActive = !offer.isActive;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/offers/${offer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: newActive })
+      });
+      if (res.ok) {
+        showToast(newActive ? `Offer is now visible on website 👁️` : `Offer is now hidden from website 👁️‍🗨️`);
+        setStoreOffers(prev => prev.map(o => o.id === offer.id ? { ...o, isActive: newActive } : o));
+      } else {
+        showToast('Failed to update offer visibility.');
+      }
+    } catch {
+      showToast('Error connecting to server.');
+    }
+  };
   const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!offerTitle.trim()) {
@@ -3217,27 +3285,72 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   </div>
                 </div>
 
+                <div className="pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={cpShowOnStore}
+                      onChange={(e) => setCpShowOnStore(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#C4601A] focus:ring-[#C4601A] cursor-pointer"
+                    />
+                    <span className="text-xs font-semibold text-[#1A1A1A]">
+                      Display as offer ticket on product pages (visible to all shoppers)
+                    </span>
+                  </label>
+                </div>
+
                 <button type="submit" className="bg-[#C4601A] hover:bg-[#FFF0E8] text-white text-xs font-bold py-2.5 px-5 rounded-xl cursor-pointer">Create Coupon</button>
               </form>
 
               {/* Coupons List */}
               <div className="bg-white rounded-2xl border border-[#E8E0D5] divide-y divide-[#E8E0D5] overflow-hidden shadow-2xs">
                 {coupons.map((c) => (
-                  <div key={c.id} className="p-4 flex items-center justify-between hover:bg-[#FAF6F0]/20 text-xs">
+                  <div key={c.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-[#FAF6F0]/20 text-xs gap-3">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-mono font-bold text-sm bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded border border-emerald-200 uppercase">{c.code}</span>
                         <div>
                           <span className="block font-bold text-[#1A1A1A]">{c.description || 'No description'}</span>
-                          <span className="text-[9px] text-[#888888]">
+                          <span className="text-[10px] text-[#888888]">
                             Type: <strong>{c.discountType}</strong> · Value: <strong>{c.discountType === 'percent' ? `${c.discountValue}%` : `₹${c.discountValue}`}</strong> · Used: <strong>{c.usedCount} times</strong>
                           </span>
                         </div>
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteCoupon(c.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-full cursor-pointer">
-                      <Trash2 className="w-4.5 h-4.5" />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      {/* Product Page Visibility Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCouponStoreVisibility(c)}
+                        title={c.showOnStore !== false ? "Click to hide from product pages" : "Click to display on product pages"}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                          c.showOnStore !== false
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {c.showOnStore !== false ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-amber-600" />}
+                        <span>{c.showOnStore !== false ? 'Visible on Product Page' : 'Hidden from Product Page'}</span>
+                      </button>
+
+                      {/* Active Status Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCouponActive(c)}
+                        title={c.isActive ? "Click to deactivate coupon" : "Click to activate coupon"}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                          c.isActive
+                            ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                            : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span>{c.isActive ? 'Active' : 'Disabled'}</span>
+                      </button>
+
+                      <button onClick={() => handleDeleteCoupon(c.id)} title="Delete coupon" className="p-2 text-red-600 hover:bg-red-50 rounded-full cursor-pointer transition-colors">
+                        <Trash2 className="w-4.5 h-4.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {coupons.length === 0 && <div className="p-6 text-center text-xs text-gray-500">No active coupons created yet.</div>}
@@ -3314,9 +3427,9 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               {/* Offers List */}
               <div className="bg-white rounded-2xl border border-[#E8E0D5] divide-y divide-[#E8E0D5] overflow-hidden shadow-2xs">
                 {storeOffers.map((o) => (
-                  <div key={o.id} className="p-4 flex items-center justify-between hover:bg-[#FAF6F0]/20 text-xs">
+                  <div key={o.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-[#FAF6F0]/20 text-xs gap-3">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="w-5 h-5 rounded-full bg-[#E65100] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                           %
                         </span>
@@ -3332,9 +3445,24 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         {o.expiresAt && <span>Expires: {new Date(o.expiresAt).toLocaleDateString()}</span>}
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteOffer(o.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-full cursor-pointer">
-                      <Trash2 className="w-4.5 h-4.5" />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleOfferVisibility(o)}
+                        title={o.isActive ? "Click to hide from website" : "Click to show on website"}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                          o.isActive
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {o.isActive ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-amber-600" />}
+                        <span>{o.isActive ? 'Visible on Website' : 'Hidden from Website'}</span>
+                      </button>
+                      <button onClick={() => handleDeleteOffer(o.id)} title="Delete offer" className="p-2 text-red-600 hover:bg-red-50 rounded-full cursor-pointer transition-colors">
+                        <Trash2 className="w-4.5 h-4.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {storeOffers.length === 0 && (

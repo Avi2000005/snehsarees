@@ -813,7 +813,9 @@ export class PostgresDatabaseAdapter implements IDatabase {
       usageLimit: row.usage_limit, usedCount: row.used_count||0,
       perUserLimit: row.per_user_limit||1,
       applicableCategoryId: row.applicable_category_id||undefined,
-      isActive: row.is_active, expiresAt: row.expires_at, createdAt: row.created_at,
+      isActive: row.is_active !== false,
+      showOnStore: row.show_on_store !== false,
+      expiresAt: row.expires_at, createdAt: row.created_at,
     };
   }
 
@@ -832,13 +834,52 @@ export class PostgresDatabaseAdapter implements IDatabase {
   async createCoupon(c: Omit<Coupon, 'id' | 'usedCount' | 'createdAt'>): Promise<Coupon> {
     const client = this.getPool();
     const result = await client.query(
-      `INSERT INTO coupons (code, description, discount_type, discount_value, min_order_value, max_discount_cap, usage_limit, per_user_limit, applicable_category_id, is_active, expires_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      `INSERT INTO coupons (code, description, discount_type, discount_value, min_order_value, max_discount_cap, usage_limit, per_user_limit, applicable_category_id, is_active, show_on_store, expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [c.code.toUpperCase(), c.description||null, c.discountType, c.discountValue,
        c.minOrderValue||0, c.maxDiscountCap||null, c.usageLimit||null, c.perUserLimit||1,
-       c.applicableCategoryId||null, c.isActive !== false, c.expiresAt||null]
+       c.applicableCategoryId||null, c.isActive !== false, c.showOnStore !== false, c.expiresAt||null]
     );
     return this.mapCoupon(result.rows[0]);
+  }
+
+  async updateCoupon(id: number, data: Partial<Coupon>): Promise<Coupon | null> {
+    const client = this.getPool();
+    const current = await client.query('SELECT * FROM coupons WHERE id=$1', [id]);
+    if (!current.rows[0]) return null;
+    const existing = current.rows[0];
+    const result = await client.query(
+      `UPDATE coupons SET
+        code = $1,
+        description = $2,
+        discount_type = $3,
+        discount_value = $4,
+        min_order_value = $5,
+        max_discount_cap = $6,
+        usage_limit = $7,
+        per_user_limit = $8,
+        applicable_category_id = $9,
+        is_active = $10,
+        show_on_store = $11,
+        expires_at = $12
+       WHERE id = $13 RETURNING *`,
+      [
+        data.code !== undefined ? data.code.toUpperCase() : existing.code,
+        data.description !== undefined ? data.description : existing.description,
+        data.discountType !== undefined ? data.discountType : existing.discount_type,
+        data.discountValue !== undefined ? data.discountValue : parseFloat(existing.discount_value),
+        data.minOrderValue !== undefined ? data.minOrderValue : parseFloat(existing.min_order_value || '0'),
+        data.maxDiscountCap !== undefined ? data.maxDiscountCap : (existing.max_discount_cap ? parseFloat(existing.max_discount_cap) : null),
+        data.usageLimit !== undefined ? data.usageLimit : existing.usage_limit,
+        data.perUserLimit !== undefined ? data.perUserLimit : (existing.per_user_limit || 1),
+        data.applicableCategoryId !== undefined ? data.applicableCategoryId : existing.applicable_category_id,
+        data.isActive !== undefined ? data.isActive : existing.is_active,
+        data.showOnStore !== undefined ? data.showOnStore : (existing.show_on_store !== false),
+        data.expiresAt !== undefined ? data.expiresAt : existing.expires_at,
+        id
+      ]
+    );
+    return result.rows[0] ? this.mapCoupon(result.rows[0]) : null;
   }
 
   async deleteCoupon(id: number): Promise<boolean> {

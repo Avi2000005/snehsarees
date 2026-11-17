@@ -34,7 +34,7 @@ export const getActiveCoupons = async (req: Request, res: Response, next: NextFu
 
 export const createCoupon = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { code, description, discountType, discountValue, minOrderValue, maxDiscountCap, usageLimit, perUserLimit, applicableCategoryId, isActive, expiresAt } = req.body;
+    const { code, description, discountType, discountValue, minOrderValue, maxDiscountCap, usageLimit, perUserLimit, applicableCategoryId, isActive, showOnStore, expiresAt } = req.body;
     if (!code || !discountType || discountValue === undefined) {
       return res.status(400).json({ error: 'Code, discountType, and discountValue are required.' });
     }
@@ -49,9 +49,23 @@ export const createCoupon = async (req: Request, res: Response, next: NextFuncti
       perUserLimit: perUserLimit ? parseInt(perUserLimit) : 1,
       applicableCategoryId: applicableCategoryId ? parseInt(applicableCategoryId) : undefined,
       isActive: isActive !== false,
+      showOnStore: showOnStore !== false,
       expiresAt
     });
     res.status(201).json(coupon);
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const updateCoupon = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updated = await db.updateCoupon(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Coupon not found.' });
+    }
+    res.json(updated);
   } catch (e) {
     next(e);
   }

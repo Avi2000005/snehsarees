@@ -453,6 +453,7 @@ export class JsonDatabaseAdapter implements IDatabase {
   async getCouponByCode(code: string): Promise<any | null> { return null; }
   async createCoupon(coupon: any): Promise<any> { return { ...coupon, id: Date.now() }; }
   async deleteCoupon(id: number): Promise<boolean> { return true; }
+  async updateCoupon(id: number, data: any): Promise<any | null> { return null; }
   async recordCouponUsage(couponId: number, userId: number, orderId: string): Promise<void> {}
   async getCouponUsageCount(couponId: number, userId: number): Promise<number> { return 0; }
   async incrementCouponUsage(couponId: number): Promise<void> {}

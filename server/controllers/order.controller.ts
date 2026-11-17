@@ -222,7 +222,7 @@ export const createRazorpayOrder = async (req: UserRequest, res: Response, next:
       appliedCouponCode = coupon.code;
     }
 
-    const deliveryFee = (calculatedTotal - discountAmount) >= 2000 ? 0 : 100; // Free for ₹2000+, else ₹100
+    const deliveryFee = calculatedTotal >= 2000 ? 0 : 100; // Free for orders with subtotal ₹2000+, else ₹100
     const finalTotal = Math.max(0, calculatedTotal - discountAmount + deliveryFee);
 
     // Generate proper, professional brand order ID

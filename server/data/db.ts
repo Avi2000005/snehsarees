@@ -63,6 +63,7 @@ class DynamicDatabaseAdapter implements IDatabase {
   getCouponByCode(code: string) { return this.getActiveAdapter().getCouponByCode(code); }
   createCoupon(coupon: any) { return this.getActiveAdapter().createCoupon(coupon); }
   deleteCoupon(id: number) { return this.getActiveAdapter().deleteCoupon(id); }
+  updateCoupon(id: number, data: any) { return this.getActiveAdapter().updateCoupon(id, data); }
   recordCouponUsage(couponId: number, userId: number, orderId: string) { return this.getActiveAdapter().recordCouponUsage(couponId, userId, orderId); }
   getCouponUsageCount(couponId: number, userId: number) { return this.getActiveAdapter().getCouponUsageCount(couponId, userId); }
   incrementCouponUsage(couponId: number) { return this.getActiveAdapter().incrementCouponUsage(couponId); }

@@ -118,6 +118,7 @@ export interface Coupon {
   perUserLimit: number;
   applicableCategoryId?: number;
   isActive: boolean;
+  showOnStore?: boolean;
   expiresAt?: string;
   createdAt: string;
 }

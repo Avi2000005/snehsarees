@@ -20,7 +20,7 @@ import {
 import { getInquiries } from '../controllers/inquiry.controller';
 import { createCategory, updateCategory, deleteCategory, uploadCategoryImage } from '../controllers/category.controller';
 import { getAllBanners, createBanner, updateBanner, deleteBanner, getAllOffers, createOffer, updateOffer, deleteOffer } from '../controllers/offer.controller';
-import { getCoupons, createCoupon, deleteCoupon } from '../controllers/coupon.controller';
+import { getCoupons, createCoupon, updateCoupon, deleteCoupon } from '../controllers/coupon.controller';
 import { getStoreSettings, updateStoreSettings } from '../controllers/settings.controller';
 import { getAllReviews, deleteReview } from '../controllers/review.controller';
 import { getAllReels, createReel, updateReel, deleteReel } from '../controllers/reel.controller';
@@ -84,6 +84,8 @@ router.post('/settings', updateStoreSettings);
 // Coupons CRUD
 router.get('/coupons', getCoupons);
 router.post('/coupons', createCoupon);
+router.put('/coupons/:id', updateCoupon);
+router.patch('/coupons/:id', updateCoupon);
 router.delete('/coupons/:id', deleteCoupon);
 
 // Reviews Admin

@@ -286,10 +286,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   };
 
   const getDeliveryFee = () => {
-    const sub = getSubtotal();
-    const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-    // Match backend logic: delivery free when post-discount subtotal >= ₹2000
-    return Math.max(0, sub - discount) >= 2000 ? 0 : 100;
+    // Free delivery for orders with subtotal ₹2000+, else ₹100
+    return getSubtotal() >= 2000 ? 0 : 100;
   };
 
   const getFinalTotal = () => {
