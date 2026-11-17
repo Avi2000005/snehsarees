@@ -396,9 +396,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     const initialColour = (variantsList[0]?.colour) || p.colour || '';
     setSelectedColour(initialColour);
 
-    const initialGalleryImg = (p.galleryImages && Array.isArray(p.galleryImages) && p.galleryImages[0])
+    const initialGalleryImg = p.image
+      || (p.galleryImages && Array.isArray(p.galleryImages) && p.galleryImages[0])
       || (variantsList[0]?.image)
-      || p.image
       || '';
     setDisplayImage(initialGalleryImg);
 
@@ -555,23 +555,36 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     return p.variants.filter((v) => v.colour && v.colour.trim() && v.image && v.image.trim());
   }, [p]);
 
-  // Model / Advertisement Gallery Images strictly from API (p.galleryImages, with fallback to p.image)
+  // Unified product gallery images: combines primary photo, model/gallery photos, and all colour variants
+  // This guarantees that all colours and photos remain 100% consistent across direct navigation and page reloads
   const modelGalleryImages: string[] = React.useMemo(() => {
     if (!p) return [];
-    if (p.galleryImages && Array.isArray(p.galleryImages) && p.galleryImages.length > 0) {
-      const valid = p.galleryImages.filter((img) => typeof img === 'string' && img.trim().length > 0);
-      if (valid.length > 0) return valid;
-    }
     const list: string[] = [];
-    if (p.image && p.image.trim()) list.push(p.image.trim());
+
+    // 1. Primary saree image first
+    if (p.image && typeof p.image === 'string' && p.image.trim()) {
+      list.push(p.image.trim());
+    }
+
+    // 2. Extra gallery images (model angles, pallu details, closeups)
+    if (p.galleryImages && Array.isArray(p.galleryImages)) {
+      p.galleryImages.forEach((img) => {
+        if (typeof img === 'string' && img.trim() && !list.includes(img.trim())) {
+          list.push(img.trim());
+        }
+      });
+    }
+
+    // 3. All colour variant images so every colour is accessible and scrollable
     if (p.variants && Array.isArray(p.variants)) {
       p.variants.forEach((v) => {
-        if (v.image && v.image.trim() && !list.includes(v.image.trim())) {
+        if (v.image && typeof v.image === 'string' && v.image.trim() && !list.includes(v.image.trim())) {
           list.push(v.image.trim());
         }
       });
     }
-    return list;
+
+    return list.length > 0 ? list : (p.image ? [p.image] : []);
   }, [p]);
 
   const activeVariant = colourVariants.find(
@@ -646,7 +659,14 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     const clampedIdx = Math.max(0, Math.min(idx, modelGalleryImages.length - 1));
     isProgrammaticScroll.current = true;
     setActiveMediaIndex(clampedIdx);
-    setDisplayImage(modelGalleryImages[clampedIdx]);
+    const chosenImg = modelGalleryImages[clampedIdx];
+    setDisplayImage(chosenImg);
+
+    // Synchronize selected colour if the slide corresponds to a variant
+    const matchedVariant = colourVariants.find((v) => v.image === chosenImg);
+    if (matchedVariant && matchedVariant.colour) {
+      setSelectedColour(matchedVariant.colour);
+    }
 
     const el = galleryScrollRef.current;
     const targetLeft = clampedIdx * el.clientWidth;
@@ -666,7 +686,14 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     const newIdx = Math.round(el.scrollLeft / el.clientWidth);
     if (newIdx !== activeMediaIndex && newIdx >= 0 && newIdx < modelGalleryImages.length) {
       setActiveMediaIndex(newIdx);
-      setDisplayImage(modelGalleryImages[newIdx]);
+      const chosenImg = modelGalleryImages[newIdx];
+      setDisplayImage(chosenImg);
+
+      // Synchronize selected colour if the slide corresponds to a variant
+      const matchedVariant = colourVariants.find((v) => v.image === chosenImg);
+      if (matchedVariant && matchedVariant.colour) {
+        setSelectedColour(matchedVariant.colour);
+      }
     }
   };
 
@@ -788,15 +815,6 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     }
   };
 
-  const activeImageDims = imgNaturalDims[currentImageUrl] || (
-    p && p.image === currentImageUrl && p.imageWidth && p.imageHeight
-      ? { width: p.imageWidth, height: p.imageHeight }
-      : undefined
-  );
-  const containerAspectRatio = activeImageDims
-    ? `${activeImageDims.width} / ${activeImageDims.height}`
-    : (p?.imageWidth && p?.imageHeight ? `${p.imageWidth} / ${p.imageHeight}` : undefined);
-
   // handleTouchEnd for horizontal swipe navigation through model gallery images
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (modelGalleryImages.length <= 1) return;
@@ -913,9 +931,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         <div className="p-4 md:p-6 bg-[#FAF6F0] flex flex-col justify-start border-b md:border-b-0 md:border-r border-[#E8E0D5]">
           {/* Main Display Image */}
           <div
-            className="pd-media-section relative w-full rounded-2xl overflow-hidden bg-[#FAF6F0] border border-[#E8E0D5] shadow-xs group transition-[aspect-ratio,height] duration-300 ease-in-out"
+            className="pd-media-section relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-[#FAF6F0] border border-[#E8E0D5] shadow-xs select-none"
             style={{
-              aspectRatio: currentMedia.type === 'video' ? '16 / 9' : containerAspectRatio
+              aspectRatio: currentMedia.type === 'video' ? '16 / 9' : '4 / 5'
             }}
           >
             {currentMedia.type === 'video' ? (
@@ -958,25 +976,20 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerCancel}
                 onPointerLeave={handlePointerCancel}
-                className={`w-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scroll select-none ${
+                className={`w-full h-full flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scroll select-none ${
                   modelGalleryImages.length > 1
                     ? isDragging
                       ? 'cursor-grabbing'
                       : 'cursor-grab'
                     : ''
                 }`}
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'pan-y' }}
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', touchAction: 'pan-x pan-y' }}
               >
                 {modelGalleryImages.map((imgUrl, idx) => {
-                  const dims = imgNaturalDims[imgUrl] || (
-                    p.image === imgUrl && p.imageWidth && p.imageHeight
-                      ? { width: p.imageWidth, height: p.imageHeight }
-                      : undefined
-                  );
                   return (
                     <div
                       key={idx}
-                      className="w-full shrink-0 snap-center flex items-center justify-center bg-[#FAF6F0]"
+                      className="w-full h-full shrink-0 snap-center flex items-center justify-center p-2 bg-[#FAF6F0]"
                     >
                       <img
                         src={imgUrl}
@@ -985,36 +998,26 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         // @ts-ignore
                         fetchpriority={idx === 0 ? 'high' : 'auto'}
                         decoding={idx === 0 ? 'sync' : 'async'}
-                        width={dims?.width || 800}
-                        height={dims?.height || 1000}
                         draggable={false}
                         onDragStart={(e) => e.preventDefault()}
-                        onLoad={(e) => {
-                          const img = e.currentTarget;
-                          if (img.naturalWidth && img.naturalHeight) {
-                            setImgNaturalDims((prev) => ({
-                              ...prev,
-                              [imgUrl]: { width: img.naturalWidth, height: img.naturalHeight }
-                            }));
-                          }
-                        }}
                         style={{
-                          width: '100%',
+                          maxWidth: '100%',
+                          maxHeight: '100%',
+                          width: 'auto',
                           height: 'auto',
-                          display: 'block',
                           objectFit: 'contain',
                           userSelect: 'none',
                           WebkitUserDrag: 'none'
                         } as React.CSSProperties}
-                        className="w-full h-auto block select-none pointer-events-none"
+                        className="max-w-full max-h-full w-auto h-auto object-contain block select-none pointer-events-none drop-shadow-xs"
                       />
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="w-full shrink-0 flex items-center justify-center bg-[#FAF6F0]">
-                <ProductThumbnail id={p.id} imageUrl={p.image} priority={true} className="w-full h-full" />
+              <div className="w-full h-full shrink-0 flex items-center justify-center bg-[#FAF6F0] p-2">
+                <ProductThumbnail id={p.id} imageUrl={p.image} priority={true} className="max-w-full max-h-full w-auto h-auto object-contain" />
               </div>
             )}
 
